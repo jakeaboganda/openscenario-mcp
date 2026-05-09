@@ -73,6 +73,14 @@ impl Scenario {
     pub fn add_vehicle(&mut self, name: impl Into<String>, params: VehicleParams) -> Result<()> {
         let name = name.into();
 
+        // Validate name is not empty
+        if name.trim().is_empty() {
+            return Err(ScenarioError::InvalidValue {
+                field: "entity name".to_string(),
+                reason: "name cannot be empty or whitespace-only".to_string(),
+            });
+        }
+
         // Check for entity conflict
         if self.entities.contains_key(&name) {
             return Err(ScenarioError::EntityConflict {
@@ -183,6 +191,14 @@ impl Scenario {
 
     pub fn add_story(&mut self, name: impl Into<String>) -> Result<()> {
         let name = name.into();
+
+        // Validate name is not empty
+        if name.trim().is_empty() {
+            return Err(ScenarioError::InvalidValue {
+                field: "story name".to_string(),
+                reason: "name cannot be empty or whitespace-only".to_string(),
+            });
+        }
 
         if self.storyboard.stories.contains_key(&name) {
             return Err(ScenarioError::StoryNotFound {
@@ -344,6 +360,15 @@ impl Scenario {
                 context: format!("Act in story '{}'", story_name),
             })?;
 
+        // Check for duplicate maneuver group name
+        if act.maneuver_groups.contains_key(&mg_name) {
+            return Err(ScenarioError::NameConflict {
+                item_type: "ManeuverGroup".to_string(),
+                name: mg_name,
+                context: format!("act '{}'", act_name),
+            });
+        }
+
         act.maneuver_groups
             .insert(mg_name.clone(), ManeuverGroup::new(mg_name));
         Ok(())
@@ -468,6 +493,20 @@ impl Scenario {
         let maneuver_name = maneuver.into();
         let event_name = event.into();
 
+        // Validate numeric parameters
+        if target_speed < 0.0 {
+            return Err(ScenarioError::InvalidValue {
+                field: "target_speed".to_string(),
+                reason: format!("speed cannot be negative (got {})", target_speed),
+            });
+        }
+        if duration <= 0.0 {
+            return Err(ScenarioError::InvalidValue {
+                field: "duration".to_string(),
+                reason: format!("duration must be positive (got {})", duration),
+            });
+        }
+
         // Collect keys FIRST to avoid borrow checker issues
         let available: Vec<String> = self.storyboard.stories.keys().cloned().collect();
 
@@ -543,6 +582,14 @@ impl Scenario {
         let mg_name = mg.into();
         let maneuver_name = maneuver.into();
         let event_name = event.into();
+
+        // Validate duration
+        if duration <= 0.0 {
+            return Err(ScenarioError::InvalidValue {
+                field: "duration".to_string(),
+                reason: format!("duration must be positive (got {})", duration),
+            });
+        }
 
         // Collect keys FIRST to avoid borrow checker issues
         let available: Vec<String> = self.storyboard.stories.keys().cloned().collect();

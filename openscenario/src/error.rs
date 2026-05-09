@@ -55,6 +55,16 @@ pub enum ScenarioError {
         available: Vec<String>,
     },
 
+    #[error("Invalid value for {field}: {reason}")]
+    InvalidValue { field: String, reason: String },
+
+    #[error("Name conflict: {item_type} '{name}' already exists in {context}")]
+    NameConflict {
+        item_type: String,
+        name: String,
+        context: String,
+    },
+
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 

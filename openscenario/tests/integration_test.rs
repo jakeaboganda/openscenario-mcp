@@ -133,12 +133,13 @@ fn test_relative_position_scenario() {
 // ========== Negative Test Cases ==========
 
 #[test]
-#[ignore]
-#[should_panic(expected = "Entity not found")]
 fn test_set_position_for_nonexistent_entity() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
     let pos = Position::world(0.0, 0.0, 0.0, 0.0);
-    scenario.set_initial_position("nonexistent", pos).unwrap();
+    let result = scenario.set_initial_position("nonexistent", pos);
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("Entity") && err.contains("not found"), "Expected error message about entity not found, got: {}", err);
 }
 
 #[test]
@@ -159,7 +160,6 @@ fn test_duplicate_vehicle_name() {
 }
 
 #[test]
-#[ignore]
 fn test_empty_entity_name() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
     let params = VehicleParams {
@@ -173,7 +173,6 @@ fn test_empty_entity_name() {
 }
 
 #[test]
-#[ignore]
 fn test_add_story_with_empty_name() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
     let result = scenario.add_story("");
@@ -208,7 +207,6 @@ fn test_add_actor_with_nonexistent_entity() {
 }
 
 #[test]
-#[ignore]
 fn test_speed_action_with_invalid_parameters() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
     let params = VehicleParams {
@@ -235,7 +233,6 @@ fn test_speed_action_with_invalid_parameters() {
 }
 
 #[test]
-#[ignore]
 fn test_speed_action_with_zero_duration() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
     let params = VehicleParams {
@@ -262,7 +259,6 @@ fn test_speed_action_with_zero_duration() {
 }
 
 #[test]
-#[ignore]
 fn test_lane_change_action_with_invalid_duration() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
     let params = VehicleParams {
@@ -430,7 +426,6 @@ fn test_add_maneuver_to_nonexistent_maneuver_group() {
 }
 
 #[test]
-#[ignore]
 fn test_hierarchical_name_conflicts() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
     
