@@ -336,6 +336,33 @@ fn test_xml_generation_without_storyboard() {
 }
 
 #[test]
+fn test_whitespace_normalization() {
+    let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
+    let params = VehicleParams {
+        catalog: None,
+        vehicle_category: VehicleCategory::Car,
+        properties: None,
+    };
+    
+    // Add vehicle with trailing/leading whitespace
+    scenario.add_vehicle("  car  ", params.clone()).unwrap();
+    
+    // Should be able to reference it with trimmed name
+    let pos = Position::world(0.0, 0.0, 0.0, 0.0);
+    let result = scenario.set_initial_position("car", pos);
+    assert!(result.is_ok(), "Should find 'car' after whitespace normalization");
+    
+    // Should also find with whitespace in reference
+    let pos2 = Position::world(1.0, 1.0, 0.0, 0.0);
+    let result2 = scenario.set_initial_position("  car  ", pos2);
+    assert!(result2.is_ok(), "Should find '  car  ' after normalization");
+    
+    // Verify entity is stored with trimmed name
+    assert!(scenario.get_entity("car").is_some());
+    assert!(scenario.get_entity("  car  ").is_none(), "Should NOT find un-normalized name");
+}
+
+#[test]
 fn test_entity_without_initial_position() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
     let params = VehicleParams {

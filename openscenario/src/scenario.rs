@@ -73,13 +73,16 @@ impl Scenario {
     pub fn add_vehicle(&mut self, name: impl Into<String>, params: VehicleParams) -> Result<()> {
         let name = name.into();
 
-        // Validate name is not empty
+        // Validate name is not empty (trim for validation)
         if name.trim().is_empty() {
             return Err(ScenarioError::InvalidValue {
                 field: "entity name".to_string(),
                 reason: "name cannot be empty or whitespace-only".to_string(),
             });
         }
+
+        // Normalize: store trimmed name for consistency
+        let name = name.trim().to_string();
 
         // Check for entity conflict
         if self.entities.contains_key(&name) {
@@ -105,6 +108,17 @@ impl Scenario {
     ) -> Result<()> {
         let name = name.into();
 
+        // Validate name is not empty
+        if name.trim().is_empty() {
+            return Err(ScenarioError::InvalidValue {
+                field: "entity name".to_string(),
+                reason: "name cannot be empty or whitespace-only".to_string(),
+            });
+        }
+
+        // Normalize: store trimmed name
+        let name = name.trim().to_string();
+
         if self.entities.contains_key(&name) {
             return Err(ScenarioError::EntityConflict {
                 name,
@@ -127,6 +141,17 @@ impl Scenario {
         params: MiscObjectParams,
     ) -> Result<()> {
         let name = name.into();
+
+        // Validate name is not empty
+        if name.trim().is_empty() {
+            return Err(ScenarioError::InvalidValue {
+                field: "entity name".to_string(),
+                reason: "name cannot be empty or whitespace-only".to_string(),
+            });
+        }
+
+        // Normalize: store trimmed name
+        let name = name.trim().to_string();
 
         if self.entities.contains_key(&name) {
             return Err(ScenarioError::EntityConflict {
@@ -167,6 +192,17 @@ impl Scenario {
     ) -> Result<()> {
         let entity = entity.into();
 
+        // Validate entity name is not empty
+        if entity.trim().is_empty() {
+            return Err(ScenarioError::InvalidValue {
+                field: "entity reference".to_string(),
+                reason: "entity name cannot be empty or whitespace-only".to_string(),
+            });
+        }
+
+        // Normalize for lookup
+        let entity = entity.trim().to_string();
+
         // Check entity exists
         if !self.entities.contains_key(&entity) {
             return Err(ScenarioError::EntityNotFound {
@@ -199,6 +235,9 @@ impl Scenario {
                 reason: "name cannot be empty or whitespace-only".to_string(),
             });
         }
+
+        // Normalize: store trimmed name
+        let name = name.trim().to_string();
 
         if self.storyboard.stories.contains_key(&name) {
             return Err(ScenarioError::StoryNotFound {
@@ -385,6 +424,17 @@ impl Scenario {
         let act_name = act.into();
         let mg_name = mg.into();
         let entity_name = entity.into();
+
+        // Validate entity name is not empty
+        if entity_name.trim().is_empty() {
+            return Err(ScenarioError::InvalidValue {
+                field: "entity reference".to_string(),
+                reason: "entity name cannot be empty or whitespace-only".to_string(),
+            });
+        }
+
+        // Normalize entity name for lookup
+        let entity_name = entity_name.trim().to_string();
 
         // Validate entity exists
         if !self.entities.contains_key(&entity_name) {
