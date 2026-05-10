@@ -633,13 +633,23 @@ impl Scenario {
                 // Write <EntityCondition>
                 writer.write_event(XmlEvent::Start(BytesStart::new("EntityCondition")))?;
                 
-                // Write specific condition (SpeedCondition for now)
+                // Write specific condition
                 match &by_entity.entity_condition {
                     crate::storyboard::EntityCondition::Speed(speed_cond) => {
                         let mut speed_elem = BytesStart::new("SpeedCondition");
                         speed_elem.push_attribute(("value", speed_cond.value.to_string().as_str()));
                         speed_elem.push_attribute(("rule", rule_to_string(&speed_cond.rule)));
                         writer.write_event(XmlEvent::Empty(speed_elem))?;
+                    }
+                    crate::storyboard::EntityCondition::ReachPosition(reach_cond) => {
+                        let mut reach_elem = BytesStart::new("ReachPositionCondition");
+                        reach_elem.push_attribute(("tolerance", reach_cond.tolerance.to_string().as_str()));
+                        writer.write_event(XmlEvent::Start(reach_elem))?;
+                        
+                        // Write the target position
+                        self.write_position(writer, &reach_cond.position)?;
+                        
+                        writer.write_event(XmlEvent::End(BytesEnd::new("ReachPositionCondition")))?;
                     }
                 }
                 

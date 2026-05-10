@@ -2,8 +2,10 @@ use crate::entities::{
     Entity, MiscObject, MiscObjectParams, Pedestrian, PedestrianParams, Vehicle, VehicleParams,
 };
 use crate::storyboard::{
-    Act, Action, DistanceAction, Event, LaneChangeAction, Maneuver, ManeuverGroup, PositionAction,
-    SpeedAction, Story, Storyboard, TransitionShape,
+    Act, Action, ByEntityCondition, Condition, ConditionEdge, ConditionGroup, ConditionKind,
+    DistanceAction, EntityCondition, Event, LaneChangeAction, Maneuver, ManeuverGroup,
+    PositionAction, ReachPositionCondition, SpeedAction, Story, Storyboard, TransitionShape,
+    Trigger, TriggeringEntities, TriggeringEntitiesRule,
 };
 use crate::Position;
 use crate::{OpenScenarioVersion, Result, ScenarioError};
@@ -1422,6 +1424,160 @@ impl Scenario {
                 state,
                 delay,
             ));
+    }
+
+    /// Add an event with a reach position condition trigger.
+    ///
+    /// Creates an event that triggers when the specified entity reaches
+    /// the target position within the given tolerance.
+    #[allow(clippy::too_many_arguments)]
+    pub fn add_event_with_reach_position_condition(
+        &mut self,
+        story: impl Into<String>,
+        act: impl Into<String>,
+        mg: impl Into<String>,
+        maneuver: impl Into<String>,
+        event: impl Into<String>,
+        entity_ref: impl Into<String>,
+        position: Position,
+        tolerance: f64,
+    ) -> Result<()> {
+        self.add_event_with_reach_position_condition_advanced(
+            story,
+            act,
+            mg,
+            maneuver,
+            event,
+            entity_ref,
+            position,
+            tolerance,
+            ConditionEdge::None,
+            0.0,
+        )
+    }
+
+    /// Add an event with a reach position condition trigger (advanced).
+    ///
+    /// Creates an event with full control over condition edge and delay.
+    #[allow(clippy::too_many_arguments)]
+    pub fn add_event_with_reach_position_condition_advanced(
+        &mut self,
+        story: impl Into<String>,
+        act: impl Into<String>,
+        mg: impl Into<String>,
+        maneuver: impl Into<String>,
+        event: impl Into<String>,
+        entity_ref: impl Into<String>,
+        position: Position,
+        tolerance: f64,
+        edge: ConditionEdge,
+        delay: f64,
+    ) -> Result<()> {
+        let story_name = story.into();
+        let act_name = act.into();
+        let mg_name = mg.into();
+        let maneuver_name = maneuver.into();
+        let event_name = event.into();
+        let entity_name = entity_ref.into();
+
+        // Validate tolerance (must be non-negative)
+        if tolerance < 0.0 {
+            return Err(ScenarioError::InvalidValue {
+                field: "tolerance".to_string(),
+                reason: format!("tolerance cannot be negative (got {})", tolerance),
+            });
+        }
+
+        // Validate entity exists
+        let available: Vec<String> = self.entities.keys().cloned().collect();
+        if !self.entities.contains_key(&entity_name) {
+            return Err(ScenarioError::InvalidEntityRef {
+                entity: entity_name.clone(),
+                available,
+            });
+        }
+
+        // Get story
+        let story_keys: Vec<String> = self.storyboard.stories.keys().cloned().collect();
+        let story = self
+            .storyboard
+            .stories
+            .get_mut(&story_name)
+            .ok_or_else(|| ScenarioError::StoryNotFound {
+                name: story_name.clone(),
+                available: story_keys,
+            })?;
+
+        let act = story
+            .acts
+            .get_mut(&act_name)
+            .ok_or_else(|| ScenarioError::EntityNotFound {
+                entity: act_name.clone(),
+                context: format!("Act in story '{}'", story_name),
+            })?;
+
+        let mg = act
+            .maneuver_groups
+            .get_mut(&mg_name)
+            .ok_or_else(|| ScenarioError::EntityNotFound {
+                entity: mg_name.clone(),
+                context: format!("ManeuverGroup in act '{}'", act_name),
+            })?;
+
+        let maneuver = mg
+            .maneuvers
+            .iter_mut()
+            .find(|m| m.name == maneuver_name)
+            .ok_or_else(|| ScenarioError::EntityNotFound {
+                entity: maneuver_name.clone(),
+                context: format!("Maneuver in ManeuverGroup '{}'", mg_name),
+            })?;
+
+        // Create the reach position condition
+        let reach_condition = ReachPositionCondition {
+            position,
+            tolerance,
+        };
+
+        let entity_condition = EntityCondition::ReachPosition(reach_condition);
+
+        let triggering_entities = TriggeringEntities {
+            rule: TriggeringEntitiesRule::Any,
+            entity_refs: vec![entity_name],
+        };
+
+        let by_entity_condition = ByEntityCondition {
+            triggering_entities,
+            entity_condition,
+        };
+
+        let condition = Condition {
+            name: format!("{}Condition", event_name),
+            delay,
+            condition_edge: edge,
+            kind: ConditionKind::ByEntity(by_entity_condition),
+        };
+
+        let condition_group = ConditionGroup {
+            conditions: vec![condition],
+        };
+
+        let trigger = Trigger {
+            condition_groups: vec![condition_group],
+        };
+
+        // Create or update event
+        if let Some(event) = maneuver.events.iter_mut().find(|e| e.name == event_name) {
+            event.start_trigger = Some(trigger);
+        } else {
+            maneuver.events.push(Event {
+                name: event_name,
+                actions: vec![],
+                start_trigger: Some(trigger),
+            });
+        }
+
+        Ok(())
     }
 }
 

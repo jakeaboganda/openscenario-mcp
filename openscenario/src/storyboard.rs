@@ -420,7 +420,7 @@ impl Condition {
 }
 
 /// When a condition should be evaluated
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum ConditionEdge {
     None,
     Rising,
@@ -509,15 +509,29 @@ pub struct SpeedCondition {
     pub rule: Rule,
 }
 
+/// Reach position condition checks if entity reaches a target position.
+///
+/// Triggers when the triggering entity enters a tolerance sphere around
+/// the target position. Position can be in any coordinate system (world, lane, road, etc.).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ReachPositionCondition {
+    /// Target position to reach
+    pub position: Position,
+    /// Tolerance radius in meters (distance from position center)
+    pub tolerance: f64,
+}
+
 /// Entity-based condition types.
 ///
 /// Represents different conditions that can be checked against entity state.
-/// Currently supports speed; more variants to be added in future phases.
+/// Currently supports speed and reach position conditions.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum EntityCondition {
     /// Speed-based condition
     Speed(SpeedCondition),
-    // Future: Acceleration, ReachPosition, etc.
+    /// Position-reaching condition
+    ReachPosition(ReachPositionCondition),
+    // Future: Acceleration, TimeToCollision, etc.
 }
 
 /// By-entity condition with triggering entities.
