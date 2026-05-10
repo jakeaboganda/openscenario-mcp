@@ -299,7 +299,7 @@ osc-mcp/
 │   │   ├── xml.rs             # XML export (2 functions)
 │   │   ├── version.rs         # Version detection
 │   │   └── opendrive_validator.rs  # OpenDRIVE validation
-│   ├── tests/                 # 311 passing tests
+│   ├── tests/                 # 436 passing tests (302 integration + 125 doc + 9 unit)
 │   │   ├── integration_test.rs
 │   │   ├── relative_distance_condition_test.rs
 │   │   ├── time_headway_condition_test.rs
@@ -317,7 +317,7 @@ osc-mcp/
 ## Testing
 
 ```bash
-# Run all tests (311 tests)
+# Run all tests (436 tests total)
 cargo test
 
 # Run doc tests (125 tests)
@@ -334,8 +334,8 @@ cargo test -- --nocapture
 ```
 
 **Test Coverage:**
-- **311 unit/integration tests** covering all features
-- **125 documentation tests** ensuring examples compile and run
+- **436 total tests**: 302 integration tests, 125 documentation tests, 9 unit tests
+- **100% test coverage** of all features and API examples
 - **100% public API documentation** with runnable examples
 
 ## MCP Server
@@ -374,7 +374,7 @@ See [openscenario-mcp/README.md](openscenario-mcp/README.md) for detailed setup 
 - [x] Entity system (Vehicle/Pedestrian/MiscObject)
 - [x] XML export
 - [x] 100% API documentation with examples
-- [x] 311 passing tests
+- [x] 436 passing tests (302 integration + 125 doc + 9 unit)
 
 ### 🔄 In Progress (Milestone 4-5)
 - [ ] Additional condition types (Speed, Distance, etc.)
@@ -425,4 +425,4 @@ at your option.
 
 ---
 
-**Status**: 🚀 Production-ready API with comprehensive documentation and 311 passing tests.
+**Status**: 🚀 Production-ready API with comprehensive documentation and 436 passing tests.
