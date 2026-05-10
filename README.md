@@ -1,13 +1,123 @@
 # OpenSCENARIO MCP Server
 
-A comprehensive Rust library and MCP server for generating, validating, and exporting OpenSCENARIO test scenarios for autonomous driving simulation.
+**AI-powered OpenSCENARIO scenario generation for autonomous driving simulation - no coding required.**
+
+Use natural language with AI assistants (Claude, ChatGPT, OpenClaw) to create complex test scenarios via the Model Context Protocol. For advanced users, a comprehensive Rust library provides programmatic control.
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
 
-## Features
+---
 
-### Core Library (`openscenario`)
+## 🤖 MCP Server (Primary Interface)
+
+The **primary way to use this project**. Talk to AI assistants to create OpenSCENARIO test scenarios through natural conversation - no Rust coding required.
+
+### What is MCP?
+
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) lets AI assistants like Claude, ChatGPT, or OpenClaw use specialized tools. This server provides 7 tools for building autonomous driving test scenarios.
+
+### Quick Start with MCP
+
+```bash
+# 1. Build and install the MCP server
+git clone https://github.com/jakeaboganda/osc-mcp.git
+cd osc-mcp
+cargo build --release
+
+# 2. Start the server
+cargo run --release --bin openscenario-mcp
+
+# 3. Connect from your AI assistant (OpenClaw, Claude Desktop, etc.)
+# See MCP setup guide below
+
+# 4. Start creating scenarios with natural language!
+```
+
+### Example: Creating an ACC Scenario with AI
+
+```
+You: Create a highway ACC test scenario with two vehicles
+
+AI: [Uses create_scenario tool]
+    Created scenario "highway_acc" with OpenSCENARIO 1.2
+
+You: Add a lead vehicle at position x=50, y=0 and a follower at x=0, y=0
+
+AI: [Uses add_vehicle and set_position tools]
+    Added "lead_vehicle" at (50, 0, 0)
+    Added "follower_vehicle" at (0, 0, 0)
+
+You: Make the follower maintain a 2-second time headway from the lead
+
+AI: [Uses internal condition tools]
+    Added time headway condition with 2.0s threshold
+    Configured speed profile action for ACC behavior
+
+You: Export to acc_scenario.xosc
+
+AI: [Uses export_xml tool]
+    ✅ Exported to acc_scenario.xosc
+```
+
+**No Rust coding required!** The AI assistant handles all the technical details.
+
+### MCP Tools Available
+
+1. **`create_scenario`** - Start a new scenario (OpenSCENARIO 1.0/1.1/1.2)
+2. **`add_vehicle`** - Add vehicles with optional catalog references
+3. **`set_position`** - Set entity positions (world/lane/road coordinates)
+4. **`add_speed_action`** - Define speed change behaviors
+5. **`add_lane_change_action`** - Define lane change maneuvers
+6. **`export_xml`** - Export scenarios to .xosc files
+7. **`validate_scenario`** - Validate against OpenSCENARIO XSD schemas
+
+### MCP Setup
+
+#### For OpenClaw
+
+Add to your OpenClaw configuration:
+
+```yaml
+mcp:
+  servers:
+    openscenario:
+      command: /path/to/osc-mcp/target/release/openscenario-mcp
+      env: {}
+```
+
+#### For Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "openscenario": {
+      "command": "/path/to/osc-mcp/target/release/openscenario-mcp"
+    }
+  }
+}
+```
+
+#### For Custom MCP Clients
+
+The server communicates via JSON-RPC over stdio. See [openscenario-mcp/README.md](openscenario-mcp/README.md) for detailed integration instructions.
+
+---
+
+## 🦀 Rust Library (Advanced Users)
+
+For developers who need programmatic control, the underlying Rust library provides a comprehensive API for building OpenSCENARIO scenarios in code.
+
+### When to Use the Rust Library
+
+- Building automated test generation pipelines
+- Integrating OpenSCENARIO into existing Rust projects
+- Requiring fine-grained control over scenario details
+- Generating thousands of scenario variants programmatically
+
+### Library Features
 
 - ✅ **Multi-version support**: OpenSCENARIO 1.0, 1.1, 1.2 with automatic version detection
 - ✅ **Complete entity system**: Vehicle, Pedestrian, MiscObject with full property support
@@ -23,29 +133,18 @@ A comprehensive Rust library and MCP server for generating, validating, and expo
 - ✅ **Fail-fast validation**: Immediate feedback on conflicts and missing references
 - ✅ **100% documented**: Complete rustdoc coverage for all 136 public APIs
 
-### MCP Server (`openscenario-mcp`)
-
-- 🔄 **AI-driven scenario generation** via Model Context Protocol
-- 🔄 **7 MCP tools** for scenario construction and validation
-- 🔄 **JSON-RPC over stdio** for seamless AI agent integration
-
-## Quick Start
-
-### Installation
+### Library Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/jakeaboganda/osc-mcp.git
-cd osc-mcp
-
-# Build the project
-cargo build --release
-
-# Run tests
-cargo test
+# Add to your Cargo.toml
+[dependencies]
+openscenario = { path = "path/to/osc-mcp/openscenario" }
+# Or once published: openscenario = "0.1"
 ```
 
-### Hello World Example
+### Library Examples
+
+#### Hello World Example
 
 Create a simple scenario with one vehicle:
 
@@ -80,7 +179,7 @@ fn main() -> Result<(), openscenario::ScenarioError> {
 }
 ```
 
-### Lane Change Example
+### Lane Change Example (Rust Library)
 
 Create a vehicle that performs a lane change:
 
@@ -130,7 +229,7 @@ fn main() -> Result<(), openscenario::ScenarioError> {
 }
 ```
 
-### Adaptive Cruise Control (ACC) Example
+### Adaptive Cruise Control Example (Rust Library)
 
 Create a following vehicle with time headway condition:
 
@@ -338,31 +437,7 @@ cargo test -- --nocapture
 - **100% test coverage** of all features and API examples
 - **100% public API documentation** with runnable examples
 
-## MCP Server
-
-The MCP server provides AI-driven scenario generation capabilities via the Model Context Protocol.
-
-### Available Tools
-
-1. **create_scenario** - Create a new scenario
-2. **add_vehicle** - Add vehicles with catalog support
-3. **set_position** - Set entity positions
-4. **add_speed_action** - Add speed change actions
-5. **add_lane_change_action** - Add lane change actions
-6. **export_xml** - Export to .xosc files
-7. **validate_scenario** - Validate against XSD schemas
-
-### Usage
-
-```bash
-# Start the MCP server
-cargo run --release --bin openscenario-mcp
-
-# The server communicates via JSON-RPC over stdio
-# Connect from OpenClaw, Claude Desktop, or any MCP-compatible client
-```
-
-See [openscenario-mcp/README.md](openscenario-mcp/README.md) for detailed setup instructions.
+---
 
 ## Roadmap
 
