@@ -37,6 +37,17 @@ pub struct Scenario {
 }
 
 impl Scenario {
+    /// Creates a new OpenSCENARIO scenario.
+    ///
+    /// # Arguments
+    /// * `version` - OpenSCENARIO specification version (V1_0, V1_1, or V1_2)
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    ///
+    /// let scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// ```
     pub fn new(version: OpenScenarioVersion) -> Self {
         Self {
             version,
@@ -47,10 +58,47 @@ impl Scenario {
         }
     }
 
+    /// Returns the OpenSCENARIO version of this scenario.
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    ///
+    /// let scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// assert_eq!(scenario.version(), OpenScenarioVersion::V1_2);
+    /// ```
     pub fn version(&self) -> OpenScenarioVersion {
         self.version
     }
 
+    /// Adds a parameter declaration to the scenario.
+    ///
+    /// Parameters can be used for runtime configuration of scenario values.
+    /// Parameter names must be unique within the scenario.
+    ///
+    /// # Arguments
+    /// * `name` - Unique parameter name
+    /// * `parameter_type` - Type of the parameter (Integer, Double, String, Boolean, etc.)
+    /// * `value` - Default value as a string
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError::ParameterConflict)` if parameter name already exists
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion, ParameterType};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// scenario.add_parameter("MaxSpeed", ParameterType::Double, "60.0")?;
+    /// scenario.add_parameter("EnableACC", ParameterType::Boolean, "true")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::ParameterConflict` - If a parameter with the same name already exists
     pub fn add_parameter(
         &mut self,
         name: impl Into<String>,
@@ -73,6 +121,41 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a vehicle entity to the scenario.
+    ///
+    /// Vehicles are the primary entity type for automotive scenarios.
+    /// Entity names must be unique across all entities in the scenario.
+    ///
+    /// # Arguments
+    /// * `name` - Unique entity name (whitespace is trimmed)
+    /// * `params` - Vehicle parameters (category, catalog reference, properties)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// 
+    /// let vehicle_params = VehicleParams {
+    ///     catalog: None,
+    ///     vehicle_category: VehicleCategory::Car,
+    ///     properties: None,
+    /// };
+    /// 
+    /// scenario.add_vehicle("ego_vehicle", vehicle_params)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If name is empty or whitespace-only
+    /// * `ScenarioError::EntityConflict` - If an entity with this name already exists
     pub fn add_vehicle(&mut self, name: impl Into<String>, params: VehicleParams) -> Result<()> {
         let name = name.into();
 
@@ -104,6 +187,41 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a pedestrian entity to the scenario.
+    ///
+    /// Pedestrians represent human actors in the scenario (e.g., crossing streets,
+    /// walking on sidewalks). Entity names must be unique.
+    ///
+    /// # Arguments
+    /// * `name` - Unique entity name (whitespace is trimmed)
+    /// * `params` - Pedestrian parameters (model, mass, catalog reference)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::entities::PedestrianParams;
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// 
+    /// let pedestrian_params = PedestrianParams {
+    ///     catalog: None,
+    ///     model: Some("adult_male".to_string()),
+    ///     mass: Some(75.0),
+    /// };
+    /// 
+    /// scenario.add_pedestrian("pedestrian1", pedestrian_params)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If name is empty or whitespace-only
+    /// * `ScenarioError::EntityConflict` - If an entity with this name already exists
     pub fn add_pedestrian(
         &mut self,
         name: impl Into<String>,
@@ -138,6 +256,41 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a miscellaneous object entity to the scenario.
+    ///
+    /// Miscellaneous objects represent static or dynamic non-vehicle, non-pedestrian
+    /// entities (e.g., traffic cones, barriers, obstacles). Entity names must be unique.
+    ///
+    /// # Arguments
+    /// * `name` - Unique entity name (whitespace is trimmed)
+    /// * `params` - Miscellaneous object parameters (category, mass, catalog reference)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::entities::MiscObjectParams;
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// 
+    /// let object_params = MiscObjectParams {
+    ///     catalog: None,
+    ///     category: Some("obstacle".to_string()),
+    ///     mass: Some(50.0),
+    /// };
+    /// 
+    /// scenario.add_misc_object("traffic_cone", object_params)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If name is empty or whitespace-only
+    /// * `ScenarioError::EntityConflict` - If an entity with this name already exists
     pub fn add_misc_object(
         &mut self,
         name: impl Into<String>,
@@ -172,22 +325,139 @@ impl Scenario {
         Ok(())
     }
 
+    /// Gets a reference to an entity by name.
+    ///
+    /// # Arguments
+    /// * `name` - Name of the entity to retrieve
+    ///
+    /// # Returns
+    /// * `Some(&Entity)` if entity exists
+    /// * `None` if no entity with that name exists
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::entities::VehicleParams;
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vehicle_params = VehicleParams {
+    /// #     catalog: None,
+    /// #     vehicle_category: openscenario::entities::VehicleCategory::Car,
+    /// #     properties: None,
+    /// # };
+    /// scenario.add_vehicle("ego", vehicle_params)?;
+    /// 
+    /// assert!(scenario.get_entity("ego").is_some());
+    /// assert!(scenario.get_entity("nonexistent").is_none());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn get_entity(&self, name: &str) -> Option<&Entity> {
         self.entities.get(name)
     }
 
+    /// Returns an iterator over all entities in the scenario.
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    ///
+    /// let scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// let entity_count = scenario.entities().count();
+    /// assert_eq!(entity_count, 0);
+    /// ```
     pub fn entities(&self) -> impl Iterator<Item = &Entity> {
         self.entities.values()
     }
 
+    /// Gets the initial position of an entity.
+    ///
+    /// # Arguments
+    /// * `entity` - Name of the entity
+    ///
+    /// # Returns
+    /// * `Some(&Position)` if entity has an initial position
+    /// * `None` if no initial position is set
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion, Position};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vehicle_params = openscenario::entities::VehicleParams {
+    /// #     catalog: None,
+    /// #     vehicle_category: openscenario::entities::VehicleCategory::Car,
+    /// #     properties: None,
+    /// # };
+    /// # scenario.add_vehicle("ego", vehicle_params)?;
+    /// scenario.set_initial_position("ego", Position::world(0.0, 0.0, 0.0, 0.0))?;
+    /// 
+    /// assert!(scenario.get_initial_position("ego").is_some());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn get_initial_position(&self, entity: &str) -> Option<&Position> {
         self.initial_positions.get(entity)
     }
 
+    /// Returns an iterator over all initial positions.
+    ///
+    /// # Returns
+    /// Iterator of (entity_name, position) tuples
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    ///
+    /// let scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// let position_count = scenario.initial_positions().count();
+    /// assert_eq!(position_count, 0);
+    /// ```
     pub fn initial_positions(&self) -> impl Iterator<Item = (&String, &Position)> {
         self.initial_positions.iter()
     }
 
+    /// Sets the initial position for an entity.
+    ///
+    /// Initial positions define where entities start in the scenario.
+    /// The entity must exist before setting its initial position.
+    ///
+    /// # Arguments
+    /// * `entity` - Name of the entity (whitespace is trimmed)
+    /// * `position` - Initial position (World, Lane, Road, or Relative)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion, Position};
+    /// use openscenario::entities::VehicleParams;
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vehicle_params = VehicleParams {
+    /// #     catalog: None,
+    /// #     vehicle_category: openscenario::entities::VehicleCategory::Car,
+    /// #     properties: None,
+    /// # };
+    /// scenario.add_vehicle("ego", vehicle_params)?;
+    /// 
+    /// // Set world position (x, y, z, heading)
+    /// scenario.set_initial_position("ego", Position::world(0.0, 0.0, 0.0, 0.0))?;
+    /// 
+    /// // Or use lane position
+    /// // scenario.set_initial_position("ego", Position::lane("road1", 1, 10.0, 0.0))?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If entity name is empty or whitespace-only
+    /// * `ScenarioError::EntityNotFound` - If entity doesn't exist
     pub fn set_initial_position(
         &mut self,
         entity: impl Into<String>,
@@ -228,6 +498,33 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a story to the scenario's storyboard.
+    ///
+    /// Stories are the top-level organizational unit in OpenSCENARIO.
+    /// A story contains acts, which contain maneuver groups and maneuvers.
+    /// Story names must be unique.
+    ///
+    /// # Arguments
+    /// * `name` - Unique story name (whitespace is trimmed)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// scenario.add_story("main_story")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If name is empty or whitespace-only
+    /// * `ScenarioError::StoryNotFound` - If a story with this name already exists
     pub fn add_story(&mut self, name: impl Into<String>) -> Result<()> {
         let name = name.into();
 
@@ -255,6 +552,34 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds an act to a story.
+    ///
+    /// Acts are organizational units within a story. Each act contains maneuver groups
+    /// which define behaviors for specific actors. Act names must be unique within a story.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `name` - Unique act name within the story
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// scenario.add_story("main_story")?;
+    /// scenario.add_act("main_story", "act1")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If act name already exists in this story
     pub fn add_act(&mut self, story: impl Into<String>, name: impl Into<String>) -> Result<()> {
         let story_name = story.into();
         let act_name = name.into();
@@ -275,6 +600,39 @@ impl Scenario {
         Ok(())
     }
 
+    /// Sets the start trigger for an act.
+    ///
+    /// The start trigger defines the conditions that must be met before
+    /// the act begins executing. Acts are organizational units within a story.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the act
+    /// * `trigger` - Trigger definition with condition groups
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::Trigger;
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// scenario.add_story("s1")?;
+    /// scenario.add_act("s1", "a1")?;
+    /// 
+    /// let trigger = Trigger { condition_groups: vec![] };
+    /// scenario.set_act_start_trigger("s1", "a1", trigger)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If act doesn't exist
     pub fn set_act_start_trigger(
         &mut self,
         story: impl Into<String>,
@@ -307,6 +665,48 @@ impl Scenario {
         Ok(())
     }
 
+    /// Sets the start trigger for an event.
+    ///
+    /// The start trigger defines the conditions that must be met before
+    /// the event's actions are executed. Events contain actions and are
+    /// part of maneuvers.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `maneuver_group` - Name of the maneuver group
+    /// * `maneuver` - Name of the maneuver
+    /// * `event` - Name of the event
+    /// * `trigger` - Trigger definition with condition groups
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion, Position};
+    /// use openscenario::storyboard::Trigger;
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// # // Create the event first by adding an action
+    /// # let pos = Position::world(0.0, 0.0, 0.0, 0.0);
+    /// # scenario.add_position_action("s1", "a1", "mg1", "m1", "event1", pos)?;
+    /// 
+    /// let trigger = Trigger { condition_groups: vec![] };
+    /// scenario.set_event_start_trigger("s1", "a1", "mg1", "m1", "event1", trigger)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent structures don't exist
     pub fn set_event_start_trigger(
         &mut self,
         story: impl Into<String>,
@@ -371,6 +771,36 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a maneuver group to an act.
+    ///
+    /// Maneuver groups contain maneuvers and define which actors (entities) participate
+    /// in those maneuvers. Each act can have multiple maneuver groups.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `name` - Unique maneuver group name within the act
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// scenario.add_story("main_story")?;
+    /// scenario.add_act("main_story", "act1")?;
+    /// scenario.add_maneuver_group("main_story", "act1", "mg1")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent act doesn't exist or mg name already exists
     pub fn add_maneuver_group(
         &mut self,
         story: impl Into<String>,
@@ -416,6 +846,47 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds an actor (entity) to a maneuver group.
+    ///
+    /// Actors are the entities that will perform the maneuvers defined in the maneuver group.
+    /// Each actor must be an existing entity in the scenario. An entity can only be added once
+    /// to a given maneuver group (duplicates are ignored).
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `entity` - Name of the entity to add as an actor (whitespace is trimmed)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vehicle_params = VehicleParams {
+    /// #     catalog: None,
+    /// #     vehicle_category: VehicleCategory::Car,
+    /// #     properties: None,
+    /// # };
+    /// scenario.add_vehicle("ego", vehicle_params)?;
+    /// scenario.add_story("story1")?;
+    /// scenario.add_act("story1", "act1")?;
+    /// scenario.add_maneuver_group("story1", "act1", "mg1")?;
+    /// scenario.add_actor("story1", "act1", "mg1", "ego")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If entity name is empty or whitespace-only
+    /// * `ScenarioError::EntityNotFound` - If entity doesn't exist or story/act/mg not found
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
     pub fn add_actor(
         &mut self,
         story: impl Into<String>,
@@ -483,6 +954,38 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a maneuver to a maneuver group.
+    ///
+    /// Maneuvers are sequences of events that define actions for actors.
+    /// Each maneuver contains events that trigger actions based on conditions.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `name` - Unique maneuver name within the maneuver group
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// scenario.add_story("story1")?;
+    /// scenario.add_act("story1", "act1")?;
+    /// scenario.add_maneuver_group("story1", "act1", "mg1")?;
+    /// scenario.add_maneuver("story1", "act1", "mg1", "lane_change")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent act or maneuver group doesn't exist
     pub fn add_maneuver(
         &mut self,
         story: impl Into<String>,
@@ -528,6 +1031,57 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a speed action to an event.
+    ///
+    /// Speed actions command an actor to change its speed to a target value
+    /// using specified dynamics (shape, dimension, and value).
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name of the event (created if it doesn't exist)
+    /// * `target_speed` - Target speed in m/s (must be non-negative)
+    /// * `dynamics` - Transition dynamics (shape, dimension, value > 0)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::{TransitionDynamics, DynamicsShape, DynamicsDimension};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # scenario.add_vehicle("ego", VehicleParams {
+    /// #     catalog: None,
+    /// #     vehicle_category: VehicleCategory::Car,
+    /// #     properties: None,
+    /// # })?;
+    /// # scenario.add_story("story1")?;
+    /// # scenario.add_act("story1", "act1")?;
+    /// # scenario.add_maneuver_group("story1", "act1", "mg1")?;
+    /// # scenario.add_actor("story1", "act1", "mg1", "ego")?;
+    /// # scenario.add_maneuver("story1", "act1", "mg1", "m1")?;
+    /// 
+    /// let dynamics = TransitionDynamics {
+    ///     shape: DynamicsShape::Linear,
+    ///     dimension: DynamicsDimension::Time,
+    ///     value: 3.0,  // 3 seconds
+    /// };
+    /// scenario.add_speed_action("story1", "act1", "mg1", "m1", "event1", 20.0, dynamics)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If target_speed < 0 or dynamics.value <= 0
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent act, mg, or maneuver doesn't exist
     #[allow(clippy::too_many_arguments)]
     pub fn add_speed_action(
         &mut self,
@@ -616,6 +1170,55 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a lane change action to an event.
+    ///
+    /// Lane change actions command an actor to change lanes with a specified
+    /// target lane offset, duration, and transition shape.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name of the event (created if it doesn't exist)
+    /// * `target_lane_offset` - Target lateral offset from lane center in meters
+    /// * `duration` - Duration of the lane change in seconds (must be positive)
+    /// * `shape` - Transition shape (Linear, Cubic, Sinusoidal, Step)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::TransitionShape;
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # scenario.add_vehicle("ego", VehicleParams {
+    /// #     catalog: None,
+    /// #     vehicle_category: VehicleCategory::Car,
+    /// #     properties: None,
+    /// # })?;
+    /// # scenario.add_story("story1")?;
+    /// # scenario.add_act("story1", "act1")?;
+    /// # scenario.add_maneuver_group("story1", "act1", "mg1")?;
+    /// # scenario.add_actor("story1", "act1", "mg1", "ego")?;
+    /// # scenario.add_maneuver("story1", "act1", "mg1", "m1")?;
+    /// 
+    /// // Change to left lane (offset -3.5m) over 4 seconds with sinusoidal profile
+    /// scenario.add_lane_change_action("story1", "act1", "mg1", "m1", "event1", 
+    ///                                  -3.5, 4.0, TransitionShape::Sinusoidal)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If duration <= 0
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent act, mg, or maneuver doesn't exist
     #[allow(clippy::too_many_arguments)]
     pub fn add_lane_change_action(
         &mut self,
@@ -700,6 +1303,54 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds an acceleration action to an event.
+    ///
+    /// Acceleration actions command an actor to accelerate or decelerate at a specified
+    /// rate over a given duration. Negative acceleration values represent deceleration.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name of the event (created if it doesn't exist)
+    /// * `acceleration` - Target acceleration in m/s² (positive or negative)
+    /// * `duration` - Duration of acceleration in seconds (must be positive)
+    /// * `dynamics` - Optional transition dynamics (defaults to linear time-based)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # scenario.add_vehicle("ego", VehicleParams {
+    /// #     catalog: None,
+    /// #     vehicle_category: VehicleCategory::Car,
+    /// #     properties: None,
+    /// # })?;
+    /// # scenario.add_story("story1")?;
+    /// # scenario.add_act("story1", "act1")?;
+    /// # scenario.add_maneuver_group("story1", "act1", "mg1")?;
+    /// # scenario.add_actor("story1", "act1", "mg1", "ego")?;
+    /// # scenario.add_maneuver("story1", "act1", "mg1", "m1")?;
+    /// 
+    /// // Accelerate at 2 m/s² for 5 seconds
+    /// scenario.add_acceleration_action("story1", "act1", "mg1", "m1", "event1", 
+    ///                                   2.0, 5.0, None)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If duration <= 0 or dynamics.value <= 0
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent act, mg, or maneuver doesn't exist
     #[allow(clippy::too_many_arguments)]
     pub fn add_acceleration_action(
         &mut self,
@@ -798,6 +1449,60 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a lane offset action to an event.
+    ///
+    /// Lane offset actions command an actor to move to a lateral offset from the lane center.
+    /// The action can be continuous (ongoing) or discrete (one-time).
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name of the event (created if it doesn't exist)
+    /// * `target_offset` - Target lateral offset from lane center in meters
+    /// * `continuous` - If true, maintains offset; if false, returns to lane center after
+    /// * `dynamics` - Optional transition dynamics (how to reach the offset)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::{TransitionDynamics, DynamicsShape, DynamicsDimension};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # scenario.add_vehicle("ego", VehicleParams {
+    /// #     catalog: None,
+    /// #     vehicle_category: VehicleCategory::Car,
+    /// #     properties: None,
+    /// # })?;
+    /// # scenario.add_story("story1")?;
+    /// # scenario.add_act("story1", "act1")?;
+    /// # scenario.add_maneuver_group("story1", "act1", "mg1")?;
+    /// # scenario.add_actor("story1", "act1", "mg1", "ego")?;
+    /// # scenario.add_maneuver("story1", "act1", "mg1", "m1")?;
+    /// 
+    /// let dynamics = TransitionDynamics {
+    ///     shape: DynamicsShape::Sinusoidal,
+    ///     dimension: DynamicsDimension::Time,
+    ///     value: 2.0,
+    /// };
+    /// // Move 0.5m right continuously
+    /// scenario.add_lane_offset_action("story1", "act1", "mg1", "m1", "event1",
+    ///                                  0.5, true, Some(dynamics))?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If dynamics.value <= 0
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent act, mg, or maneuver doesn't exist
     pub fn add_lane_offset_action(
         &mut self,
         story: impl Into<String>,
@@ -883,6 +1588,69 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a follow trajectory action to an event.
+    ///
+    /// Follow trajectory actions command an actor to follow a predefined path
+    /// (trajectory) defined by a sequence of vertices. The timing mode determines
+    /// whether to match timestamps exactly or just follow the path.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name of the event (created if it doesn't exist)
+    /// * `trajectory` - Trajectory with at least 2 vertices
+    /// * `timing_mode` - How to interpret vertex timing (strict, relative, etc.)
+    /// * `initial_distance_offset` - Optional starting offset along trajectory (>= 0)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion, Position};
+    /// use openscenario::storyboard::{Trajectory, Vertex, TimingMode};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # scenario.add_vehicle("ego", VehicleParams {
+    /// #     catalog: None,
+    /// #     vehicle_category: VehicleCategory::Car,
+    /// #     properties: None,
+    /// # })?;
+    /// # scenario.add_story("story1")?;
+    /// # scenario.add_act("story1", "act1")?;
+    /// # scenario.add_maneuver_group("story1", "act1", "mg1")?;
+    /// # scenario.add_actor("story1", "act1", "mg1", "ego")?;
+    /// # scenario.add_maneuver("story1", "act1", "mg1", "m1")?;
+    /// 
+    /// let trajectory = Trajectory {
+    ///     name: "path1".to_string(),
+    ///     closed: false,
+    ///     vertices: vec![
+    ///         Vertex {
+    ///             position: Position::world(0.0, 0.0, 0.0, 0.0),
+    ///             time: 0.0,
+    ///         },
+    ///         Vertex {
+    ///             position: Position::world(100.0, 0.0, 0.0, 0.0),
+    ///             time: 10.0,
+    ///         },
+    ///     ],
+    /// };
+    /// scenario.add_follow_trajectory_action("story1", "act1", "mg1", "m1", "event1",
+    ///                                       trajectory, TimingMode::Timing, None)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If trajectory has < 2 vertices or offset < 0
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent act, mg, or maneuver doesn't exist
     pub fn add_follow_trajectory_action(
         &mut self,
         story: impl Into<String>,
@@ -979,6 +1747,65 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds an assign route action to an event.
+    ///
+    /// Assign route actions command an actor to follow a route defined by waypoints.
+    /// The route planner will determine the specific path between waypoints.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name of the event (created if it doesn't exist)
+    /// * `route` - Route definition with at least 2 waypoints
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion, Position};
+    /// use openscenario::storyboard::{Route, Waypoint};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # scenario.add_vehicle("ego", VehicleParams {
+    /// #     catalog: None,
+    /// #     vehicle_category: VehicleCategory::Car,
+    /// #     properties: None,
+    /// # })?;
+    /// # scenario.add_story("story1")?;
+    /// # scenario.add_act("story1", "act1")?;
+    /// # scenario.add_maneuver_group("story1", "act1", "mg1")?;
+    /// # scenario.add_actor("story1", "act1", "mg1", "ego")?;
+    /// # scenario.add_maneuver("story1", "act1", "mg1", "m1")?;
+    /// 
+    /// let route = Route {
+    ///     name: "route1".to_string(),
+    ///     closed: false,
+    ///     waypoints: vec![
+    ///         Waypoint {
+    ///             position: Position::world(0.0, 0.0, 0.0, 0.0),
+    ///             route_strategy: None,
+    ///         },
+    ///         Waypoint {
+    ///             position: Position::world(1000.0, 500.0, 0.0, 1.57),
+    ///             route_strategy: None,
+    ///         },
+    ///     ],
+    /// };
+    /// scenario.add_assign_route_action("story1", "act1", "mg1", "m1", "event1", route)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If route has < 2 waypoints
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent act, mg, or maneuver doesn't exist
     pub fn add_assign_route_action(
         &mut self,
         story: impl Into<String>,
@@ -1059,6 +1886,54 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a synchronize action to an event.
+    ///
+    /// Synchronize actions coordinate two entities so they reach target positions
+    /// at the same time. One entity is designated as the master, and the other
+    /// (entity_ref) adjusts its speed to synchronize arrival.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name of the event (created if it doesn't exist)
+    /// * `entity_ref` - Name of the entity that will synchronize (must exist)
+    /// * `master_entity_ref` - Name of the master entity to sync with (must exist)
+    /// * `target_position_master` - Target position for the master entity
+    /// * `target_position` - Target position for the synchronizing entity
+    /// * `final_speed` - Optional final speed in m/s (must be non-negative)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::{TargetPositionMaster, TargetPosition};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp.clone())?;
+    /// # scenario.add_vehicle("target", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_actor("s1", "a1", "mg1", "ego")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// // Synchronization action would be added here (requires position types)
+    /// // scenario.add_synchronize_action(...)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::EntityNotFound` - If entity_ref or master_entity_ref doesn't exist
+    /// * `ScenarioError::InvalidValue` - If final_speed < 0
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
     pub fn add_synchronize_action(
         &mut self,
         story: impl Into<String>,
@@ -1165,6 +2040,47 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a position action to an event.
+    ///
+    /// Position actions teleport an actor to a specific position instantly.
+    /// This is useful for setup, testing, or sudden position changes.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name of the event (created if it doesn't exist)
+    /// * `position` - Target position (World, Lane, Road, or Relative)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion, Position};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_actor("s1", "a1", "mg1", "ego")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// let position = Position::world(100.0, 50.0, 0.0, 1.57);
+    /// scenario.add_position_action("s1", "a1", "mg1", "m1", "event1", position)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent act, mg, or maneuver doesn't exist
     pub fn add_position_action(
         &mut self,
         story: impl Into<String>,
@@ -1234,6 +2150,52 @@ impl Scenario {
         Ok(())
     }
 
+    /// Adds a distance action to an event.
+    ///
+    /// Distance actions maintain a specified distance to another entity.
+    /// The distance can be measured in freespace (shortest distance) or
+    /// along the road/lane network.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name of the event (created if it doesn't exist)
+    /// * `entity_ref` - Name of the reference entity (must exist)
+    /// * `distance` - Target distance in meters (must be non-negative)
+    /// * `freespace` - If true, use straight-line distance; if false, use road distance
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp.clone())?;
+    /// # scenario.add_vehicle("lead", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_actor("s1", "a1", "mg1", "ego")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Maintain 20m distance from lead vehicle using road distance
+    /// scenario.add_distance_action("s1", "a1", "mg1", "m1", "event1", "lead", 20.0, false)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If distance < 0
+    /// * `ScenarioError::EntityNotFound` - If entity_ref doesn't exist or parent structures not found
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
     #[allow(clippy::too_many_arguments)]
     pub fn add_distance_action(
         &mut self,
@@ -1311,7 +2273,54 @@ impl Scenario {
         Ok(())
     }
 
-    /// Add a longitudinal distance action to maintain distance from another entity
+    /// Adds a longitudinal distance action to maintain distance from another entity.
+    ///
+    /// Longitudinal distance actions control the fore-aft spacing between entities,
+    /// maintaining a specified distance along the direction of travel. The action can
+    /// be continuous (ongoing) or one-time.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name of the event (created if it doesn't exist)
+    /// * `entity_ref` - Name of the reference entity (must exist)
+    /// * `distance` - Target longitudinal distance in meters
+    /// * `freespace` - If true, use straight-line distance; if false, use road distance
+    /// * `continuous` - If true, maintains distance; if false, reaches distance once
+    /// * `dynamics` - Optional transition dynamics for reaching the target distance
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp.clone())?;
+    /// # scenario.add_vehicle("lead", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_actor("s1", "a1", "mg1", "ego")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Continuously maintain 30m longitudinal distance from lead vehicle
+    /// scenario.add_longitudinal_distance_action("s1", "a1", "mg1", "m1", "event1",
+    ///                                            "lead", 30.0, false, true, None)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::EntityNotFound` - If entity_ref doesn't exist or parent structures not found
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
     pub fn add_longitudinal_distance_action(
         &mut self,
         story: impl Into<String>,
@@ -1402,14 +2411,43 @@ impl Scenario {
         Ok(())
     }
 
-    /// Set a simple time-based stop trigger
+    /// Sets a simple time-based stop trigger for the scenario.
+    ///
+    /// The stop trigger defines when the scenario simulation should end.
+    /// This convenience method creates a trigger based on simulation time.
+    ///
+    /// # Arguments
+    /// * `seconds` - Simulation time in seconds when the scenario should stop
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    ///
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// scenario.set_stop_time(60.0);  // Stop after 60 seconds
+    /// ```
     pub fn set_stop_time(&mut self, seconds: f64) {
         use crate::storyboard::StopTrigger;
         self.storyboard
             .set_stop_trigger(StopTrigger::simulation_time(seconds));
     }
 
-    /// Set a stop trigger based on storyboard element state
+    /// Sets a stop trigger based on storyboard element state.
+    ///
+    /// The scenario will stop when a specified element (story, act, maneuver, event, action)
+    /// reaches a target state (e.g., completeState, startTransition, endTransition).
+    ///
+    /// # Arguments
+    /// * `element_name` - Name of the storyboard element to watch
+    /// * `state` - Target state that triggers stopping
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    ///
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// scenario.set_stop_on_element_state("StoryboardElementType::Story", "main_story", "completeState", 0.0);
+    /// ```
     pub fn set_stop_on_element_state(
         &mut self,
         element_type: impl Into<String>,
@@ -1427,10 +2465,49 @@ impl Scenario {
             ));
     }
 
-    /// Add an event with a reach position condition trigger.
+    /// Adds an event with a reach position condition trigger.
     ///
     /// Creates an event that triggers when the specified entity reaches
     /// the target position within the given tolerance.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event_name` - Name for the new event
+    /// * `entity` - Name of the entity to watch (must exist)
+    /// * `position` - Target position to reach
+    /// * `tolerance` - Distance tolerance in meters for reaching the position
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion, Position};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// let target = Position::world(100.0, 50.0, 0.0, 0.0);
+    /// scenario.add_event_with_reach_position_condition(
+    ///     "s1", "a1", "mg1", "m1", "reach_event", "ego", target, 2.0)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::EntityNotFound` - If entity doesn't exist or parent structures not found
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
     #[allow(clippy::too_many_arguments)]
     pub fn add_event_with_reach_position_condition(
         &mut self,
@@ -1457,9 +2534,56 @@ impl Scenario {
         )
     }
 
-    /// Add an event with a reach position condition trigger (advanced).
+    /// Adds an event with a reach position condition trigger (advanced).
     ///
     /// Creates an event with full control over condition edge and delay.
+    /// The edge parameter controls when the condition triggers (rising/falling/none),
+    /// and delay adds time after the condition becomes true.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name for the new event
+    /// * `entity_ref` - Name of the entity to watch (must exist)
+    /// * `position` - Target position to reach
+    /// * `tolerance` - Distance tolerance in meters (must be non-negative)
+    /// * `edge` - Condition edge (Rising, Falling, RisingOrFalling, None)
+    /// * `delay` - Delay in seconds after condition becomes true
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion, Position};
+    /// use openscenario::storyboard::ConditionEdge;
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// let target = Position::world(100.0, 50.0, 0.0, 0.0);
+    /// scenario.add_event_with_reach_position_condition_advanced(
+    ///     "s1", "a1", "mg1", "m1", "reach_event", "ego", 
+    ///     target, 2.0, ConditionEdge::Rising, 1.0)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If tolerance < 0
+    /// * `ScenarioError::InvalidEntityRef` - If entity doesn't exist
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent structures not found
     #[allow(clippy::too_many_arguments)]
     pub fn add_event_with_reach_position_condition_advanced(
         &mut self,
@@ -1581,10 +2705,54 @@ impl Scenario {
         Ok(())
     }
 
-    /// Add an event with a time-to-collision condition trigger.
+    /// Adds an event with a time-to-collision (TTC) condition trigger.
     ///
     /// Creates an event that triggers when the time-to-collision between
     /// the specified entity and a target entity meets the rule threshold.
+    /// TTC is the estimated time until collision if current velocities are maintained.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name for the new event
+    /// * `entity_ref` - Name of the entity to monitor (must exist)
+    /// * `target_entity_ref` - Name of the target entity (must exist)
+    /// * `ttc_value` - Time-to-collision threshold in seconds
+    /// * `rule` - Comparison rule (LessThan, GreaterThan, EqualTo)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::Rule;
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp.clone())?;
+    /// # scenario.add_vehicle("target", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Trigger when TTC drops below 3 seconds
+    /// scenario.add_event_with_ttc_condition(
+    ///     "s1", "a1", "mg1", "m1", "ttc_event", 
+    ///     "ego", "target", 3.0, Rule::LessThan)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::EntityNotFound` - If entities don't exist or parent structures not found
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
     #[allow(clippy::too_many_arguments)]
     pub fn add_event_with_ttc_condition(
         &mut self,
@@ -1613,9 +2781,58 @@ impl Scenario {
         )
     }
 
-    /// Add an event with a time-to-collision condition trigger (advanced).
+    /// Adds an event with a time-to-collision condition trigger (advanced).
     ///
     /// Creates an event with full control over condition edge and delay.
+    /// The edge parameter controls when the condition triggers, and delay
+    /// adds time after the condition becomes true.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name for the new event
+    /// * `entity_ref` - Name of the entity to monitor (must exist)
+    /// * `target_entity_ref` - Name of the target entity (must exist)
+    /// * `ttc_value` - Time-to-collision threshold in seconds (must be non-negative)
+    /// * `rule` - Comparison rule (LessThan, GreaterThan, EqualTo)
+    /// * `edge` - Condition edge (Rising, Falling, RisingOrFalling, None)
+    /// * `delay` - Delay in seconds after condition becomes true
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::{Rule, ConditionEdge};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp.clone())?;
+    /// # scenario.add_vehicle("target", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Trigger on rising edge when TTC drops below 3s, with 0.5s delay
+    /// scenario.add_event_with_ttc_condition_advanced(
+    ///     "s1", "a1", "mg1", "m1", "ttc_event", 
+    ///     "ego", "target", 3.0, Rule::LessThan, ConditionEdge::Rising, 0.5)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If ttc_value < 0
+    /// * `ScenarioError::InvalidEntityRef` - If entities don't exist
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent structures not found
     #[allow(clippy::too_many_arguments)]
     pub fn add_event_with_ttc_condition_advanced(
         &mut self,
@@ -1746,10 +2963,50 @@ impl Scenario {
         Ok(())
     }
 
-    /// Add an event with a collision condition trigger.
+    /// Adds an event with a collision condition trigger.
     ///
     /// Creates an event that triggers when the specified entity collides
-    /// with a target entity.
+    /// with a target entity. Collision is typically detected by physics simulation
+    /// or geometric overlap.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name for the new event
+    /// * `entity_ref` - Name of the entity to monitor (must exist)
+    /// * `target_entity_ref` - Name of the target entity to collide with (must exist)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp.clone())?;
+    /// # scenario.add_vehicle("obstacle", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Trigger when ego collides with obstacle
+    /// scenario.add_event_with_collision_condition(
+    ///     "s1", "a1", "mg1", "m1", "collision_event", "ego", "obstacle")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::EntityNotFound` - If entities don't exist or parent structures not found
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
     #[allow(clippy::too_many_arguments)]
     pub fn add_event_with_collision_condition(
         &mut self,
@@ -1774,9 +3031,55 @@ impl Scenario {
         )
     }
 
-    /// Add an event with a collision condition trigger (advanced).
+    /// Adds an event with a collision condition trigger (advanced).
     ///
     /// Creates an event with full control over condition edge and delay.
+    /// Allows specification of when exactly the trigger fires relative to
+    /// the collision event.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name for the new event
+    /// * `entity_ref` - Name of the entity to monitor (must exist)
+    /// * `target_entity_ref` - Name of the target entity (must exist)
+    /// * `edge` - Condition edge (Rising, Falling, RisingOrFalling, None)
+    /// * `delay` - Delay in seconds after condition becomes true
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::ConditionEdge;
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp.clone())?;
+    /// # scenario.add_vehicle("obstacle", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Trigger on collision with 0.1s delay
+    /// scenario.add_event_with_collision_condition_advanced(
+    ///     "s1", "a1", "mg1", "m1", "collision_event", 
+    ///     "ego", "obstacle", ConditionEdge::Rising, 0.1)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidEntityRef` - If entities don't exist
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent structures not found
     #[allow(clippy::too_many_arguments)]
     pub fn add_event_with_collision_condition_advanced(
         &mut self,
@@ -1895,9 +3198,51 @@ impl Scenario {
         Ok(())
     }
 
-    /// Add a speed profile action to an event.
+    /// Adds a speed profile action to an event.
     ///
     /// Speed profile defines target speeds at specific time or distance points.
+    /// The actor will follow the speed profile by adjusting its speed at each waypoint.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name of the event (created if it doesn't exist)
+    /// * `waypoints` - Vector of (time_or_distance, speed) tuples (must have at least 1)
+    /// * `following_mode` - If true, time-based; if false, distance-based
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_actor("s1", "a1", "mg1", "ego")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Time-based profile: (time, speed)
+    /// let waypoints = vec![(0.0, 10.0), (5.0, 20.0), (10.0, 15.0)];
+    /// scenario.add_speed_profile_action("s1", "a1", "mg1", "m1", "event1", 
+    ///                                    waypoints, true)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If waypoints empty, speed < 0, or time/distance < 0
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent structures not found
     #[allow(clippy::too_many_arguments)]
     pub fn add_speed_profile_action(
         &mut self,
@@ -2000,10 +3345,57 @@ impl Scenario {
         Ok(())
     }
 
-    /// Add an event with a relative distance condition trigger.
+    /// Adds an event with a relative distance condition trigger.
     ///
     /// Creates an event that triggers when the distance between the specified
-    /// entity and a reference entity meets the rule threshold.
+    /// entity and a reference entity meets the rule threshold. Distance can be
+    /// measured in various ways (longitudinal, lateral, euclidean) and coordinate systems.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name for the new event
+    /// * `entity_ref` - Name of the entity to monitor (must exist)
+    /// * `reference_entity_ref` - Name of the reference entity (must exist)
+    /// * `distance_value` - Distance threshold in meters (must be non-negative)
+    /// * `rule` - Comparison rule (LessThan, GreaterThan, EqualTo)
+    /// * `distance_type` - Type of distance measurement (Longitudinal, Lateral, Euclidean)
+    /// * `freespace` - If true, use straight-line distance; if false, use road distance
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::{Rule, RelativeDistanceType};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp.clone())?;
+    /// # scenario.add_vehicle("lead", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Trigger when longitudinal distance to lead vehicle < 10m
+    /// scenario.add_event_with_relative_distance_condition(
+    ///     "s1", "a1", "mg1", "m1", "distance_event", 
+    ///     "ego", "lead", 10.0, Rule::LessThan, 
+    ///     RelativeDistanceType::Longitudinal, false)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::EntityNotFound` - If entities don't exist or parent structures not found
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
     #[allow(clippy::too_many_arguments)]
     pub fn add_event_with_relative_distance_condition(
         &mut self,
@@ -2037,9 +3429,62 @@ impl Scenario {
         )
     }
 
-    /// Add an event with a relative distance condition trigger (advanced).
+    /// Adds an event with a relative distance condition trigger (advanced).
     ///
     /// Creates an event with full control over condition edge, delay, and coordinate system.
+    /// This advanced version allows fine-grained control over when and how the condition triggers,
+    /// and which coordinate system to use for distance measurement.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name for the new event
+    /// * `entity_ref` - Name of the entity to monitor (must exist)
+    /// * `reference_entity_ref` - Name of the reference entity (must exist)
+    /// * `distance_value` - Distance threshold in meters (must be non-negative)
+    /// * `rule` - Comparison rule (LessThan, GreaterThan, EqualTo)
+    /// * `distance_type` - Type of distance measurement
+    /// * `freespace` - If true, use straight-line distance; if false, use road distance
+    /// * `edge` - Condition edge (Rising, Falling, RisingOrFalling, None)
+    /// * `delay` - Delay in seconds after condition becomes true
+    /// * `coordinate_system` - Coordinate system for distance measurement (Entity, Road, etc.)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::{Rule, RelativeDistanceType, ConditionEdge, CoordinateSystem};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp.clone())?;
+    /// # scenario.add_vehicle("lead", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Trigger on rising edge when lateral distance > 2m, with 0.5s delay
+    /// scenario.add_event_with_relative_distance_condition_advanced(
+    ///     "s1", "a1", "mg1", "m1", "distance_event", "ego", "lead",
+    ///     2.0, Rule::GreaterThan, RelativeDistanceType::Lateral, true,
+    ///     ConditionEdge::Rising, 0.5, CoordinateSystem::Entity)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If distance_value < 0
+    /// * `ScenarioError::InvalidEntityRef` - If entities don't exist
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent structures not found
     #[allow(clippy::too_many_arguments)]
     pub fn add_event_with_relative_distance_condition_advanced(
         &mut self,
@@ -2176,10 +3621,57 @@ impl Scenario {
         Ok(())
     }
 
-    /// Add an event with a time headway condition trigger.
+    /// Adds an event with a time headway condition trigger.
     ///
     /// Creates an event that triggers when the time gap between the entity
-    /// and a lead vehicle meets the rule threshold. Time headway = distance / follower_speed.
+    /// and a lead vehicle meets the rule threshold. Time headway is calculated as
+    /// distance / follower_speed, representing the time to reach the lead vehicle.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name for the new event
+    /// * `entity_ref` - Name of the following entity (must exist)
+    /// * `lead_entity_ref` - Name of the lead entity (must exist)
+    /// * `time_headway_value` - Time headway threshold in seconds (must be non-negative)
+    /// * `rule` - Comparison rule (LessThan, GreaterThan, EqualTo)
+    /// * `freespace` - If true, use straight-line distance; if false, use road distance
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::Rule;
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("follower", vp.clone())?;
+    /// # scenario.add_vehicle("leader", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Trigger when time headway drops below 2 seconds
+    /// scenario.add_event_with_time_headway_condition(
+    ///     "s1", "a1", "mg1", "m1", "headway_event",
+    ///     "follower", "leader", 2.0, Rule::LessThan, false)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If time_headway_value <= 0
+    /// * `ScenarioError::InvalidEntityRef` - If entities don't exist
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent structures not found
     #[allow(clippy::too_many_arguments)]
     pub fn add_event_with_time_headway_condition(
         &mut self,
@@ -2210,9 +3702,59 @@ impl Scenario {
         )
     }
 
-    /// Add an event with a time headway condition trigger (advanced).
+    /// Adds an event with a time headway condition trigger (advanced).
     ///
     /// Creates an event with full control over condition edge and delay.
+    /// Time headway represents the time it would take the following entity to reach
+    /// the lead entity at its current speed.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name for the new event
+    /// * `entity_ref` - Name of the following entity (must exist)
+    /// * `lead_entity_ref` - Name of the lead entity (must exist)
+    /// * `time_headway_value` - Time headway threshold in seconds (must be non-negative)
+    /// * `rule` - Comparison rule (LessThan, GreaterThan, EqualTo)
+    /// * `freespace` - If true, use straight-line distance; if false, use road distance
+    /// * `edge` - Condition edge (Rising, Falling, RisingOrFalling, None)
+    /// * `delay` - Delay in seconds after condition becomes true
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::{Rule, ConditionEdge};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("follower", vp.clone())?;
+    /// # scenario.add_vehicle("leader", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Trigger on rising edge when headway < 2s, with 0.5s delay
+    /// scenario.add_event_with_time_headway_condition_advanced(
+    ///     "s1", "a1", "mg1", "m1", "headway_event", "follower", "leader",
+    ///     2.0, Rule::LessThan, false, ConditionEdge::Rising, 0.5)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If time_headway_value < 0
+    /// * `ScenarioError::InvalidEntityRef` - If entities don't exist
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent structures not found
     #[allow(clippy::too_many_arguments)]
     pub fn add_event_with_time_headway_condition_advanced(
         &mut self,
@@ -2345,10 +3887,49 @@ impl Scenario {
         Ok(())
     }
 
-    /// Add an event with a stand still condition trigger.
+    /// Adds an event with a standstill condition trigger.
     ///
     /// Creates an event that triggers when the entity has been stationary
-    /// for at least the specified duration.
+    /// (velocity near zero) for at least the specified duration. Useful for
+    /// detecting stopped vehicles or waiting scenarios.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name for the new event
+    /// * `entity_ref` - Name of the entity to monitor (must exist)
+    /// * `duration` - Required standstill duration in seconds (must be non-negative)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Trigger when ego has been stopped for 5 seconds
+    /// scenario.add_event_with_standstill_condition(
+    ///     "s1", "a1", "mg1", "m1", "stopped_event", "ego", 5.0)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::EntityNotFound` - If entity doesn't exist or parent structures not found
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
     pub fn add_event_with_standstill_condition(
         &mut self,
         story: impl Into<String>,
@@ -2372,9 +3953,55 @@ impl Scenario {
         )
     }
 
-    /// Add an event with a stand still condition trigger (advanced).
+    /// Adds an event with a standstill condition trigger (advanced).
     ///
     /// Creates an event with full control over condition edge and delay.
+    /// Allows specification of when exactly the trigger fires relative to
+    /// the standstill condition being met.
+    ///
+    /// # Arguments
+    /// * `story` - Name of the parent story
+    /// * `act` - Name of the parent act
+    /// * `mg` - Name of the maneuver group
+    /// * `maneuver` - Name of the parent maneuver
+    /// * `event` - Name for the new event
+    /// * `entity_ref` - Name of the entity to monitor (must exist)
+    /// * `duration` - Required standstill duration in seconds (must be non-negative)
+    /// * `edge` - Condition edge (Rising, Falling, RisingOrFalling, None)
+    /// * `delay` - Delay in seconds after condition becomes true
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::storyboard::ConditionEdge;
+    /// # use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// # let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// # let vp = VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None };
+    /// # scenario.add_vehicle("ego", vp)?;
+    /// # scenario.add_story("s1")?;
+    /// # scenario.add_act("s1", "a1")?;
+    /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
+    /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
+    /// 
+    /// // Trigger on rising edge when stopped for 5s, with 1s delay
+    /// scenario.add_event_with_standstill_condition_advanced(
+    ///     "s1", "a1", "mg1", "m1", "stopped_event", "ego",
+    ///     5.0, ConditionEdge::Rising, 1.0)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If duration < 0
+    /// * `ScenarioError::InvalidEntityRef` - If entity doesn't exist
+    /// * `ScenarioError::StoryNotFound` - If parent story doesn't exist
+    /// * `ScenarioError::EntityNotFound` - If parent structures not found
     #[allow(clippy::too_many_arguments)]
     pub fn add_event_with_standstill_condition_advanced(
         &mut self,
