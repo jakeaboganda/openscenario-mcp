@@ -2,6 +2,8 @@ use crate::handlers::{
     handle_add_lane_change_action, handle_add_speed_action, handle_add_vehicle,
     handle_create_scenario, handle_export_xml, handle_set_position, handle_set_stop_on_element,
     handle_set_stop_time, handle_validate_scenario,
+    handle_load_road_network, handle_list_roads, handle_get_road_info,
+    handle_suggest_spawn_points, handle_validate_position,
 };
 use anyhow::{anyhow, Result};
 use mcp_sdk::types::{
@@ -10,6 +12,7 @@ use mcp_sdk::types::{
 };
 use once_cell::sync::Lazy;
 use openscenario::Scenario;
+use openscenario::opendrive_validator::OpenDriveValidator;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -20,12 +23,16 @@ static GLOBAL_STATE: Lazy<Arc<Mutex<ServerState>>> =
 
 pub struct ServerState {
     pub scenarios: HashMap<String, Scenario>,
+    pub road_validator: Option<OpenDriveValidator>,
+    pub current_road_network: Option<String>,
 }
 
 impl ServerState {
     pub fn new() -> Self {
         Self {
             scenarios: HashMap::new(),
+            road_validator: None,
+            current_road_network: None,
         }
     }
 }
@@ -275,6 +282,92 @@ impl OpenScenarioServer {
                         }
                     },
                     "required": ["scenario_id", "element_type", "element_ref", "state", "delay"]
+                }),
+            },
+            ToolDefinition {
+                name: "load_road_network".to_string(),
+                description: Some(
+                    "Load and analyze an OpenDRIVE road network file. Call this BEFORE creating scenarios on real roads.".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "xodr_path": {
+                            "type": "string",
+                            "description": "Path to OpenDRIVE (.xodr) file"
+                        }
+                    },
+                    "required": ["xodr_path"]
+                }),
+            },
+            ToolDefinition {
+                name: "list_roads".to_string(),
+                description: Some(
+                    "List all roads in the loaded road network.".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {}
+                }),
+            },
+            ToolDefinition {
+                name: "get_road_info".to_string(),
+                description: Some(
+                    "Get detailed information about a specific road (lanes, length, etc.).".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "road_id": {
+                            "type": "string",
+                            "description": "Road ID to query"
+                        }
+                    },
+                    "required": ["road_id"]
+                }),
+            },
+            ToolDefinition {
+                name: "suggest_spawn_points".to_string(),
+                description: Some(
+                    "Get valid spawn points for placing vehicles on a road. Returns positions with road_id, lane_id, and s-coordinate.".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "road_id": {
+                            "type": "string",
+                            "description": "Road ID where vehicles should be placed"
+                        },
+                        "count": {
+                            "type": "number",
+                            "description": "Number of spawn points needed"
+                        }
+                    },
+                    "required": ["road_id", "count"]
+                }),
+            },
+            ToolDefinition {
+                name: "validate_position".to_string(),
+                description: Some(
+                    "Validate that a position (road_id, lane_id, s) exists in the loaded road network.".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "road_id": {
+                            "type": "string",
+                            "description": "Road ID"
+                        },
+                        "lane_id": {
+                            "type": "number",
+                            "description": "Lane ID (negative for driving lanes)"
+                        },
+                        "s": {
+                            "type": "number",
+                            "description": "Position along road in meters"
+                        }
+                    },
+                    "required": ["road_id", "lane_id", "s"]
                 }),
             },
         ]
@@ -552,6 +645,92 @@ impl OpenScenarioServer {
                     element_ref.to_string(),
                     state.to_string(),
                     delay,
+                )?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "load_road_network" => {
+                let xodr_path = args
+                    .get("xodr_path")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'xodr_path' parameter"))?;
+
+                let result = handle_load_road_network(GLOBAL_STATE.clone(), xodr_path.to_string())?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "list_roads" => {
+                let result = handle_list_roads(GLOBAL_STATE.clone())?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "get_road_info" => {
+                let road_id = args
+                    .get("road_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'road_id' parameter"))?;
+
+                let result = handle_get_road_info(GLOBAL_STATE.clone(), road_id.to_string())?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "suggest_spawn_points" => {
+                let road_id = args
+                    .get("road_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'road_id' parameter"))?;
+                let count = args
+                    .get("count")
+                    .and_then(Value::as_u64)
+                    .ok_or_else(|| anyhow!("Missing or invalid 'count' parameter"))? as usize;
+
+                let result = handle_suggest_spawn_points(
+                    GLOBAL_STATE.clone(),
+                    road_id.to_string(),
+                    count,
+                )?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "validate_position" => {
+                let road_id = args
+                    .get("road_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'road_id' parameter"))?;
+                let lane_id = args
+                    .get("lane_id")
+                    .and_then(Value::as_i64)
+                    .ok_or_else(|| anyhow!("Missing or invalid 'lane_id' parameter"))? as i32;
+                let s = args
+                    .get("s")
+                    .and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing or invalid 's' parameter"))?;
+
+                let result = handle_validate_position(
+                    GLOBAL_STATE.clone(),
+                    road_id.to_string(),
+                    lane_id,
+                    s,
                 )?;
 
                 Ok(CallToolResponse {

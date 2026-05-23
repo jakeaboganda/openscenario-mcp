@@ -344,3 +344,129 @@ pub fn handle_set_stop_on_element(
         element_type, element_ref, state_name
     ))
 }
+
+/// Load and analyze an OpenDRIVE road network
+pub fn handle_load_road_network(
+    state: Arc<Mutex<ServerState>>,
+    xodr_path: String,
+) -> Result<String> {
+    use openscenario::opendrive_validator::OpenDriveValidator;
+    use std::path::Path;
+    
+    let path = Path::new(&xodr_path);
+    let validator = OpenDriveValidator::load(path)
+        .map_err(|e| anyhow!("Failed to load OpenDRIVE file: {}", e))?;
+    
+    // Get road information
+    let roads = validator.list_roads();
+    let quality = validator.assess_quality();
+    
+    // Store validator in state
+    let mut state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    state_lock.road_validator = Some(validator);
+    state_lock.current_road_network = Some(xodr_path.clone());
+    
+    Ok(json!({
+        "status": "success",
+        "file": xodr_path,
+        "road_count": roads.len(),
+        "roads": roads,
+        "quality": {
+            "score": quality.score,
+            "has_lanes": quality.has_lanes,
+            "has_geometry": quality.has_geometry,
+            "has_valid_length": quality.has_valid_length,
+            "issues": quality.issues
+        }
+    }).to_string())
+}
+
+/// List all roads in the loaded network
+pub fn handle_list_roads(state: Arc<Mutex<ServerState>>) -> Result<String> {
+    let state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    
+    let validator = state_lock.road_validator.as_ref()
+        .ok_or_else(|| anyhow!("No road network loaded. Use load_road_network first."))?;
+    
+    let roads = validator.list_roads();
+    Ok(json!({
+        "roads": roads,
+        "count": roads.len()
+    }).to_string())
+}
+
+/// Get detailed information about a specific road
+pub fn handle_get_road_info(
+    state: Arc<Mutex<ServerState>>,
+    road_id: String,
+) -> Result<String> {
+    let state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    
+    let validator = state_lock.road_validator.as_ref()
+        .ok_or_else(|| anyhow!("No road network loaded. Use load_road_network first."))?;
+    
+    let info = validator.get_road_info(&road_id)
+        .ok_or_else(|| anyhow!("Road '{}' not found", road_id))?;
+    
+    Ok(json!(info).to_string())
+}
+
+/// Suggest valid spawn points for vehicles
+pub fn handle_suggest_spawn_points(
+    state: Arc<Mutex<ServerState>>,
+    road_id: String,
+    count: usize,
+) -> Result<String> {
+    let state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    
+    let validator = state_lock.road_validator.as_ref()
+        .ok_or_else(|| anyhow!("No road network loaded. Use load_road_network first."))?;
+    
+    let points = validator.suggest_spawn_points(&road_id, count)
+        .map_err(|e| anyhow!("Failed to generate spawn points: {}", e))?;
+    
+    Ok(json!({
+        "spawn_points": points,
+        "count": points.len(),
+        "road_id": road_id
+    }).to_string())
+}
+
+/// Validate a position against the loaded road network
+pub fn handle_validate_position(
+    state: Arc<Mutex<ServerState>>,
+    road_id: String,
+    lane_id: i32,
+    s: f64,
+) -> Result<String> {
+    let state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    
+    let validator = state_lock.road_validator.as_ref()
+        .ok_or_else(|| anyhow!("No road network loaded. Use load_road_network first."))?;
+    
+    // Validate road + s position
+    validator.validate_road_position(&road_id, s)
+        .map_err(|e| anyhow!("Position validation failed: {}", e))?;
+    
+    // Validate lane
+    validator.validate_lane_position(&road_id, lane_id)
+        .map_err(|e| anyhow!("Lane validation failed: {}", e))?;
+    
+    Ok(json!({
+        "valid": true,
+        "road_id": road_id,
+        "lane_id": lane_id,
+        "s": s,
+        "message": "Position is valid"
+    }).to_string())
+}
