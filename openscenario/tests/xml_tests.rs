@@ -1,8 +1,8 @@
 use openscenario::entities::{VehicleCategory, VehicleParams};
 use openscenario::position::Orientation;
 use openscenario::storyboard::{
-    Rule, Condition, ConditionGroup, TransitionShape, Trigger,
-    TransitionDynamics, DynamicsShape, DynamicsDimension,
+    Condition, ConditionGroup, DynamicsDimension, DynamicsShape, Rule, TransitionDynamics,
+    TransitionShape, Trigger,
 };
 use openscenario::{OpenScenarioVersion, Position, Scenario};
 
@@ -67,11 +67,11 @@ fn test_xml_export_with_story() {
             "maneuver1",
             "event1",
             50.0,
-        TransitionDynamics {
-            shape: DynamicsShape::Linear,
-            dimension: DynamicsDimension::Time,
-            value: 5.0,
-        },
+            TransitionDynamics {
+                shape: DynamicsShape::Linear,
+                dimension: DynamicsDimension::Time,
+                value: 5.0,
+            },
         )
         .unwrap();
 
@@ -291,11 +291,11 @@ fn test_event_custom_start_trigger_xml() {
             "MyManeuver",
             "MyEvent",
             50.0,
-        TransitionDynamics {
-            shape: DynamicsShape::Linear,
-            dimension: DynamicsDimension::Time,
-            value: 5.0,
-        },
+            TransitionDynamics {
+                shape: DynamicsShape::Linear,
+                dimension: DynamicsDimension::Time,
+                value: 5.0,
+            },
         )
         .unwrap();
 
@@ -345,11 +345,11 @@ fn test_event_default_start_trigger_xml() {
             "MyManeuver",
             "MyEvent",
             50.0,
-        TransitionDynamics {
-            shape: DynamicsShape::Linear,
-            dimension: DynamicsDimension::Time,
-            value: 5.0,
-        },
+            TransitionDynamics {
+                shape: DynamicsShape::Linear,
+                dimension: DynamicsDimension::Time,
+                value: 5.0,
+            },
         )
         .unwrap();
 

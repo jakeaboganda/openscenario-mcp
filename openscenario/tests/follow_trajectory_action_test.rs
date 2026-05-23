@@ -1,4 +1,4 @@
-use openscenario::storyboard::{Action, FollowTrajectoryAction, Trajectory, Vertex, TimingMode};
+use openscenario::storyboard::{Action, FollowTrajectoryAction, TimingMode, Trajectory, Vertex};
 use openscenario::{OpenScenarioVersion, Scenario};
 
 #[test]
@@ -103,12 +103,10 @@ fn test_follow_trajectory_action_in_action_enum() {
     let trajectory = Trajectory {
         name: "test".to_string(),
         closed: false,
-        vertices: vec![
-            Vertex {
-                time: 0.0,
-                position: openscenario::Position::world(0.0, 0.0, 0.0, 0.0),
-            },
-        ],
+        vertices: vec![Vertex {
+            time: 0.0,
+            position: openscenario::Position::world(0.0, 0.0, 0.0, 0.0),
+        }],
     };
 
     let follow_trajectory = FollowTrajectoryAction {
@@ -331,7 +329,9 @@ fn test_trajectory_validation_minimum_vertices() {
     scenario.add_act("story", "act").unwrap();
     scenario.add_maneuver_group("story", "act", "mg").unwrap();
     scenario.add_actor("story", "act", "mg", "ego").unwrap();
-    scenario.add_maneuver("story", "act", "mg", "maneuver").unwrap();
+    scenario
+        .add_maneuver("story", "act", "mg", "maneuver")
+        .unwrap();
 
     // Single vertex trajectory (invalid)
     let invalid_trajectory = Trajectory {
@@ -354,5 +354,8 @@ fn test_trajectory_validation_minimum_vertices() {
         None,
     );
 
-    assert!(result.is_err(), "Should reject trajectory with < 2 vertices");
+    assert!(
+        result.is_err(),
+        "Should reject trajectory with < 2 vertices"
+    );
 }

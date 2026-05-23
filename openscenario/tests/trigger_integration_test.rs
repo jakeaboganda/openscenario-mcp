@@ -1,7 +1,7 @@
 use openscenario::entities::{VehicleCategory, VehicleParams};
 use openscenario::storyboard::{
-    Rule, Condition, ConditionGroup, TransitionShape, Trigger,
-    TransitionDynamics, DynamicsShape, DynamicsDimension,
+    Condition, ConditionGroup, DynamicsDimension, DynamicsShape, Rule, TransitionDynamics,
+    TransitionShape, Trigger,
 };
 use openscenario::{OpenScenarioVersion, Position, Scenario};
 use std::process::Command;
@@ -63,11 +63,11 @@ fn test_scenario_with_custom_triggers_in_esmini() {
             "SpeedManeuver",
             "SpeedEvent",
             20.0,
-        TransitionDynamics {
-            shape: DynamicsShape::Linear,
-            dimension: DynamicsDimension::Time,
-            value: 2.0,
-        },
+            TransitionDynamics {
+                shape: DynamicsShape::Linear,
+                dimension: DynamicsDimension::Time,
+                value: 2.0,
+            },
         )
         .unwrap();
 

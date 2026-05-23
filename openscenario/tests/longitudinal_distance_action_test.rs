@@ -1,4 +1,6 @@
-use openscenario::storyboard::{Action, LongitudinalDistanceAction, TransitionDynamics, DynamicsShape, DynamicsDimension};
+use openscenario::storyboard::{
+    Action, DynamicsDimension, DynamicsShape, LongitudinalDistanceAction, TransitionDynamics,
+};
 use openscenario::{OpenScenarioVersion, Scenario};
 
 #[test]
@@ -76,7 +78,10 @@ fn test_add_longitudinal_distance_action_to_scenario() {
         .set_initial_position("ego", openscenario::Position::world(0.0, 0.0, 0.0, 0.0))
         .unwrap();
     scenario
-        .set_initial_position("lead_vehicle", openscenario::Position::world(50.0, 0.0, 0.0, 0.0))
+        .set_initial_position(
+            "lead_vehicle",
+            openscenario::Position::world(50.0, 0.0, 0.0, 0.0),
+        )
         .unwrap();
 
     // Add story structure
@@ -145,7 +150,10 @@ fn test_longitudinal_distance_action_xml_export() {
         .set_initial_position("ego", openscenario::Position::world(0.0, 0.0, 0.0, 0.0))
         .unwrap();
     scenario
-        .set_initial_position("lead_vehicle", openscenario::Position::world(50.0, 0.0, 0.0, 0.0))
+        .set_initial_position(
+            "lead_vehicle",
+            openscenario::Position::world(50.0, 0.0, 0.0, 0.0),
+        )
         .unwrap();
 
     // Add story structure and action

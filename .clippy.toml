@@ -1,0 +1,2 @@
+# OpenSCENARIO scenario builder API has many parameters by design
+too-many-arguments-threshold = 15

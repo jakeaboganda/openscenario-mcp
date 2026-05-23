@@ -31,7 +31,12 @@ fn main() -> Result<(), openscenario::ScenarioError> {
     scenario.add_act("main_story", "act1")?;
     scenario.add_maneuver_group("main_story", "act1", "lane_change_group")?;
     scenario.add_actor("main_story", "act1", "lane_change_group", "ego")?;
-    scenario.add_maneuver("main_story", "act1", "lane_change_group", "lane_change_maneuver")?;
+    scenario.add_maneuver(
+        "main_story",
+        "act1",
+        "lane_change_group",
+        "lane_change_maneuver",
+    )?;
 
     // Add lane change action: move left 1 lane
     scenario.add_lane_change_action(
@@ -40,9 +45,9 @@ fn main() -> Result<(), openscenario::ScenarioError> {
         "lane_change_group",
         "lane_change_maneuver",
         "change_to_left_lane",
-        -1.0,                        // Target lane offset (-1 = one lane left)
-        5.0,                         // Duration (seconds)
-        TransitionShape::Linear,     // Linear transition
+        -1.0,                    // Target lane offset (-1 = one lane left)
+        5.0,                     // Duration (seconds)
+        TransitionShape::Linear, // Linear transition
     )?;
 
     // Export to XML

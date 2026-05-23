@@ -1,5 +1,5 @@
 use openscenario::entities::{VehicleCategory, VehicleParams};
-use openscenario::storyboard::{TransitionDynamics, DynamicsShape, DynamicsDimension};
+use openscenario::storyboard::{DynamicsDimension, DynamicsShape, TransitionDynamics};
 use openscenario::{OpenScenarioVersion, Position, Scenario};
 
 fn main() {

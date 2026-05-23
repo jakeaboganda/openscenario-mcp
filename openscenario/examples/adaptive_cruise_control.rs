@@ -62,9 +62,9 @@ fn main() -> Result<(), openscenario::ScenarioError> {
         "acc_maneuver",
         "adjust_speed",
         vec![
-            (0.0, 30.0),  // Start at 30 m/s
-            (3.0, 25.0),  // Reduce to 25 m/s over 3 seconds
-            (5.0, 25.0),  // Maintain 25 m/s
+            (0.0, 30.0), // Start at 30 m/s
+            (3.0, 25.0), // Reduce to 25 m/s over 3 seconds
+            (5.0, 25.0), // Maintain 25 m/s
         ],
         true, // following_mode: time-based speed adjustments
     )?;

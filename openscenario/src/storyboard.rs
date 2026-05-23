@@ -501,7 +501,7 @@ pub struct DistanceAction {
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccelerationAction {
-    pub value: f64,  // acceleration in m/s² (can be negative for deceleration)
+    pub value: f64, // acceleration in m/s² (can be negative for deceleration)
     pub dynamics: TransitionDynamics,
 }
 
@@ -652,7 +652,7 @@ pub enum DynamicsDimension {
 ///     dimension: DynamicsDimension::Time,
 ///     value: 4.0,  // 4 seconds
 /// };
-/// 
+///
 /// // Transition over 50 meters
 /// let distance_based = TransitionDynamics {
 ///     shape: DynamicsShape::Cubic,
@@ -1423,13 +1423,13 @@ impl Condition {
 /// # fn main() {
 /// // Trigger once when speed first exceeds limit
 /// let rising = ConditionEdge::Rising;             // false→true: start event
-/// 
+///
 /// // Trigger once when speed drops back below limit  
 /// let falling = ConditionEdge::Falling;           // true→false: end event
-/// 
+///
 /// // Trigger on every threshold crossing (both directions)
 /// let both = ConditionEdge::RisingOrFalling;      // any change
-/// 
+///
 /// // Trigger continuously while condition is true
 /// let continuous = ConditionEdge::None;           // no edge detection
 /// # }
@@ -1494,10 +1494,7 @@ pub enum ConditionKind {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ByValueCondition {
     /// Condition based on simulation elapsed time
-    SimulationTime {
-        value: f64,
-        rule: Rule,
-    },
+    SimulationTime { value: f64, rule: Rule },
     /// Condition based on storyboard element reaching a state
     StoryboardElementState {
         element_type: String,

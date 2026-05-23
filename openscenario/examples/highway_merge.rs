@@ -49,8 +49,8 @@ fn main() -> Result<(), openscenario::ScenarioError> {
         "merge_group",
         "merge_maneuver",
         "merge_left",
-        1.0,  // Move one lane to the left (relative: +1)
-        4.0,  // Take 4 seconds to merge
+        1.0, // Move one lane to the left (relative: +1)
+        4.0, // Take 4 seconds to merge
         TransitionShape::Sinusoidal,
     )?;
 

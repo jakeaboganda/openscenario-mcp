@@ -43,10 +43,7 @@ fn test_event_with_custom_start_trigger() {
 #[test]
 fn test_trigger_with_multiple_condition_groups() {
     let trigger = Trigger::with_groups(vec![
-        ConditionGroup::new(vec![Condition::simulation_time(
-            5.0,
-            Rule::GreaterThan,
-        )]),
+        ConditionGroup::new(vec![Condition::simulation_time(5.0, Rule::GreaterThan)]),
         ConditionGroup::new(vec![
             Condition::storyboard_element_state("act", "Act1", "completeState"),
             Condition::simulation_time(10.0, Rule::GreaterThan),
@@ -97,11 +94,7 @@ fn test_parameter_helper_method() {
 /// variants (OpenSCENARIO 1.0 compliant) and handles edge cases.
 #[test]
 fn test_parameter_condition_all_comparison_rules() {
-    let rules = vec![
-        Rule::LessThan,
-        Rule::EqualTo,
-        Rule::GreaterThan,
-    ];
+    let rules = vec![Rule::LessThan, Rule::EqualTo, Rule::GreaterThan];
 
     for rule in rules.clone() {
         let condition = Condition::parameter("TestParam", "42", rule.clone());
@@ -117,8 +110,8 @@ fn test_parameter_condition_all_comparison_rules() {
 
     // Edge cases
     let edge_cases = vec![
-        ("", "0", Rule::EqualTo), // empty param
-        ("Param.With.Dots", "value", Rule::EqualTo), // special chars
+        ("", "0", Rule::EqualTo),                      // empty param
+        ("Param.With.Dots", "value", Rule::EqualTo),   // special chars
         ("LongParam", "999999999", Rule::GreaterThan), // large number
     ];
 
@@ -284,11 +277,11 @@ fn test_invalid_parameter_reference_error() {
 #[test]
 fn test_rule_enum_variants() {
     use openscenario::storyboard::Rule;
-    
+
     let greater = Rule::GreaterThan;
     let less = Rule::LessThan;
     let equal = Rule::EqualTo;
-    
+
     assert_eq!(greater, Rule::GreaterThan);
     assert_eq!(less, Rule::LessThan);
     assert_eq!(equal, Rule::EqualTo);
@@ -297,10 +290,10 @@ fn test_rule_enum_variants() {
 #[test]
 fn test_rule_clone_and_partialeq() {
     use openscenario::storyboard::Rule;
-    
+
     let rule1 = Rule::GreaterThan;
     let rule2 = rule1.clone();
-    
+
     assert_eq!(rule1, rule2);
 }
 
@@ -308,7 +301,7 @@ fn test_rule_clone_and_partialeq() {
 fn test_all_rule_operators_xml() {
     use openscenario::storyboard::Rule;
     use openscenario::xml::rule_to_string;
-    
+
     assert_eq!(rule_to_string(&Rule::GreaterThan), "greaterThan");
     assert_eq!(rule_to_string(&Rule::LessThan), "lessThan");
     assert_eq!(rule_to_string(&Rule::EqualTo), "equalTo");
@@ -318,7 +311,7 @@ fn test_all_rule_operators_xml() {
 fn test_triggering_entities_rule() {
     let any_rule = TriggeringEntitiesRule::Any;
     let all_rule = TriggeringEntitiesRule::All;
-    
+
     assert_eq!(any_rule, TriggeringEntitiesRule::Any);
     assert_eq!(all_rule, TriggeringEntitiesRule::All);
     assert_ne!(any_rule, all_rule);
@@ -330,7 +323,7 @@ fn test_triggering_entities_construction() {
         rule: TriggeringEntitiesRule::Any,
         entity_refs: vec!["Ego".to_string(), "Target".to_string()],
     };
-    
+
     assert_eq!(entities.rule, TriggeringEntitiesRule::Any);
     assert_eq!(entities.entity_refs.len(), 2);
     assert_eq!(entities.entity_refs[0], "Ego");
@@ -343,7 +336,7 @@ fn test_triggering_entities_clone() {
         rule: TriggeringEntitiesRule::All,
         entity_refs: vec!["Vehicle1".to_string()],
     };
-    
+
     let cloned = entities.clone();
     assert_eq!(entities, cloned);
 }
@@ -354,17 +347,26 @@ fn test_speed_condition_construction() {
         value: 30.0,
         rule: Rule::GreaterThan,
     };
-    
+
     assert_eq!(speed_cond.value, 30.0);
     assert_eq!(speed_cond.rule, Rule::GreaterThan);
 }
 
 #[test]
 fn test_speed_condition_all_rules() {
-    let gt = SpeedCondition { value: 50.0, rule: Rule::GreaterThan };
-    let lt = SpeedCondition { value: 20.0, rule: Rule::LessThan };
-    let eq = SpeedCondition { value: 30.0, rule: Rule::EqualTo };
-    
+    let gt = SpeedCondition {
+        value: 50.0,
+        rule: Rule::GreaterThan,
+    };
+    let lt = SpeedCondition {
+        value: 20.0,
+        rule: Rule::LessThan,
+    };
+    let eq = SpeedCondition {
+        value: 30.0,
+        rule: Rule::EqualTo,
+    };
+
     assert_eq!(gt.rule, Rule::GreaterThan);
     assert_eq!(lt.rule, Rule::LessThan);
     assert_eq!(eq.rule, Rule::EqualTo);
@@ -377,7 +379,7 @@ fn test_entity_condition_speed_variant() {
         rule: Rule::LessThan,
     };
     let entity_cond = EntityCondition::Speed(speed_cond.clone());
-    
+
     // Use if let to avoid exhaustive match on extensible enum
     if let EntityCondition::Speed(sc) = entity_cond {
         assert_eq!(sc.value, 15.5);
@@ -393,18 +395,21 @@ fn test_by_entity_condition_construction() {
         rule: TriggeringEntitiesRule::Any,
         entity_refs: vec!["Ego".to_string()],
     };
-    
+
     let speed_cond = SpeedCondition {
         value: 25.0,
         rule: Rule::GreaterThan,
     };
-    
+
     let by_entity = ByEntityCondition {
         triggering_entities: triggering.clone(),
         entity_condition: EntityCondition::Speed(speed_cond),
     };
-    
-    assert_eq!(by_entity.triggering_entities.rule, TriggeringEntitiesRule::Any);
+
+    assert_eq!(
+        by_entity.triggering_entities.rule,
+        TriggeringEntitiesRule::Any
+    );
     assert_eq!(by_entity.triggering_entities.entity_refs.len(), 1);
 }
 
@@ -414,19 +419,19 @@ fn test_condition_kind_by_entity_variant() {
         rule: TriggeringEntitiesRule::Any,
         entity_refs: vec!["Ego".to_string()],
     };
-    
+
     let speed_cond = SpeedCondition {
         value: 40.0,
         rule: Rule::GreaterThan,
     };
-    
+
     let by_entity = ByEntityCondition {
         triggering_entities: triggering,
         entity_condition: EntityCondition::Speed(speed_cond),
     };
-    
+
     let kind = ConditionKind::ByEntity(by_entity.clone());
-    
+
     match kind {
         ConditionKind::ByEntity(be) => {
             assert_eq!(be.triggering_entities.entity_refs[0], "Ego");
@@ -444,9 +449,9 @@ fn test_condition_kind_by_entity_variant() {
 #[test]
 fn test_invalid_entity_reference_in_condition() {
     use openscenario::entities::{VehicleCategory, VehicleParams};
-    
+
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
-    
+
     // Add only one vehicle
     let params = VehicleParams {
         catalog: None,
@@ -454,44 +459,46 @@ fn test_invalid_entity_reference_in_condition() {
         properties: None,
     };
     scenario.add_vehicle("Ego", params).unwrap();
-    scenario.set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
-    
+    scenario
+        .set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0))
+        .unwrap();
+
     // Create condition referencing non-existent entity
     let triggering = TriggeringEntities {
         rule: TriggeringEntitiesRule::Any,
         entity_refs: vec!["NonExistent".to_string()],
     };
-    
+
     let speed_cond = SpeedCondition {
         value: 30.0,
         rule: Rule::GreaterThan,
     };
-    
+
     let by_entity = ByEntityCondition {
         triggering_entities: triggering,
         entity_condition: EntityCondition::Speed(speed_cond),
     };
-    
+
     let condition = Condition {
         name: "TestSpeed".to_string(),
         delay: 0.0,
         condition_edge: ConditionEdge::None,
         kind: ConditionKind::ByEntity(by_entity),
     };
-    
+
     let condition_group = ConditionGroup::new(vec![condition]);
     let trigger = Trigger::new(condition_group);
-    
+
     scenario.add_story("TestStory").unwrap();
     scenario.add_act("TestStory", "TestAct").unwrap();
     scenario
         .set_act_start_trigger("TestStory", "TestAct", trigger)
         .unwrap();
-    
+
     // Try to export - should fail with InvalidEntityRef
     let result = scenario.to_xml();
     assert!(result.is_err());
-    
+
     match result.unwrap_err() {
         ScenarioError::InvalidEntityRef { entity, available } => {
             assert_eq!(entity, "NonExistent");
@@ -504,9 +511,9 @@ fn test_invalid_entity_reference_in_condition() {
 #[test]
 fn test_valid_entity_reference_succeeds() {
     use openscenario::entities::{VehicleCategory, VehicleParams};
-    
+
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
-    
+
     // Add vehicle
     let params = VehicleParams {
         catalog: None,
@@ -514,40 +521,42 @@ fn test_valid_entity_reference_succeeds() {
         properties: None,
     };
     scenario.add_vehicle("Ego", params).unwrap();
-    scenario.set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
-    
+    scenario
+        .set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0))
+        .unwrap();
+
     // Create condition with valid entity reference
     let triggering = TriggeringEntities {
         rule: TriggeringEntitiesRule::Any,
         entity_refs: vec!["Ego".to_string()],
     };
-    
+
     let speed_cond = SpeedCondition {
         value: 30.0,
         rule: Rule::GreaterThan,
     };
-    
+
     let by_entity = ByEntityCondition {
         triggering_entities: triggering,
         entity_condition: EntityCondition::Speed(speed_cond),
     };
-    
+
     let condition = Condition {
         name: "TestSpeed".to_string(),
         delay: 0.0,
         condition_edge: ConditionEdge::None,
         kind: ConditionKind::ByEntity(by_entity),
     };
-    
+
     let condition_group = ConditionGroup::new(vec![condition]);
     let trigger = Trigger::new(condition_group);
-    
+
     scenario.add_story("TestStory").unwrap();
     scenario.add_act("TestStory", "TestAct").unwrap();
     scenario
         .set_act_start_trigger("TestStory", "TestAct", trigger)
         .unwrap();
-    
+
     // Should succeed (validation passes)
     let result = scenario.to_xml();
     assert!(result.is_ok());
@@ -558,55 +567,60 @@ fn test_valid_entity_reference_succeeds() {
 #[test]
 fn test_empty_entity_refs_error() {
     use openscenario::entities::{VehicleCategory, VehicleParams};
-    
+
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
-    
+
     let params = VehicleParams {
         catalog: None,
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
     scenario.add_vehicle("Ego", params).unwrap();
-    scenario.set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
-    
+    scenario
+        .set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0))
+        .unwrap();
+
     // Create condition with empty entity_refs
     let triggering = TriggeringEntities {
         rule: TriggeringEntitiesRule::Any,
-        entity_refs: vec![],  // Empty!
+        entity_refs: vec![], // Empty!
     };
-    
+
     let speed_cond = SpeedCondition {
         value: 30.0,
         rule: Rule::GreaterThan,
     };
-    
+
     let by_entity = ByEntityCondition {
         triggering_entities: triggering,
         entity_condition: EntityCondition::Speed(speed_cond),
     };
-    
+
     let condition = Condition {
         name: "TestSpeed".to_string(),
         delay: 0.0,
         condition_edge: ConditionEdge::None,
         kind: ConditionKind::ByEntity(by_entity),
     };
-    
+
     let condition_group = ConditionGroup::new(vec![condition]);
     let trigger = Trigger::new(condition_group);
-    
+
     scenario.add_story("TestStory").unwrap();
     scenario.add_act("TestStory", "TestAct").unwrap();
     scenario
         .set_act_start_trigger("TestStory", "TestAct", trigger)
         .unwrap();
-    
+
     // Should fail - empty entity list
     let result = scenario.to_xml();
     assert!(result.is_err());
-    
+
     match result.unwrap_err() {
-        ScenarioError::InvalidEntityRef { entity, available: _ } => {
+        ScenarioError::InvalidEntityRef {
+            entity,
+            available: _,
+        } => {
             assert_eq!(entity, "(empty list)");
         }
         _ => panic!("Expected InvalidEntityRef error"),
@@ -616,53 +630,55 @@ fn test_empty_entity_refs_error() {
 #[test]
 fn test_mixed_valid_invalid_entity_refs() {
     use openscenario::entities::{VehicleCategory, VehicleParams};
-    
+
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
-    
+
     let params = VehicleParams {
         catalog: None,
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
     scenario.add_vehicle("Ego", params).unwrap();
-    scenario.set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
-    
+    scenario
+        .set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0))
+        .unwrap();
+
     // Create condition with mix of valid and invalid refs
     let triggering = TriggeringEntities {
         rule: TriggeringEntitiesRule::Any,
         entity_refs: vec!["Ego".to_string(), "NonExistent".to_string()],
     };
-    
+
     let speed_cond = SpeedCondition {
         value: 30.0,
         rule: Rule::GreaterThan,
     };
-    
+
     let by_entity = ByEntityCondition {
         triggering_entities: triggering,
         entity_condition: EntityCondition::Speed(speed_cond),
     };
-    
+
     let condition = Condition {
         name: "TestSpeed".to_string(),
         delay: 0.0,
         condition_edge: ConditionEdge::None,
         kind: ConditionKind::ByEntity(by_entity),
     };
-    
+
     let condition_group = ConditionGroup::new(vec![condition]);
     let trigger = Trigger::new(condition_group);
-    
+
     scenario.add_story("TestStory").unwrap();
     scenario.add_act("TestStory", "TestAct").unwrap();
     scenario
         .set_act_start_trigger("TestStory", "TestAct", trigger)
         .unwrap();
-    
+
     // Should fail on first invalid ref
     let result = scenario.to_xml();
     assert!(result.is_err());
-    
+
     match result.unwrap_err() {
         ScenarioError::InvalidEntityRef { entity, available } => {
             assert_eq!(entity, "NonExistent");
@@ -675,9 +691,9 @@ fn test_mixed_valid_invalid_entity_refs() {
 #[test]
 fn test_by_entity_condition_xml_generation() {
     use openscenario::entities::{VehicleCategory, VehicleParams};
-    
+
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
-    
+
     // Add two vehicles
     let params = VehicleParams {
         catalog: None,
@@ -686,63 +702,67 @@ fn test_by_entity_condition_xml_generation() {
     };
     scenario.add_vehicle("Ego", params.clone()).unwrap();
     scenario.add_vehicle("Target", params).unwrap();
-    scenario.set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
-    scenario.set_initial_position("Target", Position::world(10.0, 0.0, 0.0, 0.0)).unwrap();
-    
+    scenario
+        .set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0))
+        .unwrap();
+    scenario
+        .set_initial_position("Target", Position::world(10.0, 0.0, 0.0, 0.0))
+        .unwrap();
+
     // Create ByEntityCondition with SpeedCondition
     let triggering = TriggeringEntities {
         rule: TriggeringEntitiesRule::Any,
         entity_refs: vec!["Ego".to_string(), "Target".to_string()],
     };
-    
+
     let speed_cond = SpeedCondition {
         value: 30.0,
         rule: Rule::GreaterThan,
     };
-    
+
     let by_entity = ByEntityCondition {
         triggering_entities: triggering,
         entity_condition: EntityCondition::Speed(speed_cond),
     };
-    
+
     let condition = Condition {
         name: "SpeedTrigger".to_string(),
         delay: 0.0,
         condition_edge: ConditionEdge::None,
         kind: ConditionKind::ByEntity(by_entity),
     };
-    
+
     let condition_group = ConditionGroup::new(vec![condition]);
     let trigger = Trigger::new(condition_group);
-    
+
     scenario.add_story("TestStory").unwrap();
     scenario.add_act("TestStory", "TestAct").unwrap();
     scenario
         .set_act_start_trigger("TestStory", "TestAct", trigger)
         .unwrap();
-    
+
     // Generate XML and verify structure
     let result = scenario.to_xml();
     assert!(result.is_ok());
     let xml = result.unwrap();
-    
+
     // Verify ByEntityCondition structure
     assert!(xml.contains("<ByEntityCondition>"));
     assert!(xml.contains("</ByEntityCondition>"));
-    
+
     // Verify TriggeringEntities with rule attribute
     assert!(xml.contains("<TriggeringEntities"));
     assert!(xml.contains("triggeringEntitiesRule=\"any\""));
     assert!(xml.contains("</TriggeringEntities>"));
-    
+
     // Verify EntityRef elements
     assert!(xml.contains("<EntityRef entityRef=\"Ego\""));
     assert!(xml.contains("<EntityRef entityRef=\"Target\""));
-    
+
     // Verify EntityCondition wrapper
     assert!(xml.contains("<EntityCondition>"));
     assert!(xml.contains("</EntityCondition>"));
-    
+
     // Verify SpeedCondition with attributes
     assert!(xml.contains("<SpeedCondition"));
     assert!(xml.contains("value=\"30\""));
@@ -752,17 +772,17 @@ fn test_by_entity_condition_xml_generation() {
 #[test]
 fn test_speed_condition_all_rule_operators() {
     use openscenario::entities::{VehicleCategory, VehicleParams};
-    
+
     // Test all three Rule operators in SpeedCondition XML output
     let test_cases = vec![
         (Rule::GreaterThan, "greaterThan"),
         (Rule::LessThan, "lessThan"),
         (Rule::EqualTo, "equalTo"),
     ];
-    
+
     for (rule, expected_xml) in test_cases {
         let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
-        
+
         // Add vehicle
         let params = VehicleParams {
             catalog: None,
@@ -770,99 +790,109 @@ fn test_speed_condition_all_rule_operators() {
             properties: None,
         };
         scenario.add_vehicle("Ego", params).unwrap();
-        scenario.set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
-        
+        scenario
+            .set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0))
+            .unwrap();
+
         // Create SpeedCondition with the rule
         let triggering = TriggeringEntities {
             rule: TriggeringEntitiesRule::Any,
             entity_refs: vec!["Ego".to_string()],
         };
-        
+
         let speed_cond = SpeedCondition {
             value: 30.0,
             rule: rule.clone(),
         };
-        
+
         let by_entity = ByEntityCondition {
             triggering_entities: triggering,
             entity_condition: EntityCondition::Speed(speed_cond),
         };
-        
+
         let condition = Condition {
             name: format!("Speed_{:?}", rule),
             delay: 0.0,
             condition_edge: ConditionEdge::None,
             kind: ConditionKind::ByEntity(by_entity),
         };
-        
+
         // Add to scenario
         let cg = ConditionGroup::new(vec![condition]);
         let trigger = Trigger::new(cg);
         scenario.add_story("S").unwrap();
         scenario.add_act("S", "A").unwrap();
         scenario.set_act_start_trigger("S", "A", trigger).unwrap();
-        
+
         // Verify XML contains correct rule attribute
         let xml = scenario.to_xml().unwrap();
         let expected_attr = format!("rule=\"{}\"", expected_xml);
-        assert!(xml.contains(&expected_attr), 
-                "Expected XML to contain '{}' for rule {:?}", expected_attr, rule);
+        assert!(
+            xml.contains(&expected_attr),
+            "Expected XML to contain '{}' for rule {:?}",
+            expected_attr,
+            rule
+        );
     }
 }
 
 #[test]
 fn test_triggering_entities_rule_xml() {
     use openscenario::entities::{VehicleCategory, VehicleParams};
-    
+
     // Test TriggeringEntitiesRule::Any with single entity
     {
         let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
-        
+
         let params = VehicleParams {
             catalog: None,
             vehicle_category: VehicleCategory::Car,
             properties: None,
         };
         scenario.add_vehicle("Ego", params).unwrap();
-        scenario.set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
-        
+        scenario
+            .set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0))
+            .unwrap();
+
         let triggering = TriggeringEntities {
             rule: TriggeringEntitiesRule::Any,
             entity_refs: vec!["Ego".to_string()],
         };
-        
+
         let speed_cond = SpeedCondition {
             value: 25.0,
             rule: Rule::GreaterThan,
         };
-        
+
         let by_entity = ByEntityCondition {
             triggering_entities: triggering,
             entity_condition: EntityCondition::Speed(speed_cond),
         };
-        
+
         let condition = Condition {
             name: "SpeedAny".to_string(),
             delay: 0.0,
             condition_edge: ConditionEdge::None,
             kind: ConditionKind::ByEntity(by_entity),
         };
-        
+
         let cg = ConditionGroup::new(vec![condition]);
         let trigger = Trigger::new(cg);
         scenario.add_story("S").unwrap();
         scenario.add_act("S", "A").unwrap();
         scenario.set_act_start_trigger("S", "A", trigger).unwrap();
-        
+
         let xml = scenario.to_xml().unwrap();
-        assert!(xml.contains("triggeringEntitiesRule=\"any\""),
-                "Expected TriggeringEntitiesRule::Any to produce 'any' in XML");
+        assert!(
+            xml.contains("triggeringEntitiesRule=\"any\""),
+            "Expected TriggeringEntitiesRule::Any to produce 'any' in XML"
+        );
     }
-    
+
     // Test TriggeringEntitiesRule::All with multiple entities
     {
         let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
-        
+
         let params = VehicleParams {
             catalog: None,
             vehicle_category: VehicleCategory::Car,
@@ -870,49 +900,55 @@ fn test_triggering_entities_rule_xml() {
         };
         scenario.add_vehicle("Ego", params.clone()).unwrap();
         scenario.add_vehicle("Target", params).unwrap();
-        scenario.set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
-        scenario.set_initial_position("Target", Position::world(10.0, 0.0, 0.0, 0.0)).unwrap();
-        
+        scenario
+            .set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0))
+            .unwrap();
+        scenario
+            .set_initial_position("Target", Position::world(10.0, 0.0, 0.0, 0.0))
+            .unwrap();
+
         let triggering = TriggeringEntities {
             rule: TriggeringEntitiesRule::All,
             entity_refs: vec!["Ego".to_string(), "Target".to_string()],
         };
-        
+
         let speed_cond = SpeedCondition {
             value: 50.0,
             rule: Rule::LessThan,
         };
-        
+
         let by_entity = ByEntityCondition {
             triggering_entities: triggering,
             entity_condition: EntityCondition::Speed(speed_cond),
         };
-        
+
         let condition = Condition {
             name: "SpeedAll".to_string(),
             delay: 0.0,
             condition_edge: ConditionEdge::None,
             kind: ConditionKind::ByEntity(by_entity),
         };
-        
+
         let cg = ConditionGroup::new(vec![condition]);
         let trigger = Trigger::new(cg);
         scenario.add_story("S").unwrap();
         scenario.add_act("S", "A").unwrap();
         scenario.set_act_start_trigger("S", "A", trigger).unwrap();
-        
+
         let xml = scenario.to_xml().unwrap();
-        assert!(xml.contains("triggeringEntitiesRule=\"all\""),
-                "Expected TriggeringEntitiesRule::All to produce 'all' in XML");
+        assert!(
+            xml.contains("triggeringEntitiesRule=\"all\""),
+            "Expected TriggeringEntitiesRule::All to produce 'all' in XML"
+        );
     }
 }
 
 #[test]
 fn test_multiple_entity_refs_xml() {
     use openscenario::entities::{VehicleCategory, VehicleParams};
-    
+
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
-    
+
     // Add three entities
     let params = VehicleParams {
         catalog: None,
@@ -922,11 +958,17 @@ fn test_multiple_entity_refs_xml() {
     scenario.add_vehicle("Ego", params.clone()).unwrap();
     scenario.add_vehicle("Target", params.clone()).unwrap();
     scenario.add_vehicle("Adversary", params).unwrap();
-    
-    scenario.set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
-    scenario.set_initial_position("Target", Position::world(10.0, 0.0, 0.0, 0.0)).unwrap();
-    scenario.set_initial_position("Adversary", Position::world(20.0, 0.0, 0.0, 0.0)).unwrap();
-    
+
+    scenario
+        .set_initial_position("Ego", Position::world(0.0, 0.0, 0.0, 0.0))
+        .unwrap();
+    scenario
+        .set_initial_position("Target", Position::world(10.0, 0.0, 0.0, 0.0))
+        .unwrap();
+    scenario
+        .set_initial_position("Adversary", Position::world(20.0, 0.0, 0.0, 0.0))
+        .unwrap();
+
     // Create condition referencing all 3 entities
     let triggering = TriggeringEntities {
         rule: TriggeringEntitiesRule::Any,
@@ -936,41 +978,50 @@ fn test_multiple_entity_refs_xml() {
             "Adversary".to_string(),
         ],
     };
-    
+
     let speed_cond = SpeedCondition {
         value: 40.0,
         rule: Rule::GreaterThan,
     };
-    
+
     let by_entity = ByEntityCondition {
         triggering_entities: triggering,
         entity_condition: EntityCondition::Speed(speed_cond),
     };
-    
+
     let condition = Condition {
         name: "MultiEntitySpeed".to_string(),
         delay: 0.0,
         condition_edge: ConditionEdge::None,
         kind: ConditionKind::ByEntity(by_entity),
     };
-    
+
     let cg = ConditionGroup::new(vec![condition]);
     let trigger = Trigger::new(cg);
     scenario.add_story("S").unwrap();
     scenario.add_act("S", "A").unwrap();
     scenario.set_act_start_trigger("S", "A", trigger).unwrap();
-    
+
     // Verify XML contains all 3 EntityRef elements
     let xml = scenario.to_xml().unwrap();
-    assert!(xml.contains("<EntityRef entityRef=\"Ego\""),
-            "Expected XML to contain EntityRef for Ego");
-    assert!(xml.contains("<EntityRef entityRef=\"Target\""),
-            "Expected XML to contain EntityRef for Target");
-    assert!(xml.contains("<EntityRef entityRef=\"Adversary\""),
-            "Expected XML to contain EntityRef for Adversary");
-    
+    assert!(
+        xml.contains("<EntityRef entityRef=\"Ego\""),
+        "Expected XML to contain EntityRef for Ego"
+    );
+    assert!(
+        xml.contains("<EntityRef entityRef=\"Target\""),
+        "Expected XML to contain EntityRef for Target"
+    );
+    assert!(
+        xml.contains("<EntityRef entityRef=\"Adversary\""),
+        "Expected XML to contain EntityRef for Adversary"
+    );
+
     // Verify the count by counting occurrences of EntityRef
     let entity_ref_count = xml.matches("<EntityRef").count();
-    assert_eq!(entity_ref_count, 3,
-               "Expected exactly 3 EntityRef elements, found {}", entity_ref_count);
+    assert_eq!(
+        entity_ref_count, 3,
+        "Expected exactly 3 EntityRef elements, found {}",
+        entity_ref_count
+    );
 }

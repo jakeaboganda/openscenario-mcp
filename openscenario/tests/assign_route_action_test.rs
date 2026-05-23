@@ -177,14 +177,8 @@ fn test_add_assign_route_action_to_scenario() {
         ],
     };
 
-    let result = scenario.add_assign_route_action(
-        "main_story",
-        "act1",
-        "mg1",
-        "maneuver1",
-        "event1",
-        route,
-    );
+    let result =
+        scenario.add_assign_route_action("main_story", "act1", "mg1", "maneuver1", "event1", route);
 
     assert!(result.is_ok(), "Failed to add assign route action");
 }
@@ -240,14 +234,7 @@ fn test_assign_route_action_xml_export() {
     };
 
     scenario
-        .add_assign_route_action(
-            "main_story",
-            "act1",
-            "mg1",
-            "maneuver1",
-            "event1",
-            route,
-        )
+        .add_assign_route_action("main_story", "act1", "mg1", "maneuver1", "event1", route)
         .unwrap();
 
     let xml = scenario.to_xml().unwrap();
@@ -285,7 +272,9 @@ fn test_route_validation_minimum_waypoints() {
     scenario.add_act("story", "act").unwrap();
     scenario.add_maneuver_group("story", "act", "mg").unwrap();
     scenario.add_actor("story", "act", "mg", "ego").unwrap();
-    scenario.add_maneuver("story", "act", "mg", "maneuver").unwrap();
+    scenario
+        .add_maneuver("story", "act", "mg", "maneuver")
+        .unwrap();
 
     // Single waypoint route (invalid)
     let invalid_route = Route {
@@ -297,14 +286,8 @@ fn test_route_validation_minimum_waypoints() {
         }],
     };
 
-    let result = scenario.add_assign_route_action(
-        "story",
-        "act",
-        "mg",
-        "maneuver",
-        "event",
-        invalid_route,
-    );
+    let result =
+        scenario.add_assign_route_action("story", "act", "mg", "maneuver", "event", invalid_route);
 
     assert!(result.is_err(), "Should reject route with < 2 waypoints");
 }

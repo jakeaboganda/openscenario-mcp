@@ -31,24 +31,24 @@ fn main() -> Result<(), openscenario::ScenarioError> {
     scenario.add_vehicle("leader", vehicle_params.clone())?;
     scenario.set_initial_state(
         "leader",
-        Position::lane("1", -1, 80.0, 0.0, None),  // Lane -1, s=80m
-        Some(25.0),  // 25 m/s ≈ 90 km/h
+        Position::lane("1", -1, 80.0, 0.0, None), // Lane -1, s=80m
+        Some(25.0),                               // 25 m/s ≈ 90 km/h
     )?;
 
     // Follower 1 (middle vehicle, follows leader at ~40m = 1.6s @ 25 m/s)
     scenario.add_vehicle("follower1", vehicle_params.clone())?;
     scenario.set_initial_state(
         "follower1",
-        Position::lane("1", -1, 40.0, 0.0, None),  // Lane -1, s=40m
-        Some(25.0),  // 25 m/s ≈ 90 km/h
+        Position::lane("1", -1, 40.0, 0.0, None), // Lane -1, s=40m
+        Some(25.0),                               // 25 m/s ≈ 90 km/h
     )?;
 
     // Follower 2 (rear vehicle, follows follower1 at ~40m)
     scenario.add_vehicle("follower2", vehicle_params)?;
     scenario.set_initial_state(
         "follower2",
-        Position::lane("1", -1, 0.0, 0.0, None),  // Lane -1, s=0m (start)
-        Some(25.0),  // 25 m/s ≈ 90 km/h
+        Position::lane("1", -1, 0.0, 0.0, None), // Lane -1, s=0m (start)
+        Some(25.0),                              // 25 m/s ≈ 90 km/h
     )?;
 
     // Story structure
@@ -57,7 +57,12 @@ fn main() -> Result<(), openscenario::ScenarioError> {
 
     // Follower 1 group
     scenario.add_maneuver_group("platoon_story", "follow_act", "follower1_group")?;
-    scenario.add_actor("platoon_story", "follow_act", "follower1_group", "follower1")?;
+    scenario.add_actor(
+        "platoon_story",
+        "follow_act",
+        "follower1_group",
+        "follower1",
+    )?;
     scenario.add_maneuver(
         "platoon_story",
         "follow_act",
@@ -91,7 +96,12 @@ fn main() -> Result<(), openscenario::ScenarioError> {
 
     // Follower 2 group
     scenario.add_maneuver_group("platoon_story", "follow_act", "follower2_group")?;
-    scenario.add_actor("platoon_story", "follow_act", "follower2_group", "follower2")?;
+    scenario.add_actor(
+        "platoon_story",
+        "follow_act",
+        "follower2_group",
+        "follower2",
+    )?;
     scenario.add_maneuver(
         "platoon_story",
         "follow_act",

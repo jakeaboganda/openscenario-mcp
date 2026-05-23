@@ -41,7 +41,7 @@ impl Scenario {
             )))
             .map_err(|e| {
                 ScenarioError::Xml(quick_xml::Error::Io(std::sync::Arc::new(
-                    std::io::Error::other(e.to_string()),
+                    std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()),
                 )))
             })?;
 
@@ -354,7 +354,8 @@ impl Scenario {
         writer.write_event(XmlEvent::Start(BytesStart::new("Actions")))?;
 
         // Collect all entities that have initial position OR speed
-        let mut entities_with_init: std::collections::HashSet<&String> = std::collections::HashSet::new();
+        let mut entities_with_init: std::collections::HashSet<&String> =
+            std::collections::HashSet::new();
         for entity_name in self.initial_positions.keys() {
             entities_with_init.insert(entity_name);
         }
@@ -370,7 +371,7 @@ impl Scenario {
 
             // IMPORTANT: Write SpeedAction BEFORE TeleportAction
             // (esmini applies actions in order, speed must be set before position)
-            
+
             // Write SpeedAction if speed is set
             if let Some(&speed) = self.initial_speeds.get(entity_name) {
                 writer.write_event(XmlEvent::Start(BytesStart::new("PrivateAction")))?;
@@ -380,7 +381,7 @@ impl Scenario {
                 // SpeedActionDynamics - step (instant)
                 let mut dynamics_elem = BytesStart::new("SpeedActionDynamics");
                 dynamics_elem.push_attribute(("dynamicsShape", "step"));
-                dynamics_elem.push_attribute(("value", "1.0"));  // Use 1.0 instead of 0 (matches esmini examples)
+                dynamics_elem.push_attribute(("value", "1.0")); // Use 1.0 instead of 0 (matches esmini examples)
                 dynamics_elem.push_attribute(("dynamicsDimension", "time"));
                 writer.write_event(XmlEvent::Empty(dynamics_elem))?;
 
@@ -665,29 +666,25 @@ impl Scenario {
                 if by_entity.triggering_entities.entity_refs.is_empty() {
                     return Err(ScenarioError::InvalidEntityRef {
                         entity: "(empty list)".to_string(),
-                        available: self.entities.keys()
-                            .map(|s| s.to_string())
-                            .collect(),
+                        available: self.entities.keys().map(|s| s.to_string()).collect(),
                     });
                 }
-                
+
                 // Validate all entity references before generating XML
                 for entity_ref in &by_entity.triggering_entities.entity_refs {
                     if !self.entities.contains_key(entity_ref) {
                         return Err(ScenarioError::InvalidEntityRef {
                             entity: entity_ref.clone(),
-                            available: self.entities.keys()
-                                .map(|s| s.to_string())
-                                .collect(),
+                            available: self.entities.keys().map(|s| s.to_string()).collect(),
                         });
                     }
                 }
-                
+
                 // Validation passed - write full ByEntityCondition XML
-                
+
                 // Write <ByEntityCondition>
                 writer.write_event(XmlEvent::Start(BytesStart::new("ByEntityCondition")))?;
-                
+
                 // Write <TriggeringEntities>
                 let mut triggering_start = BytesStart::new("TriggeringEntities");
                 triggering_start.push_attribute((
@@ -695,20 +692,20 @@ impl Scenario {
                     triggering_entities_rule_to_string(&by_entity.triggering_entities.rule),
                 ));
                 writer.write_event(XmlEvent::Start(triggering_start))?;
-                
+
                 // Write <EntityRef> for each entity
                 for entity_ref in &by_entity.triggering_entities.entity_refs {
                     let mut entity_ref_elem = BytesStart::new("EntityRef");
                     entity_ref_elem.push_attribute(("entityRef", entity_ref.as_str()));
                     writer.write_event(XmlEvent::Empty(entity_ref_elem))?;
                 }
-                
+
                 // Close </TriggeringEntities>
                 writer.write_event(XmlEvent::End(BytesEnd::new("TriggeringEntities")))?;
-                
+
                 // Write <EntityCondition>
                 writer.write_event(XmlEvent::Start(BytesStart::new("EntityCondition")))?;
-                
+
                 // Write specific condition
                 match &by_entity.entity_condition {
                     crate::storyboard::EntityCondition::Speed(speed_cond) => {
@@ -719,54 +716,74 @@ impl Scenario {
                     }
                     crate::storyboard::EntityCondition::ReachPosition(reach_cond) => {
                         let mut reach_elem = BytesStart::new("ReachPositionCondition");
-                        reach_elem.push_attribute(("tolerance", reach_cond.tolerance.to_string().as_str()));
+                        reach_elem.push_attribute((
+                            "tolerance",
+                            reach_cond.tolerance.to_string().as_str(),
+                        ));
                         writer.write_event(XmlEvent::Start(reach_elem))?;
-                        
+
                         // Write the target position
                         self.write_position(writer, &reach_cond.position)?;
-                        
-                        writer.write_event(XmlEvent::End(BytesEnd::new("ReachPositionCondition")))?;
+
+                        writer
+                            .write_event(XmlEvent::End(BytesEnd::new("ReachPositionCondition")))?;
                     }
                     crate::storyboard::EntityCondition::TimeToCollision(ttc_cond) => {
                         let mut ttc_elem = BytesStart::new("TimeToCollisionCondition");
                         ttc_elem.push_attribute(("value", ttc_cond.value.to_string().as_str()));
                         ttc_elem.push_attribute(("rule", rule_to_string(&ttc_cond.rule)));
                         writer.write_event(XmlEvent::Start(ttc_elem))?;
-                        
+
                         // Write the target entity
-                        writer.write_event(XmlEvent::Start(BytesStart::new("TimeToCollisionConditionTarget")))?;
+                        writer.write_event(XmlEvent::Start(BytesStart::new(
+                            "TimeToCollisionConditionTarget",
+                        )))?;
                         let mut entity_ref = BytesStart::new("EntityRef");
-                        entity_ref.push_attribute(("entityRef", ttc_cond.target_entity_ref.as_str()));
+                        entity_ref
+                            .push_attribute(("entityRef", ttc_cond.target_entity_ref.as_str()));
                         writer.write_event(XmlEvent::Empty(entity_ref))?;
-                        writer.write_event(XmlEvent::End(BytesEnd::new("TimeToCollisionConditionTarget")))?;
-                        
-                        writer.write_event(XmlEvent::End(BytesEnd::new("TimeToCollisionCondition")))?;
+                        writer.write_event(XmlEvent::End(BytesEnd::new(
+                            "TimeToCollisionConditionTarget",
+                        )))?;
+
+                        writer.write_event(XmlEvent::End(BytesEnd::new(
+                            "TimeToCollisionCondition",
+                        )))?;
                     }
                     crate::storyboard::EntityCondition::Collision(collision_cond) => {
-                        writer.write_event(XmlEvent::Start(BytesStart::new("CollisionCondition")))?;
-                        
+                        writer
+                            .write_event(XmlEvent::Start(BytesStart::new("CollisionCondition")))?;
+
                         // Write the target entity
                         let mut entity_ref = BytesStart::new("EntityRef");
-                        entity_ref.push_attribute(("entityRef", collision_cond.target_entity_ref.as_str()));
+                        entity_ref.push_attribute((
+                            "entityRef",
+                            collision_cond.target_entity_ref.as_str(),
+                        ));
                         writer.write_event(XmlEvent::Empty(entity_ref))?;
-                        
+
                         writer.write_event(XmlEvent::End(BytesEnd::new("CollisionCondition")))?;
                     }
                     crate::storyboard::EntityCondition::RelativeDistance(dist_cond) => {
                         let mut dist_elem = BytesStart::new("RelativeDistanceCondition");
                         dist_elem.push_attribute(("entityRef", dist_cond.entity_ref.as_str()));
                         dist_elem.push_attribute(("value", dist_cond.value.to_string().as_str()));
-                        dist_elem.push_attribute(("freespace", if dist_cond.freespace { "true" } else { "false" }));
+                        dist_elem.push_attribute((
+                            "freespace",
+                            if dist_cond.freespace { "true" } else { "false" },
+                        ));
                         dist_elem.push_attribute(("rule", rule_to_string(&dist_cond.rule)));
-                        
+
                         // Map distance type to XML attribute value
                         let distance_type_str = match dist_cond.distance_type {
                             crate::storyboard::RelativeDistanceType::Longitudinal => "longitudinal",
                             crate::storyboard::RelativeDistanceType::Lateral => "lateral",
-                            crate::storyboard::RelativeDistanceType::Euclidean => "euclideanDistance",
+                            crate::storyboard::RelativeDistanceType::Euclidean => {
+                                "euclideanDistance"
+                            }
                         };
                         dist_elem.push_attribute(("relativeDistanceType", distance_type_str));
-                        
+
                         // Add coordinate system if specified
                         if let Some(coord_sys) = &dist_cond.coordinate_system {
                             let coord_sys_str = match coord_sys {
@@ -777,27 +794,39 @@ impl Scenario {
                             };
                             dist_elem.push_attribute(("coordinateSystem", coord_sys_str));
                         }
-                        
+
                         writer.write_event(XmlEvent::Empty(dist_elem))?;
                     }
                     crate::storyboard::EntityCondition::TimeHeadway(headway_cond) => {
                         let mut headway_elem = BytesStart::new("TimeHeadwayCondition");
-                        headway_elem.push_attribute(("entityRef", headway_cond.entity_ref.as_str()));
-                        headway_elem.push_attribute(("value", headway_cond.value.to_string().as_str()));
-                        headway_elem.push_attribute(("freespace", if headway_cond.freespace { "true" } else { "false" }));
+                        headway_elem
+                            .push_attribute(("entityRef", headway_cond.entity_ref.as_str()));
+                        headway_elem
+                            .push_attribute(("value", headway_cond.value.to_string().as_str()));
+                        headway_elem.push_attribute((
+                            "freespace",
+                            if headway_cond.freespace {
+                                "true"
+                            } else {
+                                "false"
+                            },
+                        ));
                         headway_elem.push_attribute(("rule", rule_to_string(&headway_cond.rule)));
                         writer.write_event(XmlEvent::Empty(headway_elem))?;
                     }
                     crate::storyboard::EntityCondition::StandStill(standstill_cond) => {
                         let mut standstill_elem = BytesStart::new("StandStillCondition");
-                        standstill_elem.push_attribute(("duration", standstill_cond.duration.to_string().as_str()));
+                        standstill_elem.push_attribute((
+                            "duration",
+                            standstill_cond.duration.to_string().as_str(),
+                        ));
                         writer.write_event(XmlEvent::Empty(standstill_elem))?;
                     }
                 }
-                
+
                 // Close </EntityCondition>
                 writer.write_event(XmlEvent::End(BytesEnd::new("EntityCondition")))?;
-                
+
                 // Close </ByEntityCondition>
                 writer.write_event(XmlEvent::End(BytesEnd::new("ByEntityCondition")))?;
             }
@@ -957,12 +986,16 @@ impl Scenario {
                 let mut dyn_elem = BytesStart::new("SpeedActionDynamics");
                 dyn_elem.push_attribute((
                     "dynamicsShape",
-                    format!("{:?}", speed.dynamics.shape).to_lowercase().as_str(),
+                    format!("{:?}", speed.dynamics.shape)
+                        .to_lowercase()
+                        .as_str(),
                 ));
                 dyn_elem.push_attribute(("value", speed.dynamics.value.to_string().as_str()));
                 dyn_elem.push_attribute((
                     "dynamicsDimension",
-                    format!("{:?}", speed.dynamics.dimension).to_lowercase().as_str(),
+                    format!("{:?}", speed.dynamics.dimension)
+                        .to_lowercase()
+                        .as_str(),
                 ));
                 writer.write_event(XmlEvent::Empty(dyn_elem))?;
 
@@ -983,10 +1016,12 @@ impl Scenario {
                 let mut dyn_elem = BytesStart::new("SpeedActionDynamics");
                 dyn_elem.push_attribute((
                     "dynamicsShape",
-                    format!("{:?}", accel.dynamics.shape).to_lowercase().as_str(),
+                    format!("{:?}", accel.dynamics.shape)
+                        .to_lowercase()
+                        .as_str(),
                 ));
                 dyn_elem.push_attribute(("value", accel.value.to_string().as_str()));
-                dyn_elem.push_attribute(("dynamicsDimension", "rate"));  // Always "rate" for acceleration
+                dyn_elem.push_attribute(("dynamicsDimension", "rate")); // Always "rate" for acceleration
                 writer.write_event(XmlEvent::Empty(dyn_elem))?;
 
                 // Write SpeedActionTarget with RelativeTargetSpeed (continuous acceleration)
@@ -994,9 +1029,9 @@ impl Scenario {
                 writer.write_event(XmlEvent::Start(BytesStart::new("SpeedActionTarget")))?;
                 let mut target_elem = BytesStart::new("RelativeTargetSpeed");
                 target_elem.push_attribute(("entityRef", actor));
-                target_elem.push_attribute(("value", "0"));  // Delta of 0 means maintain current speed while accelerating
+                target_elem.push_attribute(("value", "0")); // Delta of 0 means maintain current speed while accelerating
                 target_elem.push_attribute(("speedTargetValueType", "delta"));
-                target_elem.push_attribute(("continuous", "true"));  // Apply acceleration continuously
+                target_elem.push_attribute(("continuous", "true")); // Apply acceleration continuously
                 writer.write_event(XmlEvent::Empty(target_elem))?;
                 writer.write_event(XmlEvent::End(BytesEnd::new("SpeedActionTarget")))?;
 
@@ -1005,9 +1040,16 @@ impl Scenario {
             }
             Action::SpeedProfile(profile) => {
                 writer.write_event(XmlEvent::Start(BytesStart::new("LongitudinalAction")))?;
-                
+
                 let mut profile_elem = BytesStart::new("SpeedProfileAction");
-                profile_elem.push_attribute(("followingMode", if profile.following_mode { "follow" } else { "position" }));
+                profile_elem.push_attribute((
+                    "followingMode",
+                    if profile.following_mode {
+                        "follow"
+                    } else {
+                        "position"
+                    },
+                ));
                 writer.write_event(XmlEvent::Start(profile_elem))?;
 
                 // Write speed profile entries
@@ -1030,10 +1072,7 @@ impl Scenario {
                     "dynamicsShape",
                     format!("{:?}", lane_change.shape).to_lowercase().as_str(),
                 ));
-                dyn_elem.push_attribute((
-                    "followingMode",
-                    "follow",
-                ));
+                dyn_elem.push_attribute(("followingMode", "follow"));
                 dyn_elem.push_attribute(("dynamicsDimension", "time"));
                 dyn_elem.push_attribute((
                     "value",
@@ -1054,10 +1093,11 @@ impl Scenario {
             }
             Action::LaneOffset(lane_offset) => {
                 writer.write_event(XmlEvent::Start(BytesStart::new("LateralAction")))?;
-                
+
                 // Create LaneOffsetAction opening tag with continuous attribute
                 let mut lane_offset_elem = BytesStart::new("LaneOffsetAction");
-                lane_offset_elem.push_attribute(("continuous", lane_offset.continuous.to_string().as_str()));
+                lane_offset_elem
+                    .push_attribute(("continuous", lane_offset.continuous.to_string().as_str()));
                 writer.write_event(XmlEvent::Start(lane_offset_elem))?;
 
                 // Write dynamics if present
@@ -1079,7 +1119,8 @@ impl Scenario {
                 // Write target offset
                 writer.write_event(XmlEvent::Start(BytesStart::new("LaneOffsetTarget")))?;
                 let mut target_elem = BytesStart::new("AbsoluteTargetLaneOffset");
-                target_elem.push_attribute(("value", lane_offset.target_offset.to_string().as_str()));
+                target_elem
+                    .push_attribute(("value", lane_offset.target_offset.to_string().as_str()));
                 writer.write_event(XmlEvent::Empty(target_elem))?;
                 writer.write_event(XmlEvent::End(BytesEnd::new("LaneOffsetTarget")))?;
 
@@ -1112,7 +1153,7 @@ impl Scenario {
             }
             Action::LongitudinalDistance(ld_action) => {
                 writer.write_event(XmlEvent::Start(BytesStart::new("LongitudinalAction")))?;
-                
+
                 // Create opening tag with continuous attribute
                 let mut ld_elem = BytesStart::new("LongitudinalDistanceAction");
                 ld_elem.push_attribute(("continuous", ld_action.continuous.to_string().as_str()));
@@ -1125,9 +1166,7 @@ impl Scenario {
 
                 // Write dynamics if present
                 if let Some(dynamics) = &ld_action.dynamics {
-                    writer.write_event(XmlEvent::Start(BytesStart::new(
-                        "DynamicConstraints",
-                    )))?;
+                    writer.write_event(XmlEvent::Start(BytesStart::new("DynamicConstraints")))?;
                     let mut dyn_elem = BytesStart::new("Dynamics");
                     dyn_elem.push_attribute((
                         "dynamicsShape",
@@ -1145,8 +1184,7 @@ impl Scenario {
                 // Write distance
                 let mut dist_elem = BytesStart::new("Distance");
                 dist_elem.push_attribute(("value", ld_action.distance.to_string().as_str()));
-                dist_elem
-                    .push_attribute(("freespace", ld_action.freespace.to_string().as_str()));
+                dist_elem.push_attribute(("freespace", ld_action.freespace.to_string().as_str()));
                 writer.write_event(XmlEvent::Empty(dist_elem))?;
 
                 writer.write_event(XmlEvent::End(BytesEnd::new("LongitudinalDistanceAction")))?;
@@ -1154,33 +1192,35 @@ impl Scenario {
             }
             Action::FollowTrajectory(follow_traj) => {
                 writer.write_event(XmlEvent::Start(BytesStart::new("RoutingAction")))?;
-                
+
                 // Create FollowTrajectoryAction with timing mode and optional offset
                 let mut follow_elem = BytesStart::new("FollowTrajectoryAction");
                 if let Some(offset) = follow_traj.initial_distance_offset {
-                    follow_elem.push_attribute(("initialDistanceOffset", offset.to_string().as_str()));
+                    follow_elem
+                        .push_attribute(("initialDistanceOffset", offset.to_string().as_str()));
                 }
                 writer.write_event(XmlEvent::Start(follow_elem))?;
 
                 // Write trajectory
                 let mut traj_elem = BytesStart::new("Trajectory");
                 traj_elem.push_attribute(("name", follow_traj.trajectory.name.as_str()));
-                traj_elem.push_attribute(("closed", follow_traj.trajectory.closed.to_string().as_str()));
+                traj_elem
+                    .push_attribute(("closed", follow_traj.trajectory.closed.to_string().as_str()));
                 writer.write_event(XmlEvent::Start(traj_elem))?;
 
                 // Write polyline with vertices
                 writer.write_event(XmlEvent::Start(BytesStart::new("Polyline")))?;
-                
+
                 for vertex in &follow_traj.trajectory.vertices {
                     let mut vertex_elem = BytesStart::new("Vertex");
                     vertex_elem.push_attribute(("time", vertex.time.to_string().as_str()));
                     writer.write_event(XmlEvent::Start(vertex_elem))?;
-                    
+
                     self.write_position(writer, &vertex.position)?;
-                    
+
                     writer.write_event(XmlEvent::End(BytesEnd::new("Vertex")))?;
                 }
-                
+
                 writer.write_event(XmlEvent::End(BytesEnd::new("Polyline")))?;
                 writer.write_event(XmlEvent::End(BytesEnd::new("Trajectory")))?;
 
@@ -1212,7 +1252,8 @@ impl Scenario {
                 // Write route
                 let mut route_elem = BytesStart::new("Route");
                 route_elem.push_attribute(("name", assign_route.route.name.as_str()));
-                route_elem.push_attribute(("closed", assign_route.route.closed.to_string().as_str()));
+                route_elem
+                    .push_attribute(("closed", assign_route.route.closed.to_string().as_str()));
                 writer.write_event(XmlEvent::Start(route_elem))?;
 
                 // Write waypoints
@@ -1362,7 +1403,9 @@ pub fn rule_to_string(rule: &crate::storyboard::Rule) -> &'static str {
 }
 
 /// Convert a TriggeringEntitiesRule enum value to its OpenSCENARIO 1.0 XML string representation.
-fn triggering_entities_rule_to_string(rule: &crate::storyboard::TriggeringEntitiesRule) -> &'static str {
+fn triggering_entities_rule_to_string(
+    rule: &crate::storyboard::TriggeringEntitiesRule,
+) -> &'static str {
     match rule {
         crate::storyboard::TriggeringEntitiesRule::Any => "any",
         crate::storyboard::TriggeringEntitiesRule::All => "all",

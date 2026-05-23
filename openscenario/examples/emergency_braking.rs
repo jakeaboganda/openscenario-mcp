@@ -32,23 +32,28 @@ fn main() -> Result<(), openscenario::ScenarioError> {
     scenario.add_vehicle("lead_vehicle", vehicle_params.clone())?;
     scenario.set_initial_state(
         "lead_vehicle",
-        Position::lane("1", -1, 100.0, 0.0, None),  // Lane -1 (right lane), 100m ahead
-        Some(20.0),  // 20 m/s ≈ 72 km/h
+        Position::lane("1", -1, 100.0, 0.0, None), // Lane -1 (right lane), 100m ahead
+        Some(20.0),                                // 20 m/s ≈ 72 km/h
     )?;
 
     // Following vehicle (behind, traveling faster)
     scenario.add_vehicle("follower_vehicle", vehicle_params)?;
     scenario.set_initial_state(
         "follower_vehicle",
-        Position::lane("1", -1, 50.0, 0.0, None),  // Same lane, 50m behind lead
-        Some(30.0),  // 30 m/s ≈ 108 km/h (faster, will catch up)
+        Position::lane("1", -1, 50.0, 0.0, None), // Same lane, 50m behind lead
+        Some(30.0),                               // 30 m/s ≈ 108 km/h (faster, will catch up)
     )?;
 
     // Create story structure
     scenario.add_story("emergency_story")?;
     scenario.add_act("emergency_story", "brake_act")?;
     scenario.add_maneuver_group("emergency_story", "brake_act", "follower_group")?;
-    scenario.add_actor("emergency_story", "brake_act", "follower_group", "follower_vehicle")?;
+    scenario.add_actor(
+        "emergency_story",
+        "brake_act",
+        "follower_group",
+        "follower_vehicle",
+    )?;
     scenario.add_maneuver(
         "emergency_story",
         "brake_act",
@@ -63,10 +68,10 @@ fn main() -> Result<(), openscenario::ScenarioError> {
         "follower_group",
         "emergency_brake_maneuver",
         "collision_risk",
-        "follower_vehicle",  // Entity being monitored
-        "lead_vehicle",      // Target entity
-        3.0,                  // TTC threshold: 3 seconds
-        Rule::LessThan,       // Trigger when TTC < 3s
+        "follower_vehicle", // Entity being monitored
+        "lead_vehicle",     // Target entity
+        3.0,                // TTC threshold: 3 seconds
+        Rule::LessThan,     // Trigger when TTC < 3s
     )?;
 
     // Action: Emergency brake (strong deceleration: -8 m/s²)

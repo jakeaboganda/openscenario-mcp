@@ -1,5 +1,7 @@
 use openscenario::entities::{VehicleCategory, VehicleParams};
-use openscenario::storyboard::{TransitionShape, TransitionDynamics, DynamicsShape, DynamicsDimension};
+use openscenario::storyboard::{
+    DynamicsDimension, DynamicsShape, TransitionDynamics, TransitionShape,
+};
 use openscenario::{OpenScenarioVersion, Scenario};
 
 #[test]

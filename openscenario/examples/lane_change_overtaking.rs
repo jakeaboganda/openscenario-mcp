@@ -31,24 +31,34 @@ fn main() -> Result<(), openscenario::ScenarioError> {
     scenario.add_vehicle("slow_vehicle", vehicle_params.clone())?;
     scenario.set_initial_state(
         "slow_vehicle",
-        Position::lane("1", -1, 80.0, 0.0, None),  // Lane -1 (right), s=80m
-        Some(20.0),  // 20 m/s ≈ 72 km/h
+        Position::lane("1", -1, 80.0, 0.0, None), // Lane -1 (right), s=80m
+        Some(20.0),                               // 20 m/s ≈ 72 km/h
     )?;
 
     // Fast vehicle behind in right lane (lane -1)
     scenario.add_vehicle("fast_vehicle", vehicle_params)?;
     scenario.set_initial_state(
         "fast_vehicle",
-        Position::lane("1", -1, 20.0, 0.0, None),  // Lane -1 (right), s=20m
-        Some(30.0),  // 30 m/s ≈ 108 km/h
+        Position::lane("1", -1, 20.0, 0.0, None), // Lane -1 (right), s=20m
+        Some(30.0),                               // 30 m/s ≈ 108 km/h
     )?;
 
     // Create story structure for overtaking vehicle
     scenario.add_story("overtake_story")?;
     scenario.add_act("overtake_story", "overtake_act")?;
     scenario.add_maneuver_group("overtake_story", "overtake_act", "fast_group")?;
-    scenario.add_actor("overtake_story", "overtake_act", "fast_group", "fast_vehicle")?;
-    scenario.add_maneuver("overtake_story", "overtake_act", "fast_group", "overtake_maneuver")?;
+    scenario.add_actor(
+        "overtake_story",
+        "overtake_act",
+        "fast_group",
+        "fast_vehicle",
+    )?;
+    scenario.add_maneuver(
+        "overtake_story",
+        "overtake_act",
+        "fast_group",
+        "overtake_maneuver",
+    )?;
 
     // Step 1: Change to left lane to overtake
     scenario.add_lane_change_action(

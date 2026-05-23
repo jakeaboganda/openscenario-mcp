@@ -1,4 +1,6 @@
-use openscenario::storyboard::{Action, SynchronizeAction, TargetPosition, TargetPositionMaster, TargetPositionRelative};
+use openscenario::storyboard::{
+    Action, SynchronizeAction, TargetPosition, TargetPositionMaster, TargetPositionRelative,
+};
 use openscenario::{OpenScenarioVersion, Scenario};
 
 #[test]
@@ -58,7 +60,9 @@ fn test_synchronize_action_with_world_position() {
         target_position_master: TargetPositionMaster {
             position: openscenario::Position::world(200.0, 50.0, 0.0, 0.0),
         },
-        target_position: TargetPosition::World(openscenario::Position::world(180.0, 45.0, 0.0, 0.0)),
+        target_position: TargetPosition::World(openscenario::Position::world(
+            180.0, 45.0, 0.0, 0.0,
+        )),
         final_speed: Some(25.0),
     };
 
@@ -130,7 +134,10 @@ fn test_add_synchronize_action_to_scenario() {
         .unwrap();
 
     scenario
-        .set_initial_position("follower", openscenario::Position::world(-10.0, 0.0, 0.0, 0.0))
+        .set_initial_position(
+            "follower",
+            openscenario::Position::world(-10.0, 0.0, 0.0, 0.0),
+        )
         .unwrap();
 
     // Add story structure
@@ -200,7 +207,10 @@ fn test_synchronize_action_xml_export() {
         .unwrap();
 
     scenario
-        .set_initial_position("follower", openscenario::Position::world(-10.0, 0.0, 0.0, 0.0))
+        .set_initial_position(
+            "follower",
+            openscenario::Position::world(-10.0, 0.0, 0.0, 0.0),
+        )
         .unwrap();
 
     scenario.add_story("main_story").unwrap();
@@ -275,7 +285,9 @@ fn test_synchronize_action_validation_entity_refs() {
     scenario.add_act("story", "act").unwrap();
     scenario.add_maneuver_group("story", "act", "mg").unwrap();
     scenario.add_actor("story", "act", "mg", "car1").unwrap();
-    scenario.add_maneuver("story", "act", "mg", "maneuver").unwrap();
+    scenario
+        .add_maneuver("story", "act", "mg", "maneuver")
+        .unwrap();
 
     // Try to synchronize with non-existent master entity
     let result = scenario.add_synchronize_action(

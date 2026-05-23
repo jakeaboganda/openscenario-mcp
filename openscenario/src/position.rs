@@ -166,7 +166,7 @@ impl Position {
     /// # fn main() {
     /// // Position in right lane (-1) at 50m along road, 0.5m left of lane center
     /// let pos = Position::lane("road1", -1, 50.0, 0.5, None);
-    /// 
+    ///
     /// // Position in left lane (+1)
     /// let pos_left = Position::lane("road1", 1, 100.0, 0.0, None);
     /// # }

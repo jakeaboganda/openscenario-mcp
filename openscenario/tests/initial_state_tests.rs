@@ -240,9 +240,7 @@ fn test_set_road_network_whitespace_fails() {
 #[test]
 fn test_set_road_network_trims_whitespace() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
-    scenario
-        .set_road_network("  roads/highway.xodr  ")
-        .unwrap();
+    scenario.set_road_network("  roads/highway.xodr  ").unwrap();
 
     assert_eq!(
         scenario.get_road_network(),

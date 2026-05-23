@@ -17,11 +17,10 @@ use crate::entities::{
     Entity, MiscObject, MiscObjectParams, Pedestrian, PedestrianParams, Vehicle, VehicleParams,
 };
 use crate::storyboard::{
-    Act, Action, ByEntityCondition, CollisionCondition, Condition, ConditionEdge,
-    ConditionGroup, ConditionKind, DistanceAction, EntityCondition, Event, LaneChangeAction,
-    Maneuver, ManeuverGroup, PositionAction, ReachPositionCondition, Rule, SpeedAction, Story,
-    Storyboard, TimeToCollisionCondition, TransitionShape, Trigger, TriggeringEntities,
-    TriggeringEntitiesRule,
+    Act, Action, ByEntityCondition, CollisionCondition, Condition, ConditionEdge, ConditionGroup,
+    ConditionKind, DistanceAction, EntityCondition, Event, LaneChangeAction, Maneuver,
+    ManeuverGroup, PositionAction, ReachPositionCondition, Rule, SpeedAction, Story, Storyboard,
+    TimeToCollisionCondition, TransitionShape, Trigger, TriggeringEntities, TriggeringEntitiesRule,
 };
 use crate::Position;
 use crate::{OpenScenarioVersion, Result, ScenarioError};
@@ -160,13 +159,13 @@ impl Scenario {
     ///
     /// # fn main() -> Result<(), openscenario::ScenarioError> {
     /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
-    /// 
+    ///
     /// let vehicle_params = VehicleParams {
     ///     catalog: None,
     ///     vehicle_category: VehicleCategory::Car,
     ///     properties: None,
     /// };
-    /// 
+    ///
     /// scenario.add_vehicle("ego_vehicle", vehicle_params)?;
     /// # Ok(())
     /// # }
@@ -226,13 +225,13 @@ impl Scenario {
     ///
     /// # fn main() -> Result<(), openscenario::ScenarioError> {
     /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
-    /// 
+    ///
     /// let pedestrian_params = PedestrianParams {
     ///     catalog: None,
     ///     model: Some("adult_male".to_string()),
     ///     mass: Some(75.0),
     /// };
-    /// 
+    ///
     /// scenario.add_pedestrian("pedestrian1", pedestrian_params)?;
     /// # Ok(())
     /// # }
@@ -295,13 +294,13 @@ impl Scenario {
     ///
     /// # fn main() -> Result<(), openscenario::ScenarioError> {
     /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
-    /// 
+    ///
     /// let object_params = MiscObjectParams {
     ///     catalog: None,
     ///     category: Some("obstacle".to_string()),
     ///     mass: Some(50.0),
     /// };
-    /// 
+    ///
     /// scenario.add_misc_object("traffic_cone", object_params)?;
     /// # Ok(())
     /// # }
@@ -366,7 +365,7 @@ impl Scenario {
     /// #     properties: None,
     /// # };
     /// scenario.add_vehicle("ego", vehicle_params)?;
-    /// 
+    ///
     /// assert!(scenario.get_entity("ego").is_some());
     /// assert!(scenario.get_entity("nonexistent").is_none());
     /// # Ok(())
@@ -412,7 +411,7 @@ impl Scenario {
     /// # };
     /// # scenario.add_vehicle("ego", vehicle_params)?;
     /// scenario.set_initial_position("ego", Position::world(0.0, 0.0, 0.0, 0.0))?;
-    /// 
+    ///
     /// assert!(scenario.get_initial_position("ego").is_some());
     /// # Ok(())
     /// # }
@@ -464,10 +463,10 @@ impl Scenario {
     /// #     properties: None,
     /// # };
     /// scenario.add_vehicle("ego", vehicle_params)?;
-    /// 
+    ///
     /// // Set world position (x, y, z, heading)
     /// scenario.set_initial_position("ego", Position::world(0.0, 0.0, 0.0, 0.0))?;
-    /// 
+    ///
     /// // Or use lane position
     /// // scenario.set_initial_position("ego", Position::lane("road1", 1, 10.0, 0.0))?;
     /// # Ok(())
@@ -552,11 +551,7 @@ impl Scenario {
     /// # Errors
     /// * `ScenarioError::InvalidValue` - If entity name is empty, whitespace-only, or speed is negative
     /// * `ScenarioError::EntityNotFound` - If entity doesn't exist
-    pub fn set_initial_speed(
-        &mut self,
-        entity: impl Into<String>,
-        speed: f64,
-    ) -> Result<()> {
+    pub fn set_initial_speed(&mut self, entity: impl Into<String>, speed: f64) -> Result<()> {
         let entity = entity.into();
 
         // Validate entity name is not empty
@@ -637,7 +632,7 @@ impl Scenario {
     /// };
     /// scenario.add_vehicle("ego", vehicle)?;
     /// scenario.set_initial_speed("ego", 30.0)?;
-    /// 
+    ///
     /// let speeds: Vec<_> = scenario.initial_speeds().collect();
     /// assert_eq!(speeds.len(), 1);
     /// # Ok(())
@@ -674,7 +669,7 @@ impl Scenario {
     ///     properties: None,
     /// };
     /// scenario.add_vehicle("ego", vehicle)?;
-    /// 
+    ///
     /// // Set both position and speed
     /// scenario.set_initial_state(
     ///     "ego",
@@ -726,14 +721,14 @@ impl Scenario {
     /// * `ScenarioError::InvalidValue` - If filepath is empty or whitespace-only
     pub fn set_road_network(&mut self, filepath: impl Into<String>) -> Result<()> {
         let filepath = filepath.into();
-        
+
         if filepath.trim().is_empty() {
             return Err(ScenarioError::InvalidValue {
                 field: "road network filepath".to_string(),
                 reason: "filepath cannot be empty or whitespace-only".to_string(),
             });
         }
-        
+
         self.road_network = Some(filepath.trim().to_string());
         Ok(())
     }
@@ -884,7 +879,7 @@ impl Scenario {
     /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
     /// scenario.add_story("s1")?;
     /// scenario.add_act("s1", "a1")?;
-    /// 
+    ///
     /// let trigger = Trigger { condition_groups: vec![] };
     /// scenario.set_act_start_trigger("s1", "a1", trigger)?;
     /// # Ok(())
@@ -958,7 +953,7 @@ impl Scenario {
     /// # // Create the event first by adding an action
     /// # let pos = Position::world(0.0, 0.0, 0.0, 0.0);
     /// # scenario.add_position_action("s1", "a1", "mg1", "m1", "event1", pos)?;
-    /// 
+    ///
     /// let trigger = Trigger { condition_groups: vec![] };
     /// scenario.set_event_start_trigger("s1", "a1", "mg1", "m1", "event1", trigger)?;
     /// # Ok(())
@@ -1328,7 +1323,7 @@ impl Scenario {
     /// # scenario.add_maneuver_group("story1", "act1", "mg1")?;
     /// # scenario.add_actor("story1", "act1", "mg1", "ego")?;
     /// # scenario.add_maneuver("story1", "act1", "mg1", "m1")?;
-    /// 
+    ///
     /// let dynamics = TransitionDynamics {
     ///     shape: DynamicsShape::Linear,
     ///     dimension: DynamicsDimension::Time,
@@ -1468,9 +1463,9 @@ impl Scenario {
     /// # scenario.add_maneuver_group("story1", "act1", "mg1")?;
     /// # scenario.add_actor("story1", "act1", "mg1", "ego")?;
     /// # scenario.add_maneuver("story1", "act1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Change to left lane (offset -3.5m) over 4 seconds with sinusoidal profile
-    /// scenario.add_lane_change_action("story1", "act1", "mg1", "m1", "event1", 
+    /// scenario.add_lane_change_action("story1", "act1", "mg1", "m1", "event1",
     ///                                  -3.5, 4.0, TransitionShape::Sinusoidal)?;
     /// # Ok(())
     /// # }
@@ -1600,9 +1595,9 @@ impl Scenario {
     /// # scenario.add_maneuver_group("story1", "act1", "mg1")?;
     /// # scenario.add_actor("story1", "act1", "mg1", "ego")?;
     /// # scenario.add_maneuver("story1", "act1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Accelerate at 2 m/s² for 5 seconds
-    /// scenario.add_acceleration_action("story1", "act1", "mg1", "m1", "event1", 
+    /// scenario.add_acceleration_action("story1", "act1", "mg1", "m1", "event1",
     ///                                   2.0, 5.0, None)?;
     /// # Ok(())
     /// # }
@@ -1649,7 +1644,10 @@ impl Scenario {
         if final_dynamics.value <= 0.0 {
             return Err(ScenarioError::InvalidValue {
                 field: "dynamics.value".to_string(),
-                reason: format!("dynamics value must be positive (got {})", final_dynamics.value),
+                reason: format!(
+                    "dynamics value must be positive (got {})",
+                    final_dynamics.value
+                ),
             });
         }
 
@@ -1747,7 +1745,7 @@ impl Scenario {
     /// # scenario.add_maneuver_group("story1", "act1", "mg1")?;
     /// # scenario.add_actor("story1", "act1", "mg1", "ego")?;
     /// # scenario.add_maneuver("story1", "act1", "mg1", "m1")?;
-    /// 
+    ///
     /// let dynamics = TransitionDynamics {
     ///     shape: DynamicsShape::Sinusoidal,
     ///     dimension: DynamicsDimension::Time,
@@ -1887,7 +1885,7 @@ impl Scenario {
     /// # scenario.add_maneuver_group("story1", "act1", "mg1")?;
     /// # scenario.add_actor("story1", "act1", "mg1", "ego")?;
     /// # scenario.add_maneuver("story1", "act1", "mg1", "m1")?;
-    /// 
+    ///
     /// let trajectory = Trajectory {
     ///     name: "path1".to_string(),
     ///     closed: false,
@@ -2043,7 +2041,7 @@ impl Scenario {
     /// # scenario.add_maneuver_group("story1", "act1", "mg1")?;
     /// # scenario.add_actor("story1", "act1", "mg1", "ego")?;
     /// # scenario.add_maneuver("story1", "act1", "mg1", "m1")?;
-    /// 
+    ///
     /// let route = Route {
     ///     name: "route1".to_string(),
     ///     closed: false,
@@ -2217,14 +2215,22 @@ impl Scenario {
         let master_entity_ref_str = master_entity_ref.into();
 
         // Validate entity references exist
-        if !self.entities.iter().any(|(name, _)| *name == entity_ref_str) {
+        if !self
+            .entities
+            .iter()
+            .any(|(name, _)| *name == entity_ref_str)
+        {
             return Err(ScenarioError::EntityNotFound {
                 entity: entity_ref_str,
                 context: "SynchronizeAction entity_ref".to_string(),
             });
         }
 
-        if !self.entities.iter().any(|(name, _)| *name == master_entity_ref_str) {
+        if !self
+            .entities
+            .iter()
+            .any(|(name, _)| *name == master_entity_ref_str)
+        {
             return Err(ScenarioError::EntityNotFound {
                 entity: master_entity_ref_str.clone(),
                 context: "SynchronizeAction master_entity_ref".to_string(),
@@ -2332,7 +2338,7 @@ impl Scenario {
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_actor("s1", "a1", "mg1", "ego")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// let position = Position::world(100.0, 50.0, 0.0, 1.57);
     /// scenario.add_position_action("s1", "a1", "mg1", "m1", "event1", position)?;
     /// # Ok(())
@@ -2446,7 +2452,7 @@ impl Scenario {
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_actor("s1", "a1", "mg1", "ego")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Maintain 20m distance from lead vehicle using road distance
     /// scenario.add_distance_action("s1", "a1", "mg1", "m1", "event1", "lead", 20.0, false)?;
     /// # Ok(())
@@ -2571,7 +2577,7 @@ impl Scenario {
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_actor("s1", "a1", "mg1", "ego")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Continuously maintain 30m longitudinal distance from lead vehicle
     /// scenario.add_longitudinal_distance_action("s1", "a1", "mg1", "m1", "event1",
     ///                                            "lead", 30.0, false, true, None)?;
@@ -2719,10 +2725,10 @@ impl Scenario {
     /// use openscenario::{Scenario, OpenScenarioVersion};
     ///
     /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
-    /// 
+    ///
     /// // Stop when the main story completes
     /// scenario.set_stop_on_element_state("story", "main_story", "completeState", 0.0);
-    /// 
+    ///
     /// // Stop 2 seconds after an act starts
     /// scenario.set_stop_on_element_state("act", "act1", "startTransition", 2.0);
     /// ```
@@ -2775,7 +2781,7 @@ impl Scenario {
     /// # scenario.add_act("s1", "a1")?;
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// let target = Position::world(100.0, 50.0, 0.0, 0.0);
     /// scenario.add_event_with_reach_position_condition(
     ///     "s1", "a1", "mg1", "m1", "reach_event", "ego", target, 2.0)?;
@@ -2848,10 +2854,10 @@ impl Scenario {
     /// # scenario.add_act("s1", "a1")?;
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// let target = Position::world(100.0, 50.0, 0.0, 0.0);
     /// scenario.add_event_with_reach_position_condition_advanced(
-    ///     "s1", "a1", "mg1", "m1", "reach_event", "ego", 
+    ///     "s1", "a1", "mg1", "m1", "reach_event", "ego",
     ///     target, 2.0, ConditionEdge::Rising, 1.0)?;
     /// # Ok(())
     /// # }
@@ -2919,13 +2925,13 @@ impl Scenario {
                 context: format!("Act in story '{}'", story_name),
             })?;
 
-        let mg = act
-            .maneuver_groups
-            .get_mut(&mg_name)
-            .ok_or_else(|| ScenarioError::EntityNotFound {
-                entity: mg_name.clone(),
-                context: format!("ManeuverGroup in act '{}'", act_name),
-            })?;
+        let mg =
+            act.maneuver_groups
+                .get_mut(&mg_name)
+                .ok_or_else(|| ScenarioError::EntityNotFound {
+                    entity: mg_name.clone(),
+                    context: format!("ManeuverGroup in act '{}'", act_name),
+                })?;
 
         let maneuver = mg
             .maneuvers
@@ -3019,10 +3025,10 @@ impl Scenario {
     /// # scenario.add_act("s1", "a1")?;
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Trigger when TTC drops below 3 seconds
     /// scenario.add_event_with_ttc_condition(
-    ///     "s1", "a1", "mg1", "m1", "ttc_event", 
+    ///     "s1", "a1", "mg1", "m1", "ttc_event",
     ///     "ego", "target", 3.0, Rule::LessThan)?;
     /// # Ok(())
     /// # }
@@ -3097,10 +3103,10 @@ impl Scenario {
     /// # scenario.add_act("s1", "a1")?;
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Trigger on rising edge when TTC drops below 3s, with 0.5s delay
     /// scenario.add_event_with_ttc_condition_advanced(
-    ///     "s1", "a1", "mg1", "m1", "ttc_event", 
+    ///     "s1", "a1", "mg1", "m1", "ttc_event",
     ///     "ego", "target", 3.0, Rule::LessThan, ConditionEdge::Rising, 0.5)?;
     /// # Ok(())
     /// # }
@@ -3176,13 +3182,13 @@ impl Scenario {
                 context: format!("Act in story '{}'", story_name),
             })?;
 
-        let mg = act
-            .maneuver_groups
-            .get_mut(&mg_name)
-            .ok_or_else(|| ScenarioError::EntityNotFound {
-                entity: mg_name.clone(),
-                context: format!("ManeuverGroup in act '{}'", act_name),
-            })?;
+        let mg =
+            act.maneuver_groups
+                .get_mut(&mg_name)
+                .ok_or_else(|| ScenarioError::EntityNotFound {
+                    entity: mg_name.clone(),
+                    context: format!("ManeuverGroup in act '{}'", act_name),
+                })?;
 
         let maneuver = mg
             .maneuvers
@@ -3274,7 +3280,7 @@ impl Scenario {
     /// # scenario.add_act("s1", "a1")?;
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Trigger when ego collides with obstacle
     /// scenario.add_event_with_collision_condition(
     ///     "s1", "a1", "mg1", "m1", "collision_event", "ego", "obstacle")?;
@@ -3345,10 +3351,10 @@ impl Scenario {
     /// # scenario.add_act("s1", "a1")?;
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Trigger on collision with 0.1s delay
     /// scenario.add_event_with_collision_condition_advanced(
-    ///     "s1", "a1", "mg1", "m1", "collision_event", 
+    ///     "s1", "a1", "mg1", "m1", "collision_event",
     ///     "ego", "obstacle", ConditionEdge::Rising, 0.1)?;
     /// # Ok(())
     /// # }
@@ -3413,13 +3419,13 @@ impl Scenario {
                 context: format!("Act in story '{}'", story_name),
             })?;
 
-        let mg = act
-            .maneuver_groups
-            .get_mut(&mg_name)
-            .ok_or_else(|| ScenarioError::EntityNotFound {
-                entity: mg_name.clone(),
-                context: format!("ManeuverGroup in act '{}'", act_name),
-            })?;
+        let mg =
+            act.maneuver_groups
+                .get_mut(&mg_name)
+                .ok_or_else(|| ScenarioError::EntityNotFound {
+                    entity: mg_name.clone(),
+                    context: format!("ManeuverGroup in act '{}'", act_name),
+                })?;
 
         let maneuver = mg
             .maneuvers
@@ -3508,10 +3514,10 @@ impl Scenario {
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_actor("s1", "a1", "mg1", "ego")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Time-based profile: (time, speed)
     /// let waypoints = vec![(0.0, 10.0), (5.0, 20.0), (10.0, 15.0)];
-    /// scenario.add_speed_profile_action("s1", "a1", "mg1", "m1", "event1", 
+    /// scenario.add_speed_profile_action("s1", "a1", "mg1", "m1", "event1",
     ///                                    waypoints, true)?;
     /// # Ok(())
     /// # }
@@ -3529,8 +3535,8 @@ impl Scenario {
         mg: impl Into<String>,
         maneuver: impl Into<String>,
         event: impl Into<String>,
-        waypoints: Vec<(f64, f64)>,  // (time_or_distance, speed)
-        following_mode: bool,  // true = time-based, false = distance-based
+        waypoints: Vec<(f64, f64)>, // (time_or_distance, speed)
+        following_mode: bool,       // true = time-based, false = distance-based
     ) -> Result<()> {
         let story_name = story.into();
         let act_name = act.into();
@@ -3581,13 +3587,13 @@ impl Scenario {
                 context: format!("Act in story '{}'", story_name),
             })?;
 
-        let mg = act
-            .maneuver_groups
-            .get_mut(&mg_name)
-            .ok_or_else(|| ScenarioError::EntityNotFound {
-                entity: mg_name.clone(),
-                context: format!("ManeuverGroup in act '{}'", act_name),
-            })?;
+        let mg =
+            act.maneuver_groups
+                .get_mut(&mg_name)
+                .ok_or_else(|| ScenarioError::EntityNotFound {
+                    entity: mg_name.clone(),
+                    context: format!("ManeuverGroup in act '{}'", act_name),
+                })?;
 
         let maneuver = mg
             .maneuvers
@@ -3661,11 +3667,11 @@ impl Scenario {
     /// # scenario.add_act("s1", "a1")?;
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Trigger when longitudinal distance to lead vehicle < 10m
     /// scenario.add_event_with_relative_distance_condition(
-    ///     "s1", "a1", "mg1", "m1", "distance_event", 
-    ///     "ego", "lead", 10.0, Rule::LessThan, 
+    ///     "s1", "a1", "mg1", "m1", "distance_event",
+    ///     "ego", "lead", 10.0, Rule::LessThan,
     ///     RelativeDistanceType::Longitudinal, false)?;
     /// # Ok(())
     /// # }
@@ -3748,7 +3754,7 @@ impl Scenario {
     /// # scenario.add_act("s1", "a1")?;
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Trigger on rising edge when lateral distance > 2m, with 0.5s delay
     /// scenario.add_event_with_relative_distance_condition_advanced(
     ///     "s1", "a1", "mg1", "m1", "distance_event", "ego", "lead",
@@ -3831,13 +3837,13 @@ impl Scenario {
                 context: format!("Act in story '{}'", story_name),
             })?;
 
-        let mg = act
-            .maneuver_groups
-            .get_mut(&mg_name)
-            .ok_or_else(|| ScenarioError::EntityNotFound {
-                entity: mg_name.clone(),
-                context: format!("ManeuverGroup in act '{}'", act_name),
-            })?;
+        let mg =
+            act.maneuver_groups
+                .get_mut(&mg_name)
+                .ok_or_else(|| ScenarioError::EntityNotFound {
+                    entity: mg_name.clone(),
+                    context: format!("ManeuverGroup in act '{}'", act_name),
+                })?;
 
         let maneuver = mg
             .maneuvers
@@ -3936,7 +3942,7 @@ impl Scenario {
     /// # scenario.add_act("s1", "a1")?;
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Trigger when time headway drops below 2 seconds
     /// scenario.add_event_with_time_headway_condition(
     ///     "s1", "a1", "mg1", "m1", "headway_event",
@@ -4019,7 +4025,7 @@ impl Scenario {
     /// # scenario.add_act("s1", "a1")?;
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Trigger on rising edge when headway < 2s, with 0.5s delay
     /// scenario.add_event_with_time_headway_condition_advanced(
     ///     "s1", "a1", "mg1", "m1", "headway_event", "follower", "leader",
@@ -4061,7 +4067,10 @@ impl Scenario {
         if time_headway_value <= 0.0 {
             return Err(ScenarioError::InvalidValue {
                 field: "time_headway_value".to_string(),
-                reason: format!("Time headway value must be positive (got {})", time_headway_value),
+                reason: format!(
+                    "Time headway value must be positive (got {})",
+                    time_headway_value
+                ),
             });
         }
 
@@ -4099,13 +4108,13 @@ impl Scenario {
                 context: format!("Act in story '{}'", story_name),
             })?;
 
-        let mg = act
-            .maneuver_groups
-            .get_mut(&mg_name)
-            .ok_or_else(|| ScenarioError::EntityNotFound {
-                entity: mg_name.clone(),
-                context: format!("ManeuverGroup in act '{}'", act_name),
-            })?;
+        let mg =
+            act.maneuver_groups
+                .get_mut(&mg_name)
+                .ok_or_else(|| ScenarioError::EntityNotFound {
+                    entity: mg_name.clone(),
+                    context: format!("ManeuverGroup in act '{}'", act_name),
+                })?;
 
         let maneuver = mg
             .maneuvers
@@ -4197,7 +4206,7 @@ impl Scenario {
     /// # scenario.add_act("s1", "a1")?;
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Trigger when ego has been stopped for 5 seconds
     /// scenario.add_event_with_standstill_condition(
     ///     "s1", "a1", "mg1", "m1", "stopped_event", "ego", 5.0)?;
@@ -4266,7 +4275,7 @@ impl Scenario {
     /// # scenario.add_act("s1", "a1")?;
     /// # scenario.add_maneuver_group("s1", "a1", "mg1")?;
     /// # scenario.add_maneuver("s1", "a1", "mg1", "m1")?;
-    /// 
+    ///
     /// // Trigger on rising edge when stopped for 5s, with 1s delay
     /// scenario.add_event_with_standstill_condition_advanced(
     ///     "s1", "a1", "mg1", "m1", "stopped_event", "ego",
@@ -4336,13 +4345,13 @@ impl Scenario {
                 context: format!("Act in story '{}'", story_name),
             })?;
 
-        let mg = act
-            .maneuver_groups
-            .get_mut(&mg_name)
-            .ok_or_else(|| ScenarioError::EntityNotFound {
-                entity: mg_name.clone(),
-                context: format!("ManeuverGroup in act '{}'", act_name),
-            })?;
+        let mg =
+            act.maneuver_groups
+                .get_mut(&mg_name)
+                .ok_or_else(|| ScenarioError::EntityNotFound {
+                    entity: mg_name.clone(),
+                    context: format!("ManeuverGroup in act '{}'", act_name),
+                })?;
 
         let maneuver = mg
             .maneuvers

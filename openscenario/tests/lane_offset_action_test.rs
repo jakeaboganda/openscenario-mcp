@@ -1,4 +1,6 @@
-use openscenario::storyboard::{Action, LaneOffsetAction, TransitionDynamics, DynamicsShape, DynamicsDimension};
+use openscenario::storyboard::{
+    Action, DynamicsDimension, DynamicsShape, LaneOffsetAction, TransitionDynamics,
+};
 use openscenario::{OpenScenarioVersion, Scenario};
 
 #[test]
@@ -44,7 +46,10 @@ fn test_lane_offset_action_with_distance_dynamics() {
         }),
     };
 
-    assert_eq!(action.dynamics.as_ref().unwrap().dimension, DynamicsDimension::Distance);
+    assert_eq!(
+        action.dynamics.as_ref().unwrap().dimension,
+        DynamicsDimension::Distance
+    );
     assert_eq!(action.dynamics.as_ref().unwrap().value, 50.0);
 }
 
@@ -61,7 +66,7 @@ fn test_lane_offset_action_in_action_enum() {
     };
 
     let action = Action::LaneOffset(lane_offset_action);
-    
+
     match action {
         Action::LaneOffset(a) => {
             assert_eq!(a.target_offset, 1.0);

@@ -1,5 +1,7 @@
 use openscenario::entities::{VehicleCategory, VehicleParams};
-use openscenario::storyboard::{TransitionShape, TransitionDynamics, DynamicsShape, DynamicsDimension};
+use openscenario::storyboard::{
+    DynamicsDimension, DynamicsShape, TransitionDynamics, TransitionShape,
+};
 use openscenario::{OpenScenarioVersion, Position, Scenario};
 
 #[test]
@@ -44,11 +46,11 @@ fn test_complete_scenario_workflow() {
             "speed_maneuver",
             "speed_event",
             30.0,
-        TransitionDynamics {
-            shape: DynamicsShape::Linear,
-            dimension: DynamicsDimension::Time,
-            value: 5.0,
-        },
+            TransitionDynamics {
+                shape: DynamicsShape::Linear,
+                dimension: DynamicsDimension::Time,
+                value: 5.0,
+            },
         )
         .unwrap();
 
@@ -142,7 +144,11 @@ fn test_set_position_for_nonexistent_entity() {
     let result = scenario.set_initial_position("nonexistent", pos);
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
-    assert!(err.contains("Entity") && err.contains("not found"), "Expected error message about entity not found, got: {}", err);
+    assert!(
+        err.contains("Entity") && err.contains("not found"),
+        "Expected error message about entity not found, got: {}",
+        err
+    );
 }
 
 #[test]
@@ -153,10 +159,10 @@ fn test_duplicate_vehicle_name() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     scenario.add_vehicle("car1", params.clone()).unwrap();
     let result = scenario.add_vehicle("car1", params);
-    
+
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
     assert!(err_msg.contains("already exists") || err_msg.contains("duplicate"));
@@ -170,7 +176,7 @@ fn test_empty_entity_name() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     let result = scenario.add_vehicle("", params);
     assert!(result.is_err());
 }
@@ -193,7 +199,7 @@ fn test_add_act_to_nonexistent_story() {
 fn test_add_maneuver_group_to_nonexistent_act() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
     scenario.add_story("story1").unwrap();
-    
+
     let result = scenario.add_maneuver_group("story1", "nonexistent_act", "mg1");
     assert!(result.is_err());
 }
@@ -203,8 +209,10 @@ fn test_add_actor_with_nonexistent_entity() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
     scenario.add_story("story1").unwrap();
     scenario.add_act("story1", "act1").unwrap();
-    scenario.add_maneuver_group("story1", "act1", "mg1").unwrap();
-    
+    scenario
+        .add_maneuver_group("story1", "act1", "mg1")
+        .unwrap();
+
     let result = scenario.add_actor("story1", "act1", "mg1", "nonexistent_entity");
     assert!(result.is_err());
 }
@@ -217,17 +225,23 @@ fn test_speed_action_with_invalid_parameters() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     scenario.add_vehicle("car", params).unwrap();
     scenario.add_story("story").unwrap();
     scenario.add_act("story", "act").unwrap();
     scenario.add_maneuver_group("story", "act", "mg").unwrap();
     scenario.add_actor("story", "act", "mg", "car").unwrap();
-    scenario.add_maneuver("story", "act", "mg", "maneuver").unwrap();
-    
+    scenario
+        .add_maneuver("story", "act", "mg", "maneuver")
+        .unwrap();
+
     // Negative speed
     let result = scenario.add_speed_action(
-        "story", "act", "mg", "maneuver", "event",
+        "story",
+        "act",
+        "mg",
+        "maneuver",
+        "event",
         -10.0, // Invalid negative speed
         TransitionDynamics {
             shape: DynamicsShape::Linear,
@@ -246,17 +260,23 @@ fn test_speed_action_with_zero_duration() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     scenario.add_vehicle("car", params).unwrap();
     scenario.add_story("story").unwrap();
     scenario.add_act("story", "act").unwrap();
     scenario.add_maneuver_group("story", "act", "mg").unwrap();
     scenario.add_actor("story", "act", "mg", "car").unwrap();
-    scenario.add_maneuver("story", "act", "mg", "maneuver").unwrap();
-    
+    scenario
+        .add_maneuver("story", "act", "mg", "maneuver")
+        .unwrap();
+
     // Zero duration
     let result = scenario.add_speed_action(
-        "story", "act", "mg", "maneuver", "event",
+        "story",
+        "act",
+        "mg",
+        "maneuver",
+        "event",
         30.0,
         TransitionDynamics {
             shape: DynamicsShape::Linear,
@@ -275,17 +295,23 @@ fn test_lane_change_action_with_invalid_duration() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     scenario.add_vehicle("car", params).unwrap();
     scenario.add_story("story").unwrap();
     scenario.add_act("story", "act").unwrap();
     scenario.add_maneuver_group("story", "act", "mg").unwrap();
     scenario.add_actor("story", "act", "mg", "car").unwrap();
-    scenario.add_maneuver("story", "act", "mg", "maneuver").unwrap();
-    
+    scenario
+        .add_maneuver("story", "act", "mg", "maneuver")
+        .unwrap();
+
     // Negative duration
     let result = scenario.add_lane_change_action(
-        "story", "act", "mg", "maneuver", "event",
+        "story",
+        "act",
+        "mg",
+        "maneuver",
+        "event",
         -1.0,
         -3.0, // Invalid negative duration
         TransitionShape::Sinusoidal,
@@ -301,13 +327,13 @@ fn test_relative_position_with_invalid_entity_ref() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     scenario.add_vehicle("car", params).unwrap();
-    
+
     use openscenario::position::Orientation;
     let pos = Position::relative_world("nonexistent", 10.0, 0.0, 0.0, Orientation::default());
     let result = scenario.set_initial_position("car", pos);
-    
+
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
     assert!(err_msg.contains("Entity not found") || err_msg.contains("nonexistent"));
@@ -317,7 +343,7 @@ fn test_relative_position_with_invalid_entity_ref() {
 fn test_xml_generation_without_entities() {
     let scenario = Scenario::new(OpenScenarioVersion::V1_0);
     let result = scenario.to_xml();
-    
+
     // Should succeed but generate minimal XML
     assert!(result.is_ok());
     let xml = result.unwrap();
@@ -333,10 +359,10 @@ fn test_xml_generation_without_storyboard() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     scenario.add_vehicle("car", params).unwrap();
     let result = scenario.to_xml();
-    
+
     // Should succeed even without storyboard
     assert!(result.is_ok());
     let xml = result.unwrap();
@@ -352,23 +378,29 @@ fn test_whitespace_normalization() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     // Add vehicle with trailing/leading whitespace
     scenario.add_vehicle("  car  ", params.clone()).unwrap();
-    
+
     // Should be able to reference it with trimmed name
     let pos = Position::world(0.0, 0.0, 0.0, 0.0);
     let result = scenario.set_initial_position("car", pos);
-    assert!(result.is_ok(), "Should find 'car' after whitespace normalization");
-    
+    assert!(
+        result.is_ok(),
+        "Should find 'car' after whitespace normalization"
+    );
+
     // Should also find with whitespace in reference
     let pos2 = Position::world(1.0, 1.0, 0.0, 0.0);
     let result2 = scenario.set_initial_position("  car  ", pos2);
     assert!(result2.is_ok(), "Should find '  car  ' after normalization");
-    
+
     // Verify entity is stored with trimmed name
     assert!(scenario.get_entity("car").is_some());
-    assert!(scenario.get_entity("  car  ").is_none(), "Should NOT find un-normalized name");
+    assert!(
+        scenario.get_entity("  car  ").is_none(),
+        "Should NOT find un-normalized name"
+    );
 }
 
 #[test]
@@ -379,10 +411,10 @@ fn test_entity_without_initial_position() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     scenario.add_vehicle("car", params).unwrap();
     // Don't set initial position
-    
+
     let result = scenario.to_xml();
     // Should fail or warn about missing position
     // Behavior depends on implementation requirements
@@ -397,13 +429,13 @@ fn test_lane_position_with_invalid_lane_id() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     scenario.add_vehicle("car", params).unwrap();
-    
+
     // Lane ID 0 is typically invalid in OpenDRIVE
     let pos = Position::lane("road1", 0, 50.0, 0.0, None);
     let result = scenario.set_initial_position("car", pos);
-    
+
     // Implementation may or may not validate lane IDs at construction time
     // This documents the behavior
     if result.is_err() {
@@ -419,13 +451,13 @@ fn test_world_position_with_extreme_coordinates() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     scenario.add_vehicle("car", params).unwrap();
-    
+
     // Very large coordinates
     let pos = Position::world(1e10, 1e10, 1e10, std::f64::consts::PI * 1000.0);
     let result = scenario.set_initial_position("car", pos);
-    
+
     // Should accept but may produce strange XML
     assert!(result.is_ok());
 }
@@ -438,12 +470,12 @@ fn test_empty_road_id_in_lane_position() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     scenario.add_vehicle("car", params).unwrap();
-    
+
     let pos = Position::lane("", 1, 50.0, 0.0, None);
     let result = scenario.set_initial_position("car", pos);
-    
+
     // Empty road ID should be rejected
     if let Err(e) = result {
         let err_msg = e.to_string();
@@ -456,7 +488,7 @@ fn test_add_maneuver_to_nonexistent_maneuver_group() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
     scenario.add_story("story").unwrap();
     scenario.add_act("story", "act").unwrap();
-    
+
     let result = scenario.add_maneuver("story", "act", "nonexistent_mg", "maneuver");
     assert!(result.is_err());
 }
@@ -464,11 +496,13 @@ fn test_add_maneuver_to_nonexistent_maneuver_group() {
 #[test]
 fn test_hierarchical_name_conflicts() {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_0);
-    
+
     scenario.add_story("story1").unwrap();
     scenario.add_act("story1", "act1").unwrap();
-    scenario.add_maneuver_group("story1", "act1", "mg1").unwrap();
-    
+    scenario
+        .add_maneuver_group("story1", "act1", "mg1")
+        .unwrap();
+
     // Try to add duplicate maneuver group in same act
     let result = scenario.add_maneuver_group("story1", "act1", "mg1");
     assert!(result.is_err());
@@ -483,13 +517,13 @@ fn test_nan_values_in_position() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     scenario.add_vehicle("car", params).unwrap();
-    
+
     // NaN values should be rejected
     let pos = Position::world(f64::NAN, 0.0, 0.0, 0.0);
     let result = scenario.set_initial_position("car", pos);
-    
+
     if result.is_ok() {
         // If accepted, XML generation should fail or produce invalid XML
         let xml_result = scenario.to_xml();
@@ -512,16 +546,22 @@ fn test_infinite_values_in_speed_action() {
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
-    
+
     scenario.add_vehicle("car", params).unwrap();
     scenario.add_story("story").unwrap();
     scenario.add_act("story", "act").unwrap();
     scenario.add_maneuver_group("story", "act", "mg").unwrap();
     scenario.add_actor("story", "act", "mg", "car").unwrap();
-    scenario.add_maneuver("story", "act", "mg", "maneuver").unwrap();
-    
+    scenario
+        .add_maneuver("story", "act", "mg", "maneuver")
+        .unwrap();
+
     let result = scenario.add_speed_action(
-        "story", "act", "mg", "maneuver", "event",
+        "story",
+        "act",
+        "mg",
+        "maneuver",
+        "event",
         f64::INFINITY, // Invalid infinite speed
         TransitionDynamics {
             shape: DynamicsShape::Linear,

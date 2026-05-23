@@ -1,7 +1,9 @@
 use crate::server::ServerState;
 use anyhow::{anyhow, Result};
 use openscenario::entities::{CatalogReference, VehicleCategory, VehicleParams};
-use openscenario::storyboard::{TransitionShape, TransitionDynamics, DynamicsShape, DynamicsDimension};
+use openscenario::storyboard::{
+    DynamicsDimension, DynamicsShape, TransitionDynamics, TransitionShape,
+};
 use openscenario::validation::XsdValidator;
 use openscenario::Position;
 use openscenario::{OpenScenarioVersion, Scenario};
