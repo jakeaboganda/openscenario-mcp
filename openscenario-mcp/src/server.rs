@@ -6,6 +6,13 @@ use crate::handlers::{
     handle_suggest_spawn_points, handle_validate_position,
     handle_get_real_world_road,
 };
+use crate::scenario_templates::{
+    handle_create_lane_change_scenario,
+    handle_create_merge_scenario,
+    handle_create_cutin_scenario,
+    handle_create_platoon_scenario,
+    handle_create_quick_scenario,
+};
 use anyhow::{anyhow, Result};
 use mcp_sdk::types::{
     CallToolRequest, CallToolResponse, ListRequest, ToolDefinition, ToolResponseContent,
@@ -391,6 +398,88 @@ impl OpenScenarioServer {
                     "required": ["location"]
                 }),
             },
+            ToolDefinition {
+                name: "create_lane_change_scenario".to_string(),
+                description: Some(
+                    "Create a complete lane change scenario with ego vehicle and one other vehicle on a real road.".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "road_id": {"type": "string", "description": "Road ID"},
+                        "lane_from": {"type": "number", "description": "Starting lane ID (negative for driving lanes)"},
+                        "lane_to": {"type": "number", "description": "Target lane ID"},
+                        "ego_start_s": {"type": "number", "description": "Ego start position (meters)"},
+                        "other_start_s": {"type": "number", "description": "Other vehicle start position (meters)"},
+                        "other_lane": {"type": "number", "description": "Other vehicle lane ID"},
+                        "ego_speed": {"type": "number", "description": "Ego speed (m/s)"},
+                        "other_speed": {"type": "number", "description": "Other vehicle speed (m/s)"},
+                        "scenario_name": {"type": "string", "description": "Optional scenario name"}
+                    },
+                    "required": ["road_id", "lane_from", "lane_to", "ego_start_s", "other_start_s", "other_lane", "ego_speed", "other_speed"]
+                }),
+            },
+            ToolDefinition {
+                name: "create_cutin_scenario".to_string(),
+                description: Some(
+                    "Create a cut-in scenario where another vehicle cuts in front of ego vehicle.".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "road_id": {"type": "string"},
+                        "ego_lane": {"type": "number"},
+                        "other_lane": {"type": "number"},
+                        "ego_start_s": {"type": "number"},
+                        "other_start_s": {"type": "number"},
+                        "ego_speed": {"type": "number"},
+                        "other_speed": {"type": "number"},
+                        "cutin_trigger_distance": {"type": "number", "description": "Distance that triggers cut-in (meters)"},
+                        "scenario_name": {"type": "string"}
+                    },
+                    "required": ["road_id", "ego_lane", "other_lane", "ego_start_s", "other_start_s", "ego_speed", "other_speed", "cutin_trigger_distance"]
+                }),
+            },
+            ToolDefinition {
+                name: "create_platoon_scenario".to_string(),
+                description: Some(
+                    "Create a platoon/convoy scenario with multiple vehicles following in a line.".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "road_id": {"type": "string"},
+                        "lane_id": {"type": "number"},
+                        "vehicle_count": {"type": "number", "description": "Number of vehicles (2-10)"},
+                        "start_s": {"type": "number", "description": "Starting position (meters)"},
+                        "spacing": {"type": "number", "description": "Spacing between vehicles (meters)"},
+                        "speed": {"type": "number", "description": "Convoy speed (m/s)"},
+                        "scenario_name": {"type": "string"}
+                    },
+                    "required": ["road_id", "lane_id", "vehicle_count", "start_s", "spacing", "speed"]
+                }),
+            },
+            ToolDefinition {
+                name: "create_quick_scenario".to_string(),
+                description: Some(
+                    "Quick scenario generator! Creates a complete scenario on the best available road. Use after get_real_world_road. Types: 'lane_change', 'cutin', 'platoon'.".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "scenario_type": {
+                            "type": "string",
+                            "enum": ["lane_change", "cutin", "platoon"],
+                            "description": "Type of scenario to generate"
+                        },
+                        "vehicle_count": {
+                            "type": "number",
+                            "description": "Number of vehicles (optional, defaults to 3)"
+                        }
+                    },
+                    "required": ["scenario_type"]
+                }),
+            },
         ]
     }
 
@@ -774,6 +863,135 @@ impl OpenScenarioServer {
                     GLOBAL_STATE.clone(),
                     location.to_string(),
                     output_name,
+                )?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "create_lane_change_scenario" => {
+                let road_id = args.get("road_id").and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'road_id'"))?;
+                let lane_from = args.get("lane_from").and_then(Value::as_i64)
+                    .ok_or_else(|| anyhow!("Missing 'lane_from'"))? as i32;
+                let lane_to = args.get("lane_to").and_then(Value::as_i64)
+                    .ok_or_else(|| anyhow!("Missing 'lane_to'"))? as i32;
+                let ego_start_s = args.get("ego_start_s").and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'ego_start_s'"))?;
+                let other_start_s = args.get("other_start_s").and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'other_start_s'"))?;
+                let other_lane = args.get("other_lane").and_then(Value::as_i64)
+                    .ok_or_else(|| anyhow!("Missing 'other_lane'"))? as i32;
+                let ego_speed = args.get("ego_speed").and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'ego_speed'"))?;
+                let other_speed = args.get("other_speed").and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'other_speed'"))?;
+                let scenario_name = args.get("scenario_name").and_then(Value::as_str)
+                    .map(|s| s.to_string());
+
+                let result = handle_create_lane_change_scenario(
+                    GLOBAL_STATE.clone(),
+                    road_id.to_string(),
+                    lane_from,
+                    lane_to,
+                    ego_start_s,
+                    other_start_s,
+                    other_lane,
+                    ego_speed,
+                    other_speed,
+                    scenario_name,
+                )?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "create_cutin_scenario" => {
+                let road_id = args.get("road_id").and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'road_id'"))?;
+                let ego_lane = args.get("ego_lane").and_then(Value::as_i64)
+                    .ok_or_else(|| anyhow!("Missing 'ego_lane'"))? as i32;
+                let other_lane = args.get("other_lane").and_then(Value::as_i64)
+                    .ok_or_else(|| anyhow!("Missing 'other_lane'"))? as i32;
+                let ego_start_s = args.get("ego_start_s").and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'ego_start_s'"))?;
+                let other_start_s = args.get("other_start_s").and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'other_start_s'"))?;
+                let ego_speed = args.get("ego_speed").and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'ego_speed'"))?;
+                let other_speed = args.get("other_speed").and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'other_speed'"))?;
+                let cutin_trigger_distance = args.get("cutin_trigger_distance").and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'cutin_trigger_distance'"))?;
+                let scenario_name = args.get("scenario_name").and_then(Value::as_str)
+                    .map(|s| s.to_string());
+
+                let result = handle_create_cutin_scenario(
+                    GLOBAL_STATE.clone(),
+                    road_id.to_string(),
+                    ego_lane,
+                    other_lane,
+                    ego_start_s,
+                    other_start_s,
+                    ego_speed,
+                    other_speed,
+                    cutin_trigger_distance,
+                    scenario_name,
+                )?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "create_platoon_scenario" => {
+                let road_id = args.get("road_id").and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'road_id'"))?;
+                let lane_id = args.get("lane_id").and_then(Value::as_i64)
+                    .ok_or_else(|| anyhow!("Missing 'lane_id'"))? as i32;
+                let vehicle_count = args.get("vehicle_count").and_then(Value::as_u64)
+                    .ok_or_else(|| anyhow!("Missing 'vehicle_count'"))? as usize;
+                let start_s = args.get("start_s").and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'start_s'"))?;
+                let spacing = args.get("spacing").and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'spacing'"))?;
+                let speed = args.get("speed").and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'speed'"))?;
+                let scenario_name = args.get("scenario_name").and_then(Value::as_str)
+                    .map(|s| s.to_string());
+
+                let result = handle_create_platoon_scenario(
+                    GLOBAL_STATE.clone(),
+                    road_id.to_string(),
+                    lane_id,
+                    vehicle_count,
+                    start_s,
+                    spacing,
+                    speed,
+                    scenario_name,
+                )?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "create_quick_scenario" => {
+                let scenario_type = args.get("scenario_type").and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'scenario_type'"))?;
+                let vehicle_count = args.get("vehicle_count").and_then(Value::as_u64)
+                    .map(|n| n as usize);
+
+                let result = handle_create_quick_scenario(
+                    GLOBAL_STATE.clone(),
+                    scenario_type.to_string(),
+                    vehicle_count,
                 )?;
 
                 Ok(CallToolResponse {

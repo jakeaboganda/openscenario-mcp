@@ -1,21 +1,19 @@
 # Quick Start Guide: OpenSCENARIO MCP Server
 
-**Last Updated**: 2026-05-23  
-**Status**: Phases 1-3 Complete (Core infrastructure working)
+**Real-world roads meet autonomous vehicle testing scenarios**
 
 ---
 
 ## What This Does
 
-AI can request real Tokyo roads and generate autonomous vehicle testing scenarios.
+The OpenSCENARIO MCP Server lets you:
+- Download real roads from OpenStreetMap (any location worldwide)
+- Convert them to OpenDRIVE format
+- Generate autonomous vehicle testing scenarios automatically
+- Export to OpenSCENARIO XML for simulation
 
-**Example**:
-```
-User: "I need to test lane change on Nihonbashi highway"
-AI: [calls get_real_world_road('nihonbashi')]
-AI: "I found the Shuto Expressway Inner Circular (1.6km, 2 lanes). 
-     I'll create a scenario with your ego vehicle and 2 other cars..."
-```
+**Example**: "I need to test lane change on Tokyo's Shuto Expressway"
+→ Get real road, generate scenario, export XML. Done in 3 MCP calls.
 
 ---
 
@@ -25,156 +23,377 @@ AI: "I found the Shuto Expressway Inner Circular (1.6km, 2 lanes).
 cd ~/.openclaw/workspace/osc-mcp
 
 # Test 1: Download real Tokyo road
-./test_osm_conversion.sh nihonbashi -o test
-
-# Test 2: Find usable roads
-cargo run --example find_good_roads cache/osm/test.xodr
-
-# Test 3: Test MCP tool
 cargo run --example test_get_real_world_road
+
+# Test 2: Run MCP server
+cd openscenario-mcp && cargo run
 ```
 
-**Expected**: Shuto Expressway 1.6km road with 5 spawn points
+**Expected**: Road network loaded, MCP server starts on stdio
 
 ---
 
-## Available MCP Tools
+## Prerequisites
 
-### Road Network
-- `get_real_world_road(location, output_name?)` - Download from OSM
-- `load_road_network(xodr_path)` - Load local file
-- `list_roads()` - Query all roads
-- `get_road_info(road_id)` - Details for specific road
-- `suggest_spawn_points(road_id, count)` - Vehicle placement
-- `validate_position(road_id, lane_id, s)` - Check if valid
+### Required
+- Rust 1.70+
+- Python 3.8+
+- SUMO 1.21.0+ (for netconvert)
 
-### Scenarios (Existing)
-- `create_scenario(name, version)`
-- `add_vehicle(scenario_id, name, category)`
-- `set_position(...)` - Place vehicles
-- `add_speed_action(...)` - Set speeds
-- `add_lane_change_action(...)` - Maneuvers
-- `export_xml(scenario_id, output_path)` - Generate XML
+### Install SUMO
 
----
+**Ubuntu/Debian**:
+```bash
+sudo add-apt-repository ppa:sumo/stable
+sudo apt update
+sudo apt install sumo sumo-tools
+```
 
-## Pre-Configured Locations
+**macOS**:
+```bash
+brew install sumo
+```
 
-| Name | Description | Best For |
-|------|-------------|----------|
-| `nihonbashi` | Shuto C1 Inner Circular | Highway scenarios |
-| `route1_nihonbashi` | Route 1 | Mixed highway |
-| `shuto_c1` | Large expressway network | Complex scenarios |
-| `tokyo_station` | Tokyo Station area | Urban + highway |
-| `ginza` | Ginza district | Urban streets |
+**Fedora**:
+```bash
+sudo dnf install sumo sumo-tools
+```
 
-Custom: `"139.77,35.68,139.78,35.69"` (lon,lat,lon,lat)
+Verify: `netconvert --version`
 
 ---
 
-## File Locations
+## Installation
 
-**Project Root**: `~/.openclaw/workspace/osc-mcp`
+```bash
+# Clone or navigate to project
+cd ~/.openclaw/workspace/osc-mcp
 
-**Key Files**:
-- `tools/osm/osm_to_opendrive.py` - OSM download/conversion
-- `openscenario/src/opendrive_validator.rs` - Road intelligence
-- `openscenario-mcp/src/handlers.rs` - MCP tool handlers
-- `openscenario-mcp/src/server.rs` - MCP server
+# Build
+cargo build --release
 
-**Generated**:
-- `cache/osm/*.xodr` - Downloaded road networks (gitignored)
+# Run server
+cd openscenario-mcp
+cargo run --release
+```
 
-**Documentation**:
-- `memory/2026-05-23.md` - Today's session summary
-- `memory/phase1-complete.md` - Road intelligence
-- `memory/phase2-complete.md` - OSM pipeline
-- `memory/phase3-complete.md` - MCP integration
+---
+
+## MCP Tools Available
+
+### Road Network Tools
+
+**`get_real_world_road`** ⭐  
+Download and convert real roads from OpenStreetMap.
+
+```json
+{
+  "location": "nihonbashi",
+  "output_name": "tokyo_test"
+}
+```
+
+Returns road analysis with recommended spawn points.
+
+**`list_roads`**  
+Query all roads in loaded network.
+
+**`get_road_info`**  
+Get detailed info for a specific road.
+
+**`suggest_spawn_points`**  
+Get recommended vehicle starting positions.
+
+**`validate_position`**  
+Check if a position is valid on the road network.
+
+### Scenario Generation Tools
+
+**`create_quick_scenario`** ⭐  
+Auto-generate complete scenario on best available road.
+
+```json
+{
+  "scenario_type": "lane_change",
+  "vehicle_count": 3
+}
+```
+
+Supported types: `lane_change`, `cutin`, `platoon`
+
+**`create_lane_change_scenario`**  
+Generate lane change scenario with custom parameters.
+
+**`create_cutin_scenario`**  
+Generate cut-in safety testing scenario.
+
+**`create_platoon_scenario`**  
+Generate multi-vehicle convoy scenario.
+
+**`export_xml`**  
+Export scenario to OpenSCENARIO XML file.
 
 ---
 
 ## Typical Workflow
 
-1. **Get real road**: `get_real_world_road(location='nihonbashi')`
-   - Returns: Road network, quality score, recommended roads, spawn points
+### 1. Get Real Road
+```json
+get_real_world_road({
+  "location": "nihonbashi"
+})
+```
 
-2. **Create scenario**: `create_scenario(name='test', version='1.2')`
+### 2. Generate Scenario
+```json
+create_quick_scenario({
+  "scenario_type": "lane_change"
+})
+```
 
-3. **Add vehicles**: `add_vehicle(scenario_id='...', name='ego', category='Car')`
+### 3. Export
+```json
+export_xml({
+  "scenario_id": "<from-step-2>",
+  "output_path": "scenario.xosc"
+})
+```
 
-4. **Place vehicles**: Use spawn points from step 1
-   ```json
-   set_position({
-     "road_id": "5402",
-     "lane_id": -1,
-     "s": 267.7
-   })
-   ```
-
-5. **Add actions**: Lane changes, speed changes, etc.
-
-6. **Export**: `export_xml(scenario_id='...', output_path='scenario.xosc')`
-
-7. **Visualize**: `esmini --osc scenario.xosc --odr cache/osm/nihonbashi.xodr`
-
----
-
-## What's Complete
-
-- ✅ Road intelligence (AI can query roads)
-- ✅ OSM integration (real Tokyo roads)
-- ✅ MCP tool (AI can request roads)
-- ✅ Quality scoring (90/100 typical)
-- ✅ Spawn points (automatic placement)
-- ✅ Scenario generation (existing tools)
+**Done!** Scenario ready for visualization in esmini or other OpenSCENARIO tools.
 
 ---
 
-## What's Next (Optional)
+## Pre-configured Locations
 
-**Phase 4** (1-2h): Scenario helpers
-- Lane change templates
-- Merge scenarios
-- Cut-in maneuvers
-- Batch generation
+The tool includes several Tokyo locations with pre-calculated bounding boxes:
 
-**Phase 5** (1h): Testing & docs
-- Claude Desktop integration
-- End-to-end testing
-- User guide
-- Example workflows
+- `nihonbashi` - Nihonbashi district (mixed urban)
+- `tokyo_station` - Tokyo Station area
+- `ginza` - Ginza shopping district
+- `shinjuku` - Shinjuku commercial area
+- `shibuya` - Shibuya crossing area
+- `roppongi` - Roppongi district
 
----
-
-## Common Issues
-
-**"netconvert not found"**:
-- Install SUMO: `bash tools/install_sumo.sh`
-
-**"No good roads found"**:
-- Some areas have only short streets
-- Try `nihonbashi` or `shuto_c1` for highways
-
-**"Quality score low"**:
-- OSM data varies by location
-- >80 is good, >60 is usable
+Or provide custom bounding box: `"135.0,35.0,135.1,35.1"` (lon1,lat1,lon2,lat2)
 
 ---
 
-## Need Help?
+## Testing & Validation
 
-Check documentation in `memory/`:
-- `2026-05-23.md` - Today's full session
-- `phase*-complete.md` - Detailed phase docs
-- `tokyo-av-testing-implementation-plan.md` - Original plan
+### Test Real Road Download
+```bash
+cargo run --example test_get_real_world_road
+```
 
-Or run examples:
+**Output**: Road network analysis for Nihonbashi area
+
+### Test Road Intelligence
 ```bash
 cargo run --example find_good_roads cache/osm/nihonbashi.xodr
-cargo run --example test_get_real_world_road
+```
+
+**Output**: List of usable roads with quality metrics
+
+### Manual OSM Conversion
+```bash
+./test_osm_conversion.sh nihonbashi -o test_roads
+```
+
+**Output**: OpenDRIVE file in `cache/osm/test_roads.xodr`
+
+---
+
+## Scenario Types
+
+### Lane Change
+- Ego vehicle changes lanes
+- One other vehicle for interaction
+- 5-second smooth transition
+- Realistic highway speeds (90 km/h)
+
+### Cut-In
+- Other vehicle cuts in front aggressively
+- 2.5-second sharp maneuver
+- Tests emergency braking
+- Safety-critical scenario
+
+### Platoon
+- 2-10 vehicles in convoy
+- 40m spacing between vehicles
+- All vehicles same speed
+- ACC/convoy testing
+
+---
+
+## Configuration
+
+### Cache Directory
+Downloaded roads cached in `cache/osm/`
+
+### Python Dependencies
+```bash
+pip install requests
+```
+
+### SUMO Path
+If netconvert not in PATH:
+```bash
+export SUMO_HOME=/usr/share/sumo
+export PATH=$PATH:$SUMO_HOME/bin
 ```
 
 ---
 
-**Status**: Ready to use! 🚀  
-**Next session**: Continue with Phase 4/5 or start using it!
+## Visualization
+
+Use esmini to visualize generated scenarios:
+
+```bash
+# Install esmini (https://github.com/esmini/esmini)
+
+# Run scenario
+esmini --window 60 60 800 400 \
+       --osc scenario.xosc \
+       --road cache/osm/nihonbashi.xodr
+```
+
+---
+
+## Troubleshooting
+
+### "netconvert not found"
+Install SUMO or add to PATH (see Prerequisites)
+
+### "No suitable roads found"
+Road network may be too small or have poor quality. Try:
+- Larger area
+- Different location
+- Check `cache/osm/*.xodr` file size (should be >100KB)
+
+### "Position validation failed"
+Road network not loaded. Call `get_real_world_road` or `load_road_network` first.
+
+### Python script fails
+Check:
+```bash
+python3 tools/osm/osm_to_opendrive.py --help
+which netconvert
+```
+
+---
+
+## Architecture
+
+```
+User/AI
+   ↓
+MCP Server (Rust)
+   ↓
+┌──────────────┬──────────────────┐
+│ Road Network │ Scenario Builder │
+├──────────────┼──────────────────┤
+│ • List roads │ • Templates      │
+│ • Query info │ • Vehicles       │
+│ • Validate   │ • Actions        │
+│ • Spawn pts  │ • Export         │
+└──────────────┴──────────────────┘
+         ↓              ↓
+   OpenDRIVE    OpenSCENARIO XML
+```
+
+**Data flow**:
+1. Python downloads OSM data
+2. SUMO converts to OpenDRIVE
+3. Rust validates and indexes
+4. MCP tools query/generate
+5. Export to OpenSCENARIO
+
+---
+
+## Examples
+
+### Example 1: Quick Lane Change
+```bash
+# Via MCP:
+get_real_world_road({"location": "nihonbashi"})
+create_quick_scenario({"scenario_type": "lane_change"})
+export_xml({"scenario_id": "...", "output_path": "test.xosc"})
+
+# Visualize:
+esmini --osc test.xosc --road cache/osm/nihonbashi.xodr
+```
+
+### Example 2: Custom Cut-In
+```bash
+create_cutin_scenario({
+  "road_id": "5402",
+  "ego_lane": -1,
+  "other_lane": -2,
+  "ego_start_s": 100.0,
+  "other_start_s": 130.0,
+  "ego_speed": 25.0,
+  "other_speed": 23.0,
+  "cutin_trigger_distance": 15.0
+})
+```
+
+### Example 3: Platoon Convoy
+```bash
+create_platoon_scenario({
+  "road_id": "5402",
+  "lane_id": -1,
+  "vehicle_count": 5,
+  "start_s": 200.0,
+  "spacing": 40.0,
+  "speed": 25.0
+})
+```
+
+---
+
+## Development
+
+### Run Tests
+```bash
+cargo test
+```
+
+### Build Docs
+```bash
+cargo doc --open
+```
+
+### Format Code
+```bash
+cargo fmt
+cargo clippy
+```
+
+---
+
+## References
+
+- [OpenSCENARIO Specification](https://www.asam.net/standards/detail/openscenario/)
+- [OpenDRIVE Specification](https://www.asam.net/standards/detail/opendrive/)
+- [SUMO Documentation](https://sumo.dlr.de/docs/)
+- [esmini](https://github.com/esmini/esmini)
+- [Model Predictive Control Protocol](https://modelcontextprotocol.io/)
+
+---
+
+## License
+
+See LICENSE file for details.
+
+---
+
+## Support
+
+For issues or questions:
+- Check troubleshooting section above
+- Review example code in `openscenario-mcp/examples/`
+- Consult OpenSCENARIO/OpenDRIVE specifications
+
+---
+
+**Ready to generate scenarios on real roads!** 🚀
