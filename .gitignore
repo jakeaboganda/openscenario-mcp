@@ -18,3 +18,5 @@ Cargo.lock
 # OS
 .DS_Store
 Thumbs.db
+cache/
+__pycache__/
