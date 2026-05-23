@@ -47,6 +47,8 @@ pub struct Scenario {
     pub(crate) version: OpenScenarioVersion,
     pub(crate) entities: HashMap<String, Entity>,
     pub(crate) initial_positions: HashMap<String, Position>,
+    pub(crate) initial_speeds: HashMap<String, f64>,
+    pub(crate) road_network: Option<String>,
     pub(crate) parameters: Vec<ParameterDeclaration>,
     pub(crate) storyboard: Storyboard,
 }
@@ -68,6 +70,8 @@ impl Scenario {
             version,
             entities: HashMap::new(),
             initial_positions: HashMap::new(),
+            initial_speeds: HashMap::new(),
+            road_network: None,
             parameters: Vec::new(),
             storyboard: Storyboard::new(),
         }
@@ -511,6 +515,248 @@ impl Scenario {
 
         self.initial_positions.insert(entity, position);
         Ok(())
+    }
+
+    /// Sets the initial speed for an entity.
+    ///
+    /// The speed is applied instantaneously at the start of the scenario (t=0)
+    /// using a step dynamics transition. The entity must already exist in the scenario.
+    ///
+    /// # Arguments
+    /// * `entity` - Name of the entity (must exist)
+    /// * `speed` - Initial speed in m/s (must be >= 0.0)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion, Position};
+    /// use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// let vehicle = VehicleParams {
+    ///     catalog: None,
+    ///     vehicle_category: VehicleCategory::Car,
+    ///     properties: None,
+    /// };
+    /// scenario.add_vehicle("ego", vehicle)?;
+    /// scenario.set_initial_position("ego", Position::world(0.0, 0.0, 0.0, 0.0))?;
+    /// scenario.set_initial_speed("ego", 30.0)?; // 30 m/s ≈ 108 km/h
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If entity name is empty, whitespace-only, or speed is negative
+    /// * `ScenarioError::EntityNotFound` - If entity doesn't exist
+    pub fn set_initial_speed(
+        &mut self,
+        entity: impl Into<String>,
+        speed: f64,
+    ) -> Result<()> {
+        let entity = entity.into();
+
+        // Validate entity name is not empty
+        if entity.trim().is_empty() {
+            return Err(ScenarioError::InvalidValue {
+                field: "entity reference".to_string(),
+                reason: "entity name cannot be empty or whitespace-only".to_string(),
+            });
+        }
+
+        // Validate speed is non-negative
+        if speed < 0.0 {
+            return Err(ScenarioError::InvalidValue {
+                field: "speed".to_string(),
+                reason: format!("speed must be >= 0.0, got {}", speed),
+            });
+        }
+
+        // Normalize for lookup
+        let entity = entity.trim().to_string();
+
+        // Check entity exists
+        if !self.entities.contains_key(&entity) {
+            return Err(ScenarioError::EntityNotFound {
+                entity,
+                context: "set_initial_speed".to_string(),
+            });
+        }
+
+        self.initial_speeds.insert(entity, speed);
+        Ok(())
+    }
+
+    /// Gets the initial speed for an entity.
+    ///
+    /// # Arguments
+    /// * `entity` - Name of the entity
+    ///
+    /// # Returns
+    /// * `Some(&f64)` if an initial speed was set
+    /// * `None` if no initial speed was set
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// let vehicle = VehicleParams {
+    ///     catalog: None,
+    ///     vehicle_category: VehicleCategory::Car,
+    ///     properties: None,
+    /// };
+    /// scenario.add_vehicle("ego", vehicle)?;
+    /// scenario.set_initial_speed("ego", 25.0)?;
+    /// assert_eq!(scenario.get_initial_speed("ego"), Some(&25.0));
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_initial_speed(&self, entity: &str) -> Option<&f64> {
+        self.initial_speeds.get(entity)
+    }
+
+    /// Returns an iterator over all entity initial speeds.
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    /// use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// let vehicle = VehicleParams {
+    ///     catalog: None,
+    ///     vehicle_category: VehicleCategory::Car,
+    ///     properties: None,
+    /// };
+    /// scenario.add_vehicle("ego", vehicle)?;
+    /// scenario.set_initial_speed("ego", 30.0)?;
+    /// 
+    /// let speeds: Vec<_> = scenario.initial_speeds().collect();
+    /// assert_eq!(speeds.len(), 1);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn initial_speeds(&self) -> impl Iterator<Item = (&String, &f64)> {
+        self.initial_speeds.iter()
+    }
+
+    /// Sets both initial position and speed for an entity in a single call.
+    ///
+    /// Convenience method combining `set_initial_position` and `set_initial_speed`.
+    /// Optional parameters allow setting only what's needed.
+    ///
+    /// # Arguments
+    /// * `entity` - Name of the entity (must exist)
+    /// * `position` - Initial position
+    /// * `speed` - Optional initial speed in m/s (must be >= 0.0 if provided)
+    ///
+    /// # Returns
+    /// * `Ok(())` if successful
+    /// * `Err(ScenarioError)` if validation fails
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion, Position};
+    /// use openscenario::entities::{VehicleParams, VehicleCategory};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// let vehicle = VehicleParams {
+    ///     catalog: None,
+    ///     vehicle_category: VehicleCategory::Car,
+    ///     properties: None,
+    /// };
+    /// scenario.add_vehicle("ego", vehicle)?;
+    /// 
+    /// // Set both position and speed
+    /// scenario.set_initial_state(
+    ///     "ego",
+    ///     Position::world(0.0, 0.0, 0.0, 0.0),
+    ///     Some(30.0), // 30 m/s
+    /// )?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If entity name is empty, whitespace-only, or speed is negative
+    /// * `ScenarioError::EntityNotFound` - If entity doesn't exist
+    pub fn set_initial_state(
+        &mut self,
+        entity: impl Into<String>,
+        position: Position,
+        speed: Option<f64>,
+    ) -> Result<()> {
+        let entity_str = entity.into();
+        self.set_initial_position(&entity_str, position)?;
+        if let Some(spd) = speed {
+            self.set_initial_speed(&entity_str, spd)?;
+        }
+        Ok(())
+    }
+
+    /// Sets the road network file for the scenario.
+    ///
+    /// Specifies the OpenDRIVE (.xodr) file that defines the road network geometry.
+    /// The path can be relative or absolute. When using lane-based positions,
+    /// a road network must be set for the scenario to be valid.
+    ///
+    /// # Arguments
+    /// * `filepath` - Path to the OpenDRIVE file (relative or absolute)
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// scenario.set_road_network("roads/highway.xodr")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    /// * `ScenarioError::InvalidValue` - If filepath is empty or whitespace-only
+    pub fn set_road_network(&mut self, filepath: impl Into<String>) -> Result<()> {
+        let filepath = filepath.into();
+        
+        if filepath.trim().is_empty() {
+            return Err(ScenarioError::InvalidValue {
+                field: "road network filepath".to_string(),
+                reason: "filepath cannot be empty or whitespace-only".to_string(),
+            });
+        }
+        
+        self.road_network = Some(filepath.trim().to_string());
+        Ok(())
+    }
+
+    /// Gets the road network file path if set.
+    ///
+    /// # Returns
+    /// * `Some(&String)` if a road network file was set
+    /// * `None` if no road network was set
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::{Scenario, OpenScenarioVersion};
+    ///
+    /// # fn main() -> Result<(), openscenario::ScenarioError> {
+    /// let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
+    /// scenario.set_road_network("roads/highway.xodr")?;
+    /// assert_eq!(scenario.get_road_network(), Some(&"roads/highway.xodr".to_string()));
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_road_network(&self) -> Option<&String> {
+        self.road_network.as_ref()
     }
 
     /// Adds a story to the scenario's storyboard.
