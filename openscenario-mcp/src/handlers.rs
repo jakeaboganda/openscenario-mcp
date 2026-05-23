@@ -470,3 +470,108 @@ pub fn handle_validate_position(
         "message": "Position is valid"
     }).to_string())
 }
+
+/// Get a real-world road network from OpenStreetMap
+pub fn handle_get_real_world_road(
+    state: Arc<Mutex<ServerState>>,
+    location: String,
+    output_name: Option<String>,
+) -> Result<String> {
+    use std::process::Command;
+    
+    // Determine output name
+    let name = output_name.unwrap_or_else(|| location.replace(' ', "_").to_lowercase());
+    
+    // Get workspace root (assuming we're in openscenario-mcp/)
+    let workspace_root = std::env::current_dir()
+        .map_err(|e| anyhow!("Failed to get current directory: {}", e))?;
+    
+    let script_path = workspace_root.join("tools/osm/osm_to_opendrive.py");
+    
+    if !script_path.exists() {
+        return Err(anyhow!("OSM converter script not found at: {:?}", script_path));
+    }
+    
+    println!("🌍 Fetching real-world road: {} (output: {})", location, name);
+    
+    // Run Python script
+    let output = Command::new("python3")
+        .arg(&script_path)
+        .arg(&location)
+        .arg("-o")
+        .arg(&name)
+        .current_dir(&workspace_root)
+        .output()
+        .map_err(|e| anyhow!("Failed to execute OSM converter: {}", e))?;
+    
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        return Err(anyhow!(
+            "OSM conversion failed:\nStdout: {}\nStderr: {}",
+            stdout,
+            stderr
+        ));
+    }
+    
+    // Expected output path
+    let xodr_path = workspace_root.join(format!("cache/osm/{}.xodr", name));
+    
+    if !xodr_path.exists() {
+        return Err(anyhow!("OpenDRIVE file not created: {:?}", xodr_path));
+    }
+    
+    // Load the road network
+    let validator = openscenario::opendrive_validator::OpenDriveValidator::load(&xodr_path)
+        .map_err(|e| anyhow!("Failed to load generated OpenDRIVE: {}", e))?;
+    
+    // Analyze the network
+    let quality = validator.assess_quality();
+    let roads = validator.list_roads();
+    
+    // Find good roads (>50m, has lanes)
+    let mut good_roads: Vec<_> = roads.iter()
+        .filter(|r| r.length > 50.0 && r.lane_count > 1)
+        .collect();
+    good_roads.sort_by(|a, b| b.length.partial_cmp(&a.length).unwrap());
+    
+    // Get recommended road (longest good road)
+    let recommended = good_roads.first().map(|r| {
+        let spawn_points = validator.suggest_spawn_points(&r.id, 5).unwrap_or_default();
+        json!({
+            "road_id": r.id,
+            "length": r.length,
+            "lane_count": r.lane_count,
+            "name": r.name,
+            "spawn_points": spawn_points
+        })
+    });
+    
+    // Store validator in state
+    let mut state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    state_lock.road_validator = Some(validator);
+    state_lock.current_road_network = Some(xodr_path.to_string_lossy().to_string());
+    
+    Ok(json!({
+        "status": "success",
+        "location": location,
+        "xodr_path": xodr_path.to_string_lossy(),
+        "total_roads": roads.len(),
+        "good_roads": good_roads.len(),
+        "quality": {
+            "score": quality.score,
+            "has_lanes": quality.has_lanes,
+            "has_geometry": quality.has_geometry,
+            "issues": quality.issues
+        },
+        "recommended_road": recommended,
+        "top_roads": good_roads.iter().take(10).map(|r| json!({
+            "id": r.id,
+            "length": r.length,
+            "lane_count": r.lane_count,
+            "name": r.name
+        })).collect::<Vec<_>>()
+    }).to_string())
+}

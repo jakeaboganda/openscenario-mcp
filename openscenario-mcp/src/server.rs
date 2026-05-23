@@ -4,6 +4,7 @@ use crate::handlers::{
     handle_set_stop_time, handle_validate_scenario,
     handle_load_road_network, handle_list_roads, handle_get_road_info,
     handle_suggest_spawn_points, handle_validate_position,
+    handle_get_real_world_road,
 };
 use anyhow::{anyhow, Result};
 use mcp_sdk::types::{
@@ -370,6 +371,26 @@ impl OpenScenarioServer {
                     "required": ["road_id", "lane_id", "s"]
                 }),
             },
+            ToolDefinition {
+                name: "get_real_world_road".to_string(),
+                description: Some(
+                    "Download and convert a real-world road from OpenStreetMap to OpenDRIVE. Returns road analysis with recommended spawn points. Automatically loads the road network for use with other tools.".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "Location name (e.g., 'nihonbashi', 'tokyo_station', 'ginza') or custom bbox 'lon1,lat1,lon2,lat2'"
+                        },
+                        "output_name": {
+                            "type": "string",
+                            "description": "Optional output file base name (defaults to location name)"
+                        }
+                    },
+                    "required": ["location"]
+                }),
+            },
         ]
     }
 
@@ -731,6 +752,28 @@ impl OpenScenarioServer {
                     road_id.to_string(),
                     lane_id,
                     s,
+                )?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "get_real_world_road" => {
+                let location = args
+                    .get("location")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'location' parameter"))?;
+                let output_name = args
+                    .get("output_name")
+                    .and_then(Value::as_str)
+                    .map(|s| s.to_string());
+
+                let result = handle_get_real_world_road(
+                    GLOBAL_STATE.clone(),
+                    location.to_string(),
+                    output_name,
                 )?;
 
                 Ok(CallToolResponse {
