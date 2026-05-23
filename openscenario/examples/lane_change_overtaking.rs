@@ -2,7 +2,8 @@
 //!
 //! Demonstrates:
 //! - Two-vehicle interaction
-//! - Speed-based decision making
+//! - Lane-based positioning
+//! - Speed differential for overtaking
 //! - Multi-step overtaking maneuver
 //!
 //! Scenario: A faster vehicle approaches a slower vehicle and overtakes it
@@ -16,6 +17,9 @@ use openscenario::{OpenScenarioVersion, Position, Scenario};
 fn main() -> Result<(), openscenario::ScenarioError> {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
 
+    // Set road network
+    scenario.set_road_network("roads/simple_highway.xodr")?;
+
     // Add two vehicles
     let vehicle_params = VehicleParams {
         catalog: None,
@@ -23,13 +27,21 @@ fn main() -> Result<(), openscenario::ScenarioError> {
         properties: None,
     };
 
-    // Slow vehicle ahead in right lane
+    // Slow vehicle ahead in right lane (lane -1)
     scenario.add_vehicle("slow_vehicle", vehicle_params.clone())?;
-    scenario.set_initial_position("slow_vehicle", Position::world(100.0, 0.0, 0.0, 0.0))?;
+    scenario.set_initial_state(
+        "slow_vehicle",
+        Position::lane("1", -1, 80.0, 0.0, None),  // Lane -1 (right), s=80m
+        Some(20.0),  // 20 m/s ≈ 72 km/h
+    )?;
 
-    // Fast vehicle behind in right lane
+    // Fast vehicle behind in right lane (lane -1)
     scenario.add_vehicle("fast_vehicle", vehicle_params)?;
-    scenario.set_initial_position("fast_vehicle", Position::world(0.0, 0.0, 0.0, 0.0))?;
+    scenario.set_initial_state(
+        "fast_vehicle",
+        Position::lane("1", -1, 20.0, 0.0, None),  // Lane -1 (right), s=20m
+        Some(30.0),  // 30 m/s ≈ 108 km/h
+    )?;
 
     // Create story structure for overtaking vehicle
     scenario.add_story("overtake_story")?;
@@ -67,14 +79,19 @@ fn main() -> Result<(), openscenario::ScenarioError> {
     std::fs::write("lane_change_overtaking.xosc", xml)?;
 
     println!("✅ Overtaking scenario exported to lane_change_overtaking.xosc");
-    println!("   - Slow vehicle: 100m ahead, right lane");
-    println!("   - Fast vehicle: Starting position, right lane");
-    println!("   - Action 1: Move left to overtake (3s)");
-    println!("   - Action 2: Return to right lane (3s)");
+    println!("   - Slow vehicle: Lane -1, s=80m, 20 m/s (72 km/h)");
+    println!("   - Fast vehicle: Lane -1, s=20m, 30 m/s (108 km/h)");
+    println!("   - Gap: 60m, closing at 10 m/s");
+    println!("   - Action 1: Fast vehicle moves left to lane 1 (3s)");
+    println!("   - Action 2: Fast vehicle returns to lane -1 (3s)");
     println!();
     println!("Visualization:");
-    println!("  Fast vehicle approaches slow vehicle, changes to left lane,");
-    println!("  passes the slow vehicle, then returns to right lane.");
+    println!("  Fast vehicle approaches slow vehicle in right lane,");
+    println!("  changes to left lane to overtake, passes, then");
+    println!("  returns to right lane after passing.");
+    println!();
+    println!("To test in esmini:");
+    println!("  esmini --osc lane_change_overtaking.xosc");
 
     Ok(())
 }

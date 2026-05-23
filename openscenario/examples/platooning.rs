@@ -2,6 +2,8 @@
 //!
 //! Demonstrates:
 //! - Multi-vehicle coordination
+//! - Lane-based positioning
+//! - Initial speeds for convoy
 //! - Time headway conditions for multiple followers
 //! - Platoon formation with consistent spacing
 //!
@@ -16,23 +18,38 @@ use openscenario::{OpenScenarioVersion, Position, Scenario};
 fn main() -> Result<(), openscenario::ScenarioError> {
     let mut scenario = Scenario::new(OpenScenarioVersion::V1_2);
 
+    // Set road network
+    scenario.set_road_network("roads/simple_highway.xodr")?;
+
     let vehicle_params = VehicleParams {
         catalog: None,
         vehicle_category: VehicleCategory::Car,
         properties: None,
     };
 
-    // Platoon leader
+    // Platoon leader (front vehicle)
     scenario.add_vehicle("leader", vehicle_params.clone())?;
-    scenario.set_initial_position("leader", Position::world(100.0, 0.0, 0.0, 0.0))?;
+    scenario.set_initial_state(
+        "leader",
+        Position::lane("1", -1, 80.0, 0.0, None),  // Lane -1, s=80m
+        Some(25.0),  // 25 m/s ≈ 90 km/h
+    )?;
 
-    // Follower 1 (follows leader)
+    // Follower 1 (middle vehicle, follows leader at ~40m = 1.6s @ 25 m/s)
     scenario.add_vehicle("follower1", vehicle_params.clone())?;
-    scenario.set_initial_position("follower1", Position::world(50.0, 0.0, 0.0, 0.0))?;
+    scenario.set_initial_state(
+        "follower1",
+        Position::lane("1", -1, 40.0, 0.0, None),  // Lane -1, s=40m
+        Some(25.0),  // 25 m/s ≈ 90 km/h
+    )?;
 
-    // Follower 2 (follows follower1)
+    // Follower 2 (rear vehicle, follows follower1 at ~40m)
     scenario.add_vehicle("follower2", vehicle_params)?;
-    scenario.set_initial_position("follower2", Position::world(0.0, 0.0, 0.0, 0.0))?;
+    scenario.set_initial_state(
+        "follower2",
+        Position::lane("1", -1, 0.0, 0.0, None),  // Lane -1, s=0m (start)
+        Some(25.0),  // 25 m/s ≈ 90 km/h
+    )?;
 
     // Story structure
     scenario.add_story("platoon_story")?;
@@ -111,15 +128,18 @@ fn main() -> Result<(), openscenario::ScenarioError> {
     std::fs::write("platooning.xosc", xml)?;
 
     println!("✅ Platooning scenario exported to platooning.xosc");
-    println!("   - Leader: 100m ahead");
-    println!("   - Follower 1: 50m ahead, follows leader");
-    println!("   - Follower 2: Starting position, follows follower 1");
-    println!("   - Time headway: 1.5 seconds for all followers");
+    println!("   - Leader: Lane -1, s=80m, 25 m/s (90 km/h)");
+    println!("   - Follower 1: Lane -1, s=40m, 25 m/s (90 km/h) - 40m gap");
+    println!("   - Follower 2: Lane -1, s=0m, 25 m/s (90 km/h) - 40m gap");
+    println!("   - Formation: 40m spacing (≈1.6s time headway @ 25 m/s)");
     println!();
     println!("Visualization:");
-    println!("  Three vehicles travel in formation, each maintaining 1.5s");
-    println!("  time headway from the vehicle ahead. When the leader slows,");
-    println!("  all followers adjust speed to maintain consistent spacing.");
+    println!("  Three vehicles travel in convoy formation in the right lane.");
+    println!("  All maintain the same speed with consistent spacing.");
+    println!("  Time headway conditions trigger adjustments if spacing changes.");
+    println!();
+    println!("To test in esmini:");
+    println!("  esmini --osc platooning.xosc");
 
     Ok(())
 }
