@@ -332,6 +332,26 @@ See [openscenario/examples/adaptive_cruise_control.rs](openscenario/examples/ada
 
 ## Documentation
 
+### 📚 User Guides
+
+Comprehensive guides are available in the [`docs/`](docs/) directory:
+
+- **[Getting Started](docs/getting-started.md)** - Quick start for new users
+- **[Using with esmini](docs/using-with-esmini.md)** - Testing scenarios with esmini simulator
+- **[Architecture](docs/architecture.md)** - System design and module overview
+- **[Position Best Practices](docs/position-best-practices.md)** - World vs lane coordinates
+- **[OpenDRIVE Analyzer](docs/opendrive-analyzer-guide.md)** - Road network inspection tool
+
+See the [docs README](docs/README.md) for a complete index.
+
+### 🛠️ Contributing
+
+Interested in contributing? Check out [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- Project structure
+- Development workflow
+- Testing philosophy
+- Code style guidelines
+
 ### API Documentation
 
 Full rustdoc documentation is available for all 136 public APIs:
