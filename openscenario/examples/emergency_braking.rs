@@ -12,6 +12,7 @@
 //! Run with: cargo run --example emergency_braking
 
 use openscenario::entities::{VehicleCategory, VehicleParams};
+use openscenario::storyboard::Rule;
 use openscenario::{OpenScenarioVersion, Position, Scenario};
 
 fn main() -> Result<(), openscenario::ScenarioError> {
@@ -55,8 +56,8 @@ fn main() -> Result<(), openscenario::ScenarioError> {
         "emergency_brake_maneuver",
     )?;
 
-    // Condition: Collision risk detected
-    scenario.add_event_with_collision_condition(
+    // Condition: Time-to-collision < 3 seconds (collision imminent)
+    scenario.add_event_with_ttc_condition(
         "emergency_story",
         "brake_act",
         "follower_group",
@@ -64,6 +65,8 @@ fn main() -> Result<(), openscenario::ScenarioError> {
         "collision_risk",
         "follower_vehicle",  // Entity being monitored
         "lead_vehicle",      // Target entity
+        3.0,                  // TTC threshold: 3 seconds
+        Rule::LessThan,       // Trigger when TTC < 3s
     )?;
 
     // Action: Emergency brake (strong deceleration: -8 m/s²)
@@ -86,7 +89,7 @@ fn main() -> Result<(), openscenario::ScenarioError> {
     println!("   - Lead vehicle: Lane -1, s=100m, 20 m/s (72 km/h)");
     println!("   - Follower vehicle: Lane -1, s=50m, 30 m/s (108 km/h)");
     println!("   - Gap: 50m, closing at 10 m/s");
-    println!("   - Condition: Collision risk detected");
+    println!("   - Condition: Time-to-collision < 3 seconds");
     println!("   - Action: Emergency brake at -8 m/s² for 2s");
     println!();
     println!("Visualization:");
