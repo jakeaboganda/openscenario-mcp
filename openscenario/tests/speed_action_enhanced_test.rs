@@ -1,6 +1,4 @@
-use openscenario::storyboard::{
-    DynamicsDimension, DynamicsShape, SpeedAction, TransitionDynamics,
-};
+use openscenario::storyboard::{DynamicsDimension, DynamicsShape, SpeedAction, TransitionDynamics};
 use openscenario::{OpenScenarioVersion, Scenario};
 
 #[test]

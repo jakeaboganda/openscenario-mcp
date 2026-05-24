@@ -376,9 +376,11 @@ fn test_relative_distance_condition_all_distance_types() {
         .unwrap();
 
     // Test all distance types
-    let distance_types = [RelativeDistanceType::Longitudinal,
+    let distance_types = [
+        RelativeDistanceType::Longitudinal,
         RelativeDistanceType::Lateral,
-        RelativeDistanceType::Euclidean];
+        RelativeDistanceType::Euclidean,
+    ];
 
     for dist_type in distance_types.iter() {
         let result = scenario.add_event_with_relative_distance_condition(

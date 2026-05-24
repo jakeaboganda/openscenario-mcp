@@ -800,10 +800,7 @@ fn test_speed_condition_all_rule_operators() {
             entity_refs: vec!["Ego".to_string()],
         };
 
-        let speed_cond = SpeedCondition {
-            value: 30.0,
-            rule,
-        };
+        let speed_cond = SpeedCondition { value: 30.0, rule };
 
         let by_entity = ByEntityCondition {
             triggering_entities: triggering,

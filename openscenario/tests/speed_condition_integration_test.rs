@@ -6,8 +6,8 @@
 use openscenario::entities::{VehicleCategory, VehicleParams};
 use openscenario::storyboard::{
     ByEntityCondition, Condition, ConditionEdge, ConditionGroup, ConditionKind, DynamicsDimension,
-    DynamicsShape, EntityCondition, Rule, SpeedCondition, TransitionDynamics,
-    Trigger, TriggeringEntities, TriggeringEntitiesRule,
+    DynamicsShape, EntityCondition, Rule, SpeedCondition, TransitionDynamics, Trigger,
+    TriggeringEntities, TriggeringEntitiesRule,
 };
 use openscenario::{OpenScenarioVersion, Position, Scenario};
 use std::env;

@@ -208,10 +208,12 @@ fn test_collision_condition_all_edges() {
         .unwrap();
 
     // Test all edge types
-    let edges = [ConditionEdge::None,
+    let edges = [
+        ConditionEdge::None,
         ConditionEdge::Rising,
         ConditionEdge::Falling,
-        ConditionEdge::RisingOrFalling];
+        ConditionEdge::RisingOrFalling,
+    ];
 
     for edge in edges.iter() {
         let result = scenario.add_event_with_collision_condition_advanced(

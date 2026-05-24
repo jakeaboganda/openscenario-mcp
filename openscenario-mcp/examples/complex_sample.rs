@@ -18,9 +18,11 @@ fn main() {
     println!("Created scenario: {}", scenario_id);
 
     // Add 3 vehicles with different configurations
-    let vehicles = [("ego_vehicle", "Car"),
+    let vehicles = [
+        ("ego_vehicle", "Car"),
         ("lead_vehicle", "Truck"),
-        ("follow_vehicle", "Car")];
+        ("follow_vehicle", "Car"),
+    ];
 
     for (i, (name, vtype)) in vehicles.iter().enumerate() {
         handle_add_vehicle(
