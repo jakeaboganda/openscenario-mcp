@@ -29,7 +29,9 @@ MCP (Model Context Protocol) is how AI assistants like Claude and ChatGPT connec
 
 **Think of it as**: Giving your AI assistant a "scenario building toolbox" that it can use on your behalf.
 
-### Quick Start with MCP
+## Quick Start with MCP
+
+**Fresh installation?** See **[INSTALL.md](INSTALL.md)** for complete setup guide.
 
 ```bash
 # 1. Build and install the MCP server

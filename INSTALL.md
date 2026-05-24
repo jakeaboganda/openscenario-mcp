@@ -87,7 +87,7 @@ netconvert --version
 ```bash
 # Choose a location (example uses home directory)
 cd ~
-git clone https://github.com/yourusername/osc-mcp.git
+git clone https://github.com/jakeaboganda/osc-mcp.git
 cd osc-mcp
 ```
 
@@ -508,7 +508,7 @@ pip3 install requests
 
 # Install
 cd ~
-git clone https://github.com/yourusername/osc-mcp.git
+git clone https://github.com/jakeaboganda/osc-mcp.git
 cd osc-mcp
 cargo build --release
 
