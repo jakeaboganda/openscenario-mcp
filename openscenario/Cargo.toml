@@ -16,3 +16,7 @@ opendrive = "0.1"
 
 [dev-dependencies]
 tempfile = "3.0"
+
+[features]
+# Optional feature for validating generated scenarios with esmini simulator
+esmini_validation = []

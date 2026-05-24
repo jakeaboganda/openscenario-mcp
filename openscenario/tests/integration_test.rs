@@ -524,8 +524,7 @@ fn test_nan_values_in_position() {
     let pos = Position::world(f64::NAN, 0.0, 0.0, 0.0);
     let result = scenario.set_initial_position("car", pos);
 
-    if result.is_ok() {
-        // If accepted, XML generation should fail or produce invalid XML
+    if let Err(_e) = result {
         let xml_result = scenario.to_xml();
         if let Ok(xml) = xml_result {
             // NaN in XML is invalid

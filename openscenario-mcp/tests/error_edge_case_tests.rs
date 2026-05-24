@@ -769,5 +769,4 @@ fn test_no_panic_on_mutex_operations() {
     }
 
     // Should not panic or deadlock
-    assert!(true);
 }
