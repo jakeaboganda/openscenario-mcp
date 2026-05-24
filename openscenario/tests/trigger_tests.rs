@@ -97,7 +97,7 @@ fn test_parameter_condition_all_comparison_rules() {
     let rules = vec![Rule::LessThan, Rule::EqualTo, Rule::GreaterThan];
 
     for rule in rules.clone() {
-        let condition = Condition::parameter("TestParam", "42", rule.clone());
+        let condition = Condition::parameter("TestParam", "42", rule);
         match &condition.kind {
             ConditionKind::ByValue(ByValueCondition::Parameter(pc)) => {
                 assert_eq!(pc.rule, rule);
@@ -292,7 +292,7 @@ fn test_rule_clone_and_partialeq() {
     use openscenario::storyboard::Rule;
 
     let rule1 = Rule::GreaterThan;
-    let rule2 = rule1.clone();
+    let rule2 = rule1;
 
     assert_eq!(rule1, rule2);
 }
@@ -802,7 +802,7 @@ fn test_speed_condition_all_rule_operators() {
 
         let speed_cond = SpeedCondition {
             value: 30.0,
-            rule: rule.clone(),
+            rule,
         };
 
         let by_entity = ByEntityCondition {

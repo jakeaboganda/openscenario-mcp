@@ -378,7 +378,7 @@ fn test_time_headway_condition_all_rules() {
         .unwrap();
 
     // Test all rule types
-    let rules = vec![Rule::LessThan, Rule::GreaterThan, Rule::EqualTo];
+    let rules = [Rule::LessThan, Rule::GreaterThan, Rule::EqualTo];
 
     for rule in rules.iter() {
         let result = scenario.add_event_with_time_headway_condition(
@@ -386,7 +386,7 @@ fn test_time_headway_condition_all_rules() {
             "act1",
             "mg1",
             "maneuver1",
-            &format!("event_{:?}", rule),
+            format!("event_{:?}", rule),
             "ego",
             "lead_vehicle",
             2.0,
@@ -482,12 +482,10 @@ fn test_time_headway_condition_all_edges() {
         .unwrap();
 
     // Test all edge types
-    let edges = vec![
-        ConditionEdge::None,
+    let edges = [ConditionEdge::None,
         ConditionEdge::Rising,
         ConditionEdge::Falling,
-        ConditionEdge::RisingOrFalling,
-    ];
+        ConditionEdge::RisingOrFalling];
 
     for edge in edges.iter() {
         let result = scenario.add_event_with_time_headway_condition_advanced(
@@ -495,7 +493,7 @@ fn test_time_headway_condition_all_edges() {
             "act1",
             "mg1",
             "maneuver1",
-            &format!("event_{:?}", edge),
+            format!("event_{:?}", edge),
             "ego",
             "lead_vehicle",
             2.0,

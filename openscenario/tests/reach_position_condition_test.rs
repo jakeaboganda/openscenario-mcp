@@ -456,12 +456,10 @@ fn test_reach_position_condition_all_edges() {
     let target_position = Position::world(100.0, 50.0, 0.0, 0.0);
 
     // Test all edge types
-    let edges = vec![
-        ConditionEdge::None,
+    let edges = [ConditionEdge::None,
         ConditionEdge::Rising,
         ConditionEdge::Falling,
-        ConditionEdge::RisingOrFalling,
-    ];
+        ConditionEdge::RisingOrFalling];
 
     for edge in edges.iter() {
         let result = scenario.add_event_with_reach_position_condition_advanced(
@@ -469,7 +467,7 @@ fn test_reach_position_condition_all_edges() {
             "act1",
             "mg1",
             "maneuver1",
-            &format!("event_{:?}", edge),
+            format!("event_{:?}", edge),
             "ego",
             target_position.clone(),
             2.0,

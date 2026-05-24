@@ -452,12 +452,10 @@ fn test_acceleration_action_with_different_dynamics_shapes() {
         .unwrap();
 
     // Test all dynamics shapes
-    let shapes = vec![
-        DynamicsShape::Linear,
+    let shapes = [DynamicsShape::Linear,
         DynamicsShape::Cubic,
         DynamicsShape::Sinusoidal,
-        DynamicsShape::Step,
-    ];
+        DynamicsShape::Step];
 
     for (i, shape) in shapes.iter().enumerate() {
         let dynamics = TransitionDynamics {
@@ -471,7 +469,7 @@ fn test_acceleration_action_with_different_dynamics_shapes() {
             "act1",
             "mg1",
             "maneuver1",
-            &format!("event_{}", i),
+            format!("event_{}", i),
             5.0,
             3.0,
             Some(dynamics),
@@ -508,11 +506,9 @@ fn test_acceleration_action_with_different_dimensions() {
         .unwrap();
 
     // Test all dimensions
-    let dimensions = vec![
-        DynamicsDimension::Time,
+    let dimensions = [DynamicsDimension::Time,
         DynamicsDimension::Distance,
-        DynamicsDimension::Rate,
-    ];
+        DynamicsDimension::Rate];
 
     for (i, dimension) in dimensions.iter().enumerate() {
         let dynamics = TransitionDynamics {
@@ -526,7 +522,7 @@ fn test_acceleration_action_with_different_dimensions() {
             "act1",
             "mg1",
             "maneuver1",
-            &format!("event_{}", i),
+            format!("event_{}", i),
             5.0,
             3.0,
             Some(dynamics),

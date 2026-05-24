@@ -1,11 +1,10 @@
 /// Comprehensive Error Handling & Edge Case Tests
 /// Tests for invalid inputs, malformed data, and boundary conditions
 use anyhow::Result;
-use mcp_sdk::types::{CallToolRequest, ToolResponseContent};
+use mcp_sdk::types::CallToolRequest;
 use openscenario_mcp::handlers::*;
 use openscenario_mcp::server::{OpenScenarioServer, ServerState};
-use serde_json::{json, Value};
-use std::fs;
+use serde_json::json;
 use std::sync::{Arc, Mutex};
 
 // ========== HELPER FUNCTIONS ==========

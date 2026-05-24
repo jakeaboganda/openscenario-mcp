@@ -6,7 +6,7 @@ use crate::handlers::{
     handle_validate_scenario,
 };
 use crate::scenario_templates::{
-    handle_create_cutin_scenario, handle_create_lane_change_scenario, handle_create_merge_scenario,
+    handle_create_cutin_scenario, handle_create_lane_change_scenario,
     handle_create_platoon_scenario, handle_create_quick_scenario,
 };
 use anyhow::{anyhow, Result};

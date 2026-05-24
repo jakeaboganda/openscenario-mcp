@@ -1,7 +1,6 @@
 use openscenario::entities::{VehicleCategory, VehicleParams};
 use openscenario::storyboard::{
-    Condition, ConditionGroup, DynamicsDimension, DynamicsShape, Rule, TransitionDynamics,
-    TransitionShape, Trigger,
+    Condition, ConditionGroup, DynamicsDimension, DynamicsShape, Rule, TransitionDynamics, Trigger,
 };
 use openscenario::{OpenScenarioVersion, Position, Scenario};
 use std::process::Command;

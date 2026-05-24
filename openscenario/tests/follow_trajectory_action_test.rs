@@ -33,7 +33,7 @@ fn test_trajectory_creation() {
     };
 
     assert_eq!(trajectory.name, "test_trajectory");
-    assert_eq!(trajectory.closed, false);
+    assert!(!trajectory.closed);
     assert_eq!(trajectory.vertices.len(), 3);
 }
 
@@ -301,7 +301,7 @@ fn test_closed_trajectory() {
         ],
     };
 
-    assert_eq!(trajectory.closed, true);
+    assert!(trajectory.closed);
     assert_eq!(trajectory.vertices.len(), 4);
 }
 

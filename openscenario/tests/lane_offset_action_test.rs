@@ -16,7 +16,7 @@ fn test_lane_offset_action_creation() {
     };
 
     assert_eq!(action.target_offset, 1.5);
-    assert_eq!(action.continuous, true);
+    assert!(action.continuous);
     assert!(action.dynamics.is_some());
 }
 
@@ -30,7 +30,7 @@ fn test_lane_offset_action_without_dynamics() {
     };
 
     assert_eq!(action.target_offset, -0.5);
-    assert_eq!(action.continuous, false);
+    assert!(!action.continuous);
     assert!(action.dynamics.is_none());
 }
 
@@ -70,7 +70,7 @@ fn test_lane_offset_action_in_action_enum() {
     match action {
         Action::LaneOffset(a) => {
             assert_eq!(a.target_offset, 1.0);
-            assert_eq!(a.continuous, true);
+            assert!(a.continuous);
         }
         _ => panic!("Expected LaneOffset action"),
     }

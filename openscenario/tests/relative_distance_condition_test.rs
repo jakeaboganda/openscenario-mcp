@@ -324,7 +324,7 @@ fn test_relative_distance_condition_all_rules() {
         .unwrap();
 
     // Test all rule types
-    let rules = vec![Rule::LessThan, Rule::GreaterThan, Rule::EqualTo];
+    let rules = [Rule::LessThan, Rule::GreaterThan, Rule::EqualTo];
 
     for rule in rules.iter() {
         let result = scenario.add_event_with_relative_distance_condition(
@@ -332,7 +332,7 @@ fn test_relative_distance_condition_all_rules() {
             "act1",
             "mg1",
             "maneuver1",
-            &format!("event_{:?}", rule),
+            format!("event_{:?}", rule),
             "ego",
             "target",
             20.0,
@@ -376,11 +376,9 @@ fn test_relative_distance_condition_all_distance_types() {
         .unwrap();
 
     // Test all distance types
-    let distance_types = vec![
-        RelativeDistanceType::Longitudinal,
+    let distance_types = [RelativeDistanceType::Longitudinal,
         RelativeDistanceType::Lateral,
-        RelativeDistanceType::Euclidean,
-    ];
+        RelativeDistanceType::Euclidean];
 
     for dist_type in distance_types.iter() {
         let result = scenario.add_event_with_relative_distance_condition(
@@ -388,7 +386,7 @@ fn test_relative_distance_condition_all_distance_types() {
             "act1",
             "mg1",
             "maneuver1",
-            &format!("event_{:?}", dist_type),
+            format!("event_{:?}", dist_type),
             "ego",
             "target",
             20.0,

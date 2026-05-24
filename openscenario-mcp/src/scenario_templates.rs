@@ -3,7 +3,6 @@ use crate::server::ServerState;
 use anyhow::{anyhow, Result};
 use openscenario::{
     entities::{VehicleCategory, VehicleParams},
-    storyboard::{DynamicsDimension, DynamicsShape},
     OpenScenarioVersion, Position, Scenario,
 };
 use serde_json::json;
@@ -41,19 +40,19 @@ pub fn handle_create_lane_change_scenario(
     scenario.add_vehicle("other", car_params())?;
 
     // Set initial positions
-    scenario.set_initial_position(
+    let _ = scenario.set_initial_position(
         "ego",
         Position::lane(road_id.clone(), lane_from, ego_start_s, 0.0, None),
     );
 
-    scenario.set_initial_position(
+    let _ = scenario.set_initial_position(
         "other",
         Position::lane(road_id.clone(), other_lane, other_start_s, 0.0, None),
     );
 
     // Set initial speeds
-    scenario.set_initial_speed("ego", ego_speed);
-    scenario.set_initial_speed("other", other_speed);
+    let _ = scenario.set_initial_speed("ego", ego_speed);
+    let _ = scenario.set_initial_speed("other", other_speed);
 
     // Add lane change action for ego
     scenario.add_lane_change_action(
@@ -113,19 +112,19 @@ pub fn handle_create_merge_scenario(
     scenario.add_vehicle("other", car_params())?;
 
     // Ego starts on merge road
-    scenario.set_initial_position(
+    let _ = scenario.set_initial_position(
         "ego",
         Position::lane(merge_road_id.clone(), -1, ego_start_s, 0.0, None),
     );
 
     // Other vehicle on main road
-    scenario.set_initial_position(
+    let _ = scenario.set_initial_position(
         "other",
         Position::lane(main_road_id.clone(), -1, other_start_s, 0.0, None),
     );
 
-    scenario.set_initial_speed("ego", ego_speed);
-    scenario.set_initial_speed("other", other_speed);
+    let _ = scenario.set_initial_speed("ego", ego_speed);
+    let _ = scenario.set_initial_speed("other", other_speed);
 
     // Ego merges into target lane
     scenario.add_lane_change_action(
@@ -185,18 +184,18 @@ pub fn handle_create_cutin_scenario(
     scenario.add_vehicle("other", car_params())?;
 
     // Set positions
-    scenario.set_initial_position(
+    let _ = scenario.set_initial_position(
         "ego",
         Position::lane(road_id.clone(), ego_lane, ego_start_s, 0.0, None),
     );
 
-    scenario.set_initial_position(
+    let _ = scenario.set_initial_position(
         "other",
         Position::lane(road_id.clone(), other_lane, other_start_s, 0.0, None),
     );
 
-    scenario.set_initial_speed("ego", ego_speed);
-    scenario.set_initial_speed("other", other_speed);
+    let _ = scenario.set_initial_speed("ego", ego_speed);
+    let _ = scenario.set_initial_speed("other", other_speed);
 
     // Other vehicle cuts into ego's lane
     scenario.add_lane_change_action(
@@ -246,7 +245,7 @@ pub fn handle_create_platoon_scenario(
     speed: f64,
     scenario_name: Option<String>,
 ) -> Result<String> {
-    if vehicle_count < 2 || vehicle_count > 10 {
+    if !(2..=10).contains(&vehicle_count) {
         return Err(anyhow!("Vehicle count must be between 2 and 10"));
     }
 
@@ -268,12 +267,12 @@ pub fn handle_create_platoon_scenario(
 
         // Position with spacing
         let s_position = start_s + (i as f64 * spacing);
-        scenario.set_initial_position(
+        let _ = scenario.set_initial_position(
             &vehicle_name,
             Position::lane(road_id.clone(), lane_id, s_position, 0.0, None),
         );
 
-        scenario.set_initial_speed(&vehicle_name, speed);
+        let _ = scenario.set_initial_speed(&vehicle_name, speed);
         vehicle_names.push(vehicle_name);
     }
 

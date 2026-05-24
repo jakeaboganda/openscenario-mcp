@@ -41,7 +41,7 @@ fn test_route_creation() {
     };
 
     assert_eq!(route.name, "highway_route");
-    assert_eq!(route.closed, false);
+    assert!(!route.closed);
     assert_eq!(route.waypoints.len(), 3);
 }
 
@@ -93,7 +93,7 @@ fn test_closed_route() {
         ],
     };
 
-    assert_eq!(route.closed, true);
+    assert!(route.closed);
     assert_eq!(route.waypoints.len(), 4);
 }
 
