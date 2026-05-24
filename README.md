@@ -94,35 +94,52 @@ AI: [Uses export_xml tool]
 
 ### MCP Setup
 
-#### For OpenClaw
+**📚 Complete Usage Guides Available:**
+- **[USAGE.md](USAGE.md)** - Quick comparison of both methods
+- **[CLAUDE_USAGE.md](CLAUDE_USAGE.md)** - Complete Claude Desktop guide (recommended)
+- **[VSCODE_USAGE.md](VSCODE_USAGE.md)** - VS Code + GitHub Copilot guide
 
-Add to your OpenClaw configuration:
+#### For Claude Desktop (Recommended)
 
-```yaml
-mcp:
-  servers:
-    openscenario:
-      command: /path/to/osc-mcp/target/release/openscenario-mcp
-      env: {}
-```
-
-#### For Claude Desktop
-
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+Add to `~/.config/Claude/claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "openscenario": {
-      "command": "/path/to/osc-mcp/target/release/openscenario-mcp"
+      "command": "cargo",
+      "args": [
+        "run",
+        "--release",
+        "--manifest-path",
+        "/home/jake/.openclaw/workspace/osc-mcp/openscenario-mcp/Cargo.toml"
+      ]
     }
   }
 }
 ```
 
-#### For Custom MCP Clients
+Then just talk to Claude naturally:
+```
+"Create a lane change scenario on Tokyo's Nihonbashi highway"
+```
 
-The server communicates via JSON-RPC over stdio. See [openscenario-mcp/README.md](openscenario-mcp/README.md) for detailed integration instructions.
+See **[CLAUDE_USAGE.md](CLAUDE_USAGE.md)** for complete guide with examples.
+
+#### For VS Code with GitHub Copilot
+
+Copilot is pre-configured via `.github/copilot-instructions.md`. Just open the project:
+
+```bash
+code ~/.openclaw/workspace/osc-mcp
+```
+
+Ask Copilot (Ctrl+Shift+I):
+```
+"Show me how to create a lane change scenario"
+```
+
+See **[VSCODE_USAGE.md](VSCODE_USAGE.md)** for complete guide.
 
 ---
 
