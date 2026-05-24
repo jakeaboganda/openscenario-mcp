@@ -1,17 +1,13 @@
 use crate::handlers::{
     handle_add_lane_change_action, handle_add_speed_action, handle_add_vehicle,
-    handle_create_scenario, handle_export_xml, handle_set_position, handle_set_stop_on_element,
-    handle_set_stop_time, handle_validate_scenario,
-    handle_load_road_network, handle_list_roads, handle_get_road_info,
-    handle_suggest_spawn_points, handle_validate_position,
-    handle_get_real_world_road,
+    handle_create_scenario, handle_export_xml, handle_get_real_world_road, handle_get_road_info,
+    handle_list_roads, handle_load_road_network, handle_set_position, handle_set_stop_on_element,
+    handle_set_stop_time, handle_suggest_spawn_points, handle_validate_position,
+    handle_validate_scenario,
 };
 use crate::scenario_templates::{
-    handle_create_lane_change_scenario,
-    handle_create_merge_scenario,
-    handle_create_cutin_scenario,
-    handle_create_platoon_scenario,
-    handle_create_quick_scenario,
+    handle_create_cutin_scenario, handle_create_lane_change_scenario, handle_create_merge_scenario,
+    handle_create_platoon_scenario, handle_create_quick_scenario,
 };
 use anyhow::{anyhow, Result};
 use mcp_sdk::types::{
@@ -19,8 +15,8 @@ use mcp_sdk::types::{
     ToolsListResponse,
 };
 use once_cell::sync::Lazy;
-use openscenario::Scenario;
 use openscenario::opendrive_validator::OpenDriveValidator;
+use openscenario::Scenario;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -808,13 +804,11 @@ impl OpenScenarioServer {
                 let count = args
                     .get("count")
                     .and_then(Value::as_u64)
-                    .ok_or_else(|| anyhow!("Missing or invalid 'count' parameter"))? as usize;
+                    .ok_or_else(|| anyhow!("Missing or invalid 'count' parameter"))?
+                    as usize;
 
-                let result = handle_suggest_spawn_points(
-                    GLOBAL_STATE.clone(),
-                    road_id.to_string(),
-                    count,
-                )?;
+                let result =
+                    handle_suggest_spawn_points(GLOBAL_STATE.clone(), road_id.to_string(), count)?;
 
                 Ok(CallToolResponse {
                     content: vec![ToolResponseContent::Text { text: result }],
@@ -830,7 +824,8 @@ impl OpenScenarioServer {
                 let lane_id = args
                     .get("lane_id")
                     .and_then(Value::as_i64)
-                    .ok_or_else(|| anyhow!("Missing or invalid 'lane_id' parameter"))? as i32;
+                    .ok_or_else(|| anyhow!("Missing or invalid 'lane_id' parameter"))?
+                    as i32;
                 let s = args
                     .get("s")
                     .and_then(Value::as_f64)
@@ -872,23 +867,41 @@ impl OpenScenarioServer {
                 })
             }
             "create_lane_change_scenario" => {
-                let road_id = args.get("road_id").and_then(Value::as_str)
+                let road_id = args
+                    .get("road_id")
+                    .and_then(Value::as_str)
                     .ok_or_else(|| anyhow!("Missing 'road_id'"))?;
-                let lane_from = args.get("lane_from").and_then(Value::as_i64)
-                    .ok_or_else(|| anyhow!("Missing 'lane_from'"))? as i32;
-                let lane_to = args.get("lane_to").and_then(Value::as_i64)
-                    .ok_or_else(|| anyhow!("Missing 'lane_to'"))? as i32;
-                let ego_start_s = args.get("ego_start_s").and_then(Value::as_f64)
+                let lane_from =
+                    args.get("lane_from")
+                        .and_then(Value::as_i64)
+                        .ok_or_else(|| anyhow!("Missing 'lane_from'"))? as i32;
+                let lane_to =
+                    args.get("lane_to")
+                        .and_then(Value::as_i64)
+                        .ok_or_else(|| anyhow!("Missing 'lane_to'"))? as i32;
+                let ego_start_s = args
+                    .get("ego_start_s")
+                    .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing 'ego_start_s'"))?;
-                let other_start_s = args.get("other_start_s").and_then(Value::as_f64)
+                let other_start_s = args
+                    .get("other_start_s")
+                    .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing 'other_start_s'"))?;
-                let other_lane = args.get("other_lane").and_then(Value::as_i64)
-                    .ok_or_else(|| anyhow!("Missing 'other_lane'"))? as i32;
-                let ego_speed = args.get("ego_speed").and_then(Value::as_f64)
+                let other_lane =
+                    args.get("other_lane")
+                        .and_then(Value::as_i64)
+                        .ok_or_else(|| anyhow!("Missing 'other_lane'"))? as i32;
+                let ego_speed = args
+                    .get("ego_speed")
+                    .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing 'ego_speed'"))?;
-                let other_speed = args.get("other_speed").and_then(Value::as_f64)
+                let other_speed = args
+                    .get("other_speed")
+                    .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing 'other_speed'"))?;
-                let scenario_name = args.get("scenario_name").and_then(Value::as_str)
+                let scenario_name = args
+                    .get("scenario_name")
+                    .and_then(Value::as_str)
                     .map(|s| s.to_string());
 
                 let result = handle_create_lane_change_scenario(
@@ -911,23 +924,41 @@ impl OpenScenarioServer {
                 })
             }
             "create_cutin_scenario" => {
-                let road_id = args.get("road_id").and_then(Value::as_str)
+                let road_id = args
+                    .get("road_id")
+                    .and_then(Value::as_str)
                     .ok_or_else(|| anyhow!("Missing 'road_id'"))?;
-                let ego_lane = args.get("ego_lane").and_then(Value::as_i64)
-                    .ok_or_else(|| anyhow!("Missing 'ego_lane'"))? as i32;
-                let other_lane = args.get("other_lane").and_then(Value::as_i64)
-                    .ok_or_else(|| anyhow!("Missing 'other_lane'"))? as i32;
-                let ego_start_s = args.get("ego_start_s").and_then(Value::as_f64)
+                let ego_lane =
+                    args.get("ego_lane")
+                        .and_then(Value::as_i64)
+                        .ok_or_else(|| anyhow!("Missing 'ego_lane'"))? as i32;
+                let other_lane =
+                    args.get("other_lane")
+                        .and_then(Value::as_i64)
+                        .ok_or_else(|| anyhow!("Missing 'other_lane'"))? as i32;
+                let ego_start_s = args
+                    .get("ego_start_s")
+                    .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing 'ego_start_s'"))?;
-                let other_start_s = args.get("other_start_s").and_then(Value::as_f64)
+                let other_start_s = args
+                    .get("other_start_s")
+                    .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing 'other_start_s'"))?;
-                let ego_speed = args.get("ego_speed").and_then(Value::as_f64)
+                let ego_speed = args
+                    .get("ego_speed")
+                    .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing 'ego_speed'"))?;
-                let other_speed = args.get("other_speed").and_then(Value::as_f64)
+                let other_speed = args
+                    .get("other_speed")
+                    .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing 'other_speed'"))?;
-                let cutin_trigger_distance = args.get("cutin_trigger_distance").and_then(Value::as_f64)
+                let cutin_trigger_distance = args
+                    .get("cutin_trigger_distance")
+                    .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing 'cutin_trigger_distance'"))?;
-                let scenario_name = args.get("scenario_name").and_then(Value::as_str)
+                let scenario_name = args
+                    .get("scenario_name")
+                    .and_then(Value::as_str)
                     .map(|s| s.to_string());
 
                 let result = handle_create_cutin_scenario(
@@ -950,19 +981,34 @@ impl OpenScenarioServer {
                 })
             }
             "create_platoon_scenario" => {
-                let road_id = args.get("road_id").and_then(Value::as_str)
+                let road_id = args
+                    .get("road_id")
+                    .and_then(Value::as_str)
                     .ok_or_else(|| anyhow!("Missing 'road_id'"))?;
-                let lane_id = args.get("lane_id").and_then(Value::as_i64)
-                    .ok_or_else(|| anyhow!("Missing 'lane_id'"))? as i32;
-                let vehicle_count = args.get("vehicle_count").and_then(Value::as_u64)
-                    .ok_or_else(|| anyhow!("Missing 'vehicle_count'"))? as usize;
-                let start_s = args.get("start_s").and_then(Value::as_f64)
+                let lane_id =
+                    args.get("lane_id")
+                        .and_then(Value::as_i64)
+                        .ok_or_else(|| anyhow!("Missing 'lane_id'"))? as i32;
+                let vehicle_count = args
+                    .get("vehicle_count")
+                    .and_then(Value::as_u64)
+                    .ok_or_else(|| anyhow!("Missing 'vehicle_count'"))?
+                    as usize;
+                let start_s = args
+                    .get("start_s")
+                    .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing 'start_s'"))?;
-                let spacing = args.get("spacing").and_then(Value::as_f64)
+                let spacing = args
+                    .get("spacing")
+                    .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing 'spacing'"))?;
-                let speed = args.get("speed").and_then(Value::as_f64)
+                let speed = args
+                    .get("speed")
+                    .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing 'speed'"))?;
-                let scenario_name = args.get("scenario_name").and_then(Value::as_str)
+                let scenario_name = args
+                    .get("scenario_name")
+                    .and_then(Value::as_str)
                     .map(|s| s.to_string());
 
                 let result = handle_create_platoon_scenario(
@@ -983,9 +1029,13 @@ impl OpenScenarioServer {
                 })
             }
             "create_quick_scenario" => {
-                let scenario_type = args.get("scenario_type").and_then(Value::as_str)
+                let scenario_type = args
+                    .get("scenario_type")
+                    .and_then(Value::as_str)
                     .ok_or_else(|| anyhow!("Missing 'scenario_type'"))?;
-                let vehicle_count = args.get("vehicle_count").and_then(Value::as_u64)
+                let vehicle_count = args
+                    .get("vehicle_count")
+                    .and_then(Value::as_u64)
                     .map(|n| n as usize);
 
                 let result = handle_create_quick_scenario(

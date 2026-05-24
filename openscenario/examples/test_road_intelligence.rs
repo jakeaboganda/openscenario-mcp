@@ -3,9 +3,9 @@ use std::path::Path;
 
 fn main() {
     let road_path = Path::new("roads/simple_highway.xodr");
-    
+
     println!("🔍 Loading OpenDRIVE file: {:?}", road_path);
-    
+
     let validator = match OpenDriveValidator::load(road_path) {
         Ok(v) => v,
         Err(e) => {
@@ -13,21 +13,23 @@ fn main() {
             return;
         }
     };
-    
+
     println!("✅ OpenDRIVE loaded successfully!\n");
-    
+
     // Test 1: List all roads
     println!("📋 Roads in network:");
     let roads = validator.list_roads();
     for road in &roads {
-        println!("  - Road '{}': {} lanes, {:.1}m long", 
-                 road.id, road.lane_count, road.length);
+        println!(
+            "  - Road '{}': {} lanes, {:.1}m long",
+            road.id, road.lane_count, road.length
+        );
         if let Some(name) = &road.name {
             println!("    Name: {}", name);
         }
     }
     println!();
-    
+
     // Test 2: Get detailed info
     if let Some(first_road) = roads.first() {
         println!("🔍 Detailed info for road '{}':", first_road.id);
@@ -39,7 +41,7 @@ fn main() {
             }
         }
         println!();
-        
+
         // Test 3: Suggest spawn points
         println!("🎯 Suggested spawn points (3 vehicles):");
         match validator.suggest_spawn_points(&first_road.id, 3) {
@@ -53,7 +55,7 @@ fn main() {
         }
         println!();
     }
-    
+
     // Test 4: Quality assessment
     println!("📊 Data quality assessment:");
     let quality = validator.assess_quality();
@@ -67,6 +69,6 @@ fn main() {
             println!("    - {}", issue);
         }
     }
-    
+
     println!("\n✅ All tests completed!");
 }

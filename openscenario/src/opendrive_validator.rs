@@ -59,7 +59,7 @@ pub struct SpawnPoint {
 /// Quality assessment of OpenDRIVE data
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QualityScore {
-    pub score: u8,           // 0-100
+    pub score: u8, // 0-100
     pub has_lanes: bool,
     pub has_geometry: bool,
     pub has_valid_length: bool,
@@ -302,9 +302,10 @@ impl OpenDriveValidator {
         }
 
         let has_lanes = self.opendrive.road.iter().any(|r| {
-            r.lanes.lane_section.iter().any(|ls| {
-                ls.left.is_some() || ls.right.is_some() || !ls.center.lane.is_empty()
-            })
+            r.lanes
+                .lane_section
+                .iter()
+                .any(|ls| ls.left.is_some() || ls.right.is_some() || !ls.center.lane.is_empty())
         });
 
         let has_geometry = self
