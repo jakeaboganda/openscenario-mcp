@@ -142,6 +142,28 @@ Just talk to Claude naturally! The MCP server enables Claude to:
 
 ---
 
+#### 🗂️ **Example 6: Custom XODR File** ⭐ New!
+
+**You**: "I have my own test track at /home/user/my_track.xodr. Load it and create a lane change scenario."
+
+**Claude**:
+1. Calls `load_road_network('/home/user/my_track.xodr')`
+2. Analyzes the road network
+3. Calls `create_quick_scenario('lane_change')`
+4. Exports result
+
+**Claude responds**: "Loaded your custom track! Found 8 roads with quality score 92/100. The main straight is 1.5km with 3 lanes - perfect for testing. Created a lane change scenario where the ego vehicle smoothly changes from lane -1 to lane -2 over 5 seconds at 90 km/h. Another vehicle is positioned ahead for realistic interaction. Scenario saved as `lane_change_custom_track.xosc`."
+
+**You**: "Great! Now create a platoon of 5 vehicles on the same track."
+
+**Claude**:
+1. Calls `create_quick_scenario('platoon', vehicle_count=5)`
+2. Uses the already-loaded custom track
+
+**Claude responds**: "Created a 5-vehicle platoon on your track's main straight. Vehicles are spaced 40m apart, all traveling at 90 km/h. Perfect for testing ACC and convoy behavior. Ready to export!"
+
+---
+
 ## Available Requests
 
 You can ask Claude to:
@@ -162,6 +184,14 @@ You can ask Claude to:
 - "Create a scenario where..." (describe in detail)
 - "I need ego at [position] and other vehicle at [position]"
 - "Generate a scenario with specific speeds and lanes"
+
+### Custom XODR Files ⭐ New!
+- "Load my custom road network from /path/to/track.xodr"
+- "I have a test track at ~/my_track.xodr, create scenarios on it"
+- "Use my CARLA Town03 XODR file"
+- "Load the circuit from /data/spa.xodr and create a platoon"
+
+See **[CUSTOM_XODR.md](CUSTOM_XODR.md)** for complete guide.
 
 ### Batch Generation
 - "Create 5 different lane change scenarios"
