@@ -42,10 +42,13 @@ sed -i.bak "s|<RoadNetwork/>|<RoadNetwork>\\
 # Remove backup file
 rm -f "${XOSC_FILE}.bak"
 
+# Get path to this script for instructions
+SCRIPT_PATH="$(realpath "$0")"
+
 echo "✅ Generated $XOSC_FILE with road network"
 echo ""
 echo "To visualize:"
 echo "  esmini --osc $XOSC_FILE"
 echo ""
 echo "Or using installed esmini:"
-echo "  ~/.openclaw/workspace/tools/esmini-demo/bin/esmini --osc $PWD/$XOSC_FILE"
+echo "  $(dirname "$SCRIPT_PATH")/tools/esmini-demo/bin/esmini --osc $PWD/$XOSC_FILE"

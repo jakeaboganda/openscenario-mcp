@@ -29,7 +29,8 @@ test_result() {
     fi
 }
 
-cd ~/.openclaw/workspace/osc-mcp
+SCRIPT_PATH="$(realpath "$0")"
+cd "$(dirname "$SCRIPT_PATH")/osc-mcp"
 
 # Build the project first
 echo "Building project..."
