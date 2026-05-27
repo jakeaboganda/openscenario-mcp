@@ -10,7 +10,7 @@ Your VS Code is now configured to work with the OpenSCENARIO MCP server.
 
 ### 1. Open VS Code in the Project
 ```bash
-cd ~/.openclaw/workspace/osc-mcp
+cd /path/to/your/osc-mcp  # Replace with your actual path
 code .
 ```
 

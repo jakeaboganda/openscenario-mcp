@@ -367,7 +367,7 @@ You can mix custom XODR files with downloaded OpenStreetMap roads:
 Test the custom XODR loading:
 
 ```bash
-cd ~/.openclaw/workspace/osc-mcp
+cd /path/to/your/osc-mcp  # Replace with your actual path
 cargo run --example test_custom_xodr
 ```
 

@@ -48,7 +48,7 @@ Add this configuration:
         "run",
         "--release",
         "--manifest-path",
-        "/home/jake/.openclaw/workspace/osc-mcp/openscenario-mcp/Cargo.toml"
+        "/absolute/path/to/osc-mcp/openscenario-mcp/Cargo.toml"
       ],
       "env": {
         "RUST_LOG": "info"
@@ -56,6 +56,8 @@ Add this configuration:
     }
   }
 }
+
+> **Note**: Replace `/absolute/path/to` with where you cloned the repo (e.g., `/home/username/projects/osc-mcp`).
 ```
 
 **Save and close** (Ctrl+X, Y, Enter in nano)

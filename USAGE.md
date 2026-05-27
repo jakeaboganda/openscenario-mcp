@@ -24,7 +24,7 @@ cat > ~/.config/Claude/claude_desktop_config.json << 'EOF'
         "run",
         "--release",
         "--manifest-path",
-        "/home/jake/.openclaw/workspace/osc-mcp/openscenario-mcp/Cargo.toml"
+        "/absolute/path/to/osc-mcp/openscenario-mcp/Cargo.toml"
       ],
       "env": {
         "RUST_LOG": "info"
@@ -32,6 +32,8 @@ cat > ~/.config/Claude/claude_desktop_config.json << 'EOF'
     }
   }
 }
+
+**Note**: Replace `/absolute/path/to` with your actual installation path.
 EOF
 ```
 
@@ -54,7 +56,7 @@ EOF
 
 1. **Open project in VS Code**:
 ```bash
-code ~/.openclaw/workspace/osc-mcp
+code /path/to/your/osc-mcp  # Replace with your actual path
 ```
 
 2. **Copilot is already configured** (via `.github/copilot-instructions.md`)
@@ -201,7 +203,7 @@ Both methods require:
 4. Say: "Create a scenario on Nihonbashi"
 
 **Path B: VS Code** (10 minutes)
-1. `code ~/.openclaw/workspace/osc-mcp`
+1. `code /path/to/your/osc-mcp`  # Replace with actual path
 2. Open Copilot Chat (Ctrl+Shift+I)
 3. Ask: "How do I use the MCP tools?"
 4. Start coding!

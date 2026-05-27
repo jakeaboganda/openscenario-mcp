@@ -114,12 +114,16 @@ Add to `~/.config/Claude/claude_desktop_config.json`:
         "run",
         "--release",
         "--manifest-path",
-        "/home/jake/.openclaw/workspace/osc-mcp/openscenario-mcp/Cargo.toml"
+        "/absolute/path/to/osc-mcp/openscenario-mcp/Cargo.toml"
       ]
     }
   }
 }
 ```
+
+**Note**: Replace `/absolute/path/to/osc-mcp` with your actual path. For example:
+- Linux/Mac: `/home/username/projects/osc-mcp` or `~/projects/osc-mcp`
+- Windows: `C:\\Users\\username\\projects\\osc-mcp`
 
 Then just talk to Claude naturally:
 ```
@@ -133,7 +137,7 @@ See **[CLAUDE_USAGE.md](CLAUDE_USAGE.md)** for complete guide with examples.
 Copilot is pre-configured via `.github/copilot-instructions.md`. Just open the project:
 
 ```bash
-code ~/.openclaw/workspace/osc-mcp
+code /path/to/your/osc-mcp  # Replace with your actual path
 ```
 
 Ask Copilot (Ctrl+Shift+I):

@@ -20,7 +20,7 @@ The OpenSCENARIO MCP Server lets you:
 ## Quick Test
 
 ```bash
-cd ~/.openclaw/workspace/osc-mcp
+cd /path/to/your/osc-mcp  # Replace with where you cloned the repo
 
 # Test 1: Download real Tokyo road
 cargo run --example test_get_real_world_road
@@ -66,8 +66,8 @@ Verify: `netconvert --version`
 ## Installation
 
 ```bash
-# Clone or navigate to project
-cd ~/.openclaw/workspace/osc-mcp
+# Navigate to project directory
+cd /path/to/your/osc-mcp  # Replace with your actual path
 
 # Build
 cargo build --release
