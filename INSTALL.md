@@ -341,24 +341,4 @@ cargo run --example test_scenario_templates
 
 ---
 
-## System Requirements
-
-**Minimum**:
-- 4 GB RAM
-- 2 GB disk space
-- Internet connection (for OSM downloads)
-
-**Recommended**:
-- 8 GB RAM
-- 5 GB disk space (includes esmini)
-- SSD for faster builds
-
-**Tested on**:
-- ✅ Ubuntu 20.04, 22.04, 24.04
-- ✅ Fedora 40+
-- ✅ macOS 12+ (Intel & Apple Silicon)
-- ✅ Windows 10/11 (WSL2 recommended)
-
----
-
 **Questions?** See [CONTRIBUTING.md](CONTRIBUTING.md) or open an issue.

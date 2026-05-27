@@ -438,8 +438,8 @@ fn test_lane_position_with_invalid_lane_id() {
 
     // Implementation may or may not validate lane IDs at construction time
     // This documents the behavior
-    if result.is_err() {
-        assert!(result.unwrap_err().to_string().contains("lane"));
+    if let Err(e) = result {
+        assert!(e.to_string().contains("lane"));
     }
 }
 
