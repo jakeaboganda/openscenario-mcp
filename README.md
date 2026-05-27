@@ -12,8 +12,7 @@ Get back: Production-ready `.xosc` file with real road data from OpenStreetMap.
 1. **[Install](INSTALL.md)** (5 minutes)
 2. **Choose your interface**:
    - **[Claude Desktop](CLAUDE_USAGE.md)** (recommended - most natural)
-   - **[VS Code + Copilot](VSCODE_USAGE.md)** (for developers)
-   - **[Manual API](USAGE.md)** (advanced users)
+   - **[Direct API](USAGE.md)** (advanced users, custom integrations)
 3. **[Test it works](QUICKSTART.md)** (5 minutes)
 
 **First time here?** → Start with [Installation Guide](INSTALL.md)
@@ -62,8 +61,7 @@ Get back: Production-ready `.xosc` file with real road data from OpenStreetMap.
 
 **Usage Guides**:
 - [Claude Desktop Usage](CLAUDE_USAGE.md) - Recommended interface (detailed examples)
-- [VS Code + Copilot Usage](VSCODE_USAGE.md) - Developer workflow
-- [General Usage Guide](USAGE.md) - All interfaces, tool reference
+- [General Usage Guide](USAGE.md) - Direct API, tool reference, custom integrations
 
 **Advanced Topics**:
 - [Custom XODR Files](CUSTOM_XODR.md) - Use your own road networks

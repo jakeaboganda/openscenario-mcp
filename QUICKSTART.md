@@ -150,11 +150,6 @@ If you [installed esmini](INSTALL.md#optional-esmini-simulator):
 2. Talk naturally: *"Create a lane change scenario"*
 3. Get back: production-ready `.xosc` files
 
-**For Developers**: Use with VS Code + Copilot
-1. Open project in VS Code ([guide](VSCODE_USAGE.md))
-2. Ask Copilot questions
-3. Generate code + scenarios
-
 **Advanced**: Use the MCP API directly
 1. Read the [Usage Guide](USAGE.md)
 2. Send MCP messages via stdio
@@ -194,7 +189,7 @@ You tested the full pipeline:
 3. ✅ **Started** MCP server (ready for AI assistants)
 4. ✅ **Visualized** scenarios (optional, with esmini)
 
-**Ready for real use!** → Choose your interface: [Claude](CLAUDE_USAGE.md) | [VS Code](VSCODE_USAGE.md) | [API](USAGE.md)
+**Ready for real use!** → Choose your interface: [Claude Desktop](CLAUDE_USAGE.md) | [Direct API](USAGE.md)
 
 ---
 
@@ -215,4 +210,4 @@ cargo run --example test_custom_xodr
 
 ---
 
-**Ready to dive in?** → [Usage Guide](USAGE.md) | [Claude Desktop](CLAUDE_USAGE.md) | [VS Code](VSCODE_USAGE.md)
+**Ready to dive in?** → [Usage Guide](USAGE.md) | [Claude Desktop](CLAUDE_USAGE.md)

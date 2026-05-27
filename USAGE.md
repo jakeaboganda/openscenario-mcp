@@ -41,28 +41,7 @@ How to use OpenSCENARIO MCP Server with different interfaces.
 
 ---
 
-### 💻 Option 2: VS Code + GitHub Copilot
-
-**Best for**: Developers who want code + scenarios  
-**Setup time**: 2 minutes  
-**Experience**: Ask Copilot questions while coding
-
-**What you get**:
-- Copilot understands OpenSCENARIO project context
-- Get code examples + explanations
-- Generate scenarios while developing
-- Access to full tool API
-
-**Setup**: See detailed guide → **[VSCODE_USAGE.md](VSCODE_USAGE.md)**
-
-**Quick setup**:
-1. Open project: `code /path/to/osc-mcp`
-2. Copilot auto-loads `.github/copilot-instructions.md`
-3. Ask: "How do I create a lane change scenario?"
-
----
-
-### 🔧 Option 3: Direct MCP API
+### 🔧 Option 2: Direct MCP API
 
 **Best for**: Advanced users, custom integrations  
 **Setup time**: 1 minute  
@@ -89,12 +68,6 @@ Generate a scenario on actual roads from OpenStreetMap:
 "Create a lane change scenario on Nihonbashi highway in Tokyo"
 ```
 
-**With VS Code/Copilot**:
-```
-Ask: "How do I get roads from Shibuya?"
-Copilot shows: get_real_world_road("shibuya")
-```
-
 **With API**:
 ```json
 {"method": "tools/call", "params": {
@@ -112,11 +85,6 @@ Use your own road network file:
 **With Claude**:
 ```
 "Load my custom track from /home/user/my_track.xodr and create a platoon scenario"
-```
-
-**With VS Code/Copilot**:
-```
-Ask: "How do I use a custom XODR file?"
 ```
 
 **With API**:
@@ -528,7 +496,6 @@ Use in automated testing:
 
 **Go deeper**:
 - [Claude Desktop guide](CLAUDE_USAGE.md) - Detailed examples
-- [VS Code guide](VSCODE_USAGE.md) - Developer workflow
 - [Custom XODR guide](CUSTOM_XODR.md) - Use your own roads
 - [Contributing](CONTRIBUTING.md) - Add features
 

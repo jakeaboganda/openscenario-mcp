@@ -214,28 +214,7 @@ Edit `~/.config/Claude/claude_desktop_config.json`:
 
 ---
 
-### Option 2: VS Code + GitHub Copilot
-
-**Best for developers**
-
-1. Open project in VS Code:
-```bash
-code /path/to/your/osc-mcp
-```
-
-2. Copilot is pre-configured via `.github/copilot-instructions.md`
-
-3. Ask Copilot (Ctrl+Shift+I):
-```
-"How do I create a lane change scenario?"
-"Generate a cut-in scenario"
-```
-
-**Detailed guide**: [VSCODE_USAGE.md](VSCODE_USAGE.md)
-
----
-
-### Option 3: Direct MCP API
+### Option 2: Direct MCP API
 
 **For advanced users / custom integrations**
 
@@ -409,8 +388,7 @@ cargo run --example test_scenario_templates
 
 1. **[Quick Start Guide](QUICKSTART.md)** - 5-minute test run
 2. **[Claude Desktop Usage](CLAUDE_USAGE.md)** - Start using with Claude
-3. **[VS Code Usage](VSCODE_USAGE.md)** - Developer workflow
-4. **[General Usage](USAGE.md)** - All interfaces and tools
+3. **[General Usage](USAGE.md)** - Direct API, tool reference, custom integrations
 
 ---
 

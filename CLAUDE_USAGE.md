@@ -359,20 +359,22 @@ Or ask Claude:
 
 ---
 
-## What Makes This Better Than VS Code?
+## Why Claude Desktop?
 
-| Feature | Claude Desktop | VS Code Copilot |
-|---------|----------------|-----------------|
-| **Natural language** | ✅ Full conversation | ⚠️ Code-focused |
-| **No coding needed** | ✅ Just talk | ❌ Must write code |
-| **Interactive** | ✅ Back-and-forth | ⚠️ Limited |
-| **Explanations** | ✅ Automatic | ⚠️ Must ask |
-| **Tool chaining** | ✅ Automatic | ❌ Manual |
-| **Error handling** | ✅ Claude handles | ❌ You handle |
-| **Best for** | ✅ Scenario generation | ✅ Development |
+**Natural Language Interface**:
+- ✅ Just talk naturally - no code required
+- ✅ Full conversation with back-and-forth
+- ✅ Claude automatically chains multiple tools
+- ✅ Error handling built-in
+- ✅ Explanations provided automatically
 
-**Use Claude Desktop for**: Creating scenarios, testing, exploration  
-**Use VS Code Copilot for**: Writing code, extending the tool, debugging
+**Perfect for**:
+- Creating test scenarios quickly
+- Exploring different configurations
+- Non-developers who need scenarios
+- Rapid prototyping and testing
+
+**Alternative**: For programmatic access or custom integrations, see [USAGE.md](USAGE.md)
 
 ---
 

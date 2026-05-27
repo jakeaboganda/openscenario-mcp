@@ -34,7 +34,7 @@ Claude: [calls create_quick_scenario]
         "Done! Created lane change scenario on Road 1 (800m, 3 lanes)."
 ```
 
-### With VS Code / Code
+### With Direct API (Rust code)
 
 ```rust
 use openscenario_mcp::handlers::handle_load_road_network;
