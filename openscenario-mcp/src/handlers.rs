@@ -1,6 +1,8 @@
 use crate::server::ServerState;
 use anyhow::{anyhow, Result};
-use openscenario::entities::{CatalogReference, VehicleCategory, VehicleParams};
+use openscenario::entities::{
+    CatalogReference, MiscObjectParams, PedestrianParams, VehicleCategory, VehicleParams,
+};
 use openscenario::storyboard::{
     DynamicsDimension, DynamicsShape, TransitionDynamics, TransitionShape,
 };
@@ -127,6 +129,153 @@ pub fn handle_set_position(
     scenario.set_initial_position(entity_name.clone(), position)?;
 
     Ok(format!("Position set for entity: {}", entity_name))
+}
+
+/// Add a pedestrian to a scenario
+pub fn handle_add_pedestrian(
+    state: Arc<Mutex<ServerState>>,
+    scenario_id: String,
+    name: String,
+    catalog: Option<String>,
+    mass: Option<f64>,
+) -> Result<String> {
+    // Parse catalog reference if provided
+    let catalog_ref = if let Some(ref path) = catalog {
+        let parts: Vec<&str> = path.split(':').collect();
+        if parts.len() != 2 {
+            return Err(anyhow!(
+                "Invalid catalog format: '{}'. Expected 'path:entry_name'",
+                path
+            ));
+        }
+        Some(CatalogReference {
+            path: parts[0].to_string(),
+            entry_name: parts[1].to_string(),
+        })
+    } else {
+        None
+    };
+
+    // Validate mass if provided
+    if let Some(m) = mass {
+        if m <= 0.0 {
+            return Err(anyhow!("Mass must be positive, got: {}", m));
+        }
+        if m > 500.0 {
+            return Err(anyhow!(
+                "Mass {} kg seems unrealistic for a pedestrian. Max: 500 kg",
+                m
+            ));
+        }
+    }
+
+    let params = PedestrianParams {
+        catalog: catalog_ref,
+        model: None,
+        mass: mass.or(Some(70.0)), // Default to 70kg if not provided
+    };
+    let mut state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    let scenario = state_lock
+        .scenarios
+        .get_mut(&scenario_id)
+        .ok_or_else(|| anyhow!("Scenario not found: {}", scenario_id))?;
+    scenario.add_pedestrian(name.clone(), params)?;
+    Ok(name)
+}
+
+/// Add a misc object to a scenario
+pub fn handle_add_misc_object(
+    state: Arc<Mutex<ServerState>>,
+    scenario_id: String,
+    name: String,
+    category: String,
+    mass: f64,
+) -> Result<String> {
+    // Validate mass
+    if mass <= 0.0 {
+        return Err(anyhow!("Mass must be positive, got: {}", mass));
+    }
+    if mass > 100000.0 {
+        return Err(anyhow!(
+            "Mass {} kg seems unrealistic. Max: 100000 kg (100 tons)",
+            mass
+        ));
+    }
+
+    // Validate category
+    const VALID_CATEGORIES: &[&str] = &[
+        "barrier",
+        "obstacle",
+        "pole",
+        "tree",
+        "vegetation",
+        "building",
+        "vehicle",
+        "none",
+    ];
+    if !VALID_CATEGORIES.contains(&category.as_str()) {
+        return Err(anyhow!(
+            "Invalid category '{}'. Valid categories: {}",
+            category,
+            VALID_CATEGORIES.join(", ")
+        ));
+    }
+
+    let params = MiscObjectParams {
+        catalog: None,
+        category: Some(category),
+        mass: Some(mass),
+    };
+    let mut state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    let scenario = state_lock
+        .scenarios
+        .get_mut(&scenario_id)
+        .ok_or_else(|| anyhow!("Scenario not found: {}", scenario_id))?;
+    scenario.add_misc_object(name.clone(), params)?;
+    Ok(name)
+}
+
+/// Set initial lane position for an entity in a scenario
+pub fn handle_set_lane_position(
+    state: Arc<Mutex<ServerState>>,
+    scenario_id: String,
+    entity_name: String,
+    road_id: String,
+    lane_id: i32,
+    s: f64,
+    offset: f64,
+) -> Result<String> {
+    // Validate inputs
+    if s < 0.0 {
+        return Err(anyhow!("Position 's' cannot be negative, got: {}", s));
+    }
+    if lane_id == 0 {
+        return Err(anyhow!("Lane ID cannot be 0 (center lane is invalid)"));
+    }
+    if offset.abs() > 10.0 {
+        return Err(anyhow!(
+            "Lateral offset {} m seems excessive. Typical range: ±10m",
+            offset
+        ));
+    }
+
+    let position = Position::lane(road_id, lane_id, s, offset, None);
+
+    let mut state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    let scenario = state_lock
+        .scenarios
+        .get_mut(&scenario_id)
+        .ok_or_else(|| anyhow!("Scenario not found: {}", scenario_id))?;
+
+    scenario.set_initial_position(entity_name.clone(), position)?;
+
+    Ok(format!("Lane position set for entity: {}", entity_name))
 }
 
 /// Add a speed action to a scenario

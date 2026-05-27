@@ -1,7 +1,8 @@
 use crate::handlers::{
-    handle_add_lane_change_action, handle_add_speed_action, handle_add_vehicle,
-    handle_create_scenario, handle_export_xml, handle_get_real_world_road, handle_get_road_info,
-    handle_list_roads, handle_load_road_network, handle_set_position, handle_set_stop_on_element,
+    handle_add_lane_change_action, handle_add_misc_object, handle_add_pedestrian,
+    handle_add_speed_action, handle_add_vehicle, handle_create_scenario, handle_export_xml,
+    handle_get_real_world_road, handle_get_road_info, handle_list_roads, handle_load_road_network,
+    handle_set_lane_position, handle_set_position, handle_set_stop_on_element,
     handle_set_stop_time, handle_suggest_spawn_points, handle_validate_position,
     handle_validate_scenario,
 };
@@ -142,6 +143,50 @@ impl OpenScenarioServer {
                         }
                     },
                     "required": ["scenario_id", "entity_name", "x", "y", "z", "h"]
+                }),
+            },
+            ToolDefinition {
+                name: "add_pedestrian".to_string(),
+                description: Some("Add a pedestrian entity to a scenario".to_string()),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "scenario_id": {"type": "string"},
+                        "name": {"type": "string"},
+                        "catalog": {"type": "string", "description": "Optional catalog reference (format: path:entry_name)"},
+                        "mass": {"type": "number", "description": "Mass in kg (default: 70.0)"}
+                    },
+                    "required": ["scenario_id", "name"]
+                }),
+            },
+            ToolDefinition {
+                name: "add_misc_object".to_string(),
+                description: Some("Add a miscellaneous object (barrier, obstacle, etc.) to a scenario".to_string()),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "scenario_id": {"type": "string"},
+                        "name": {"type": "string"},
+                        "category": {"type": "string", "description": "Object category: barrier, obstacle, pole, tree, vegetation, building, vehicle, none"},
+                        "mass": {"type": "number", "description": "Mass in kg (max: 100000)"}
+                    },
+                    "required": ["scenario_id", "name", "category", "mass"]
+                }),
+            },
+            ToolDefinition {
+                name: "set_lane_position".to_string(),
+                description: Some("Set initial lane position for an entity using OpenDRIVE road/lane coordinates".to_string()),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "scenario_id": {"type": "string", "description": "Scenario ID"},
+                        "entity_name": {"type": "string", "description": "Entity name"},
+                        "road_id": {"type": "string", "description": "OpenDRIVE road ID"},
+                        "lane_id": {"type": "number", "description": "Lane ID (negative = right/forward lanes in LHT)"},
+                        "s": {"type": "number", "description": "Position along road in meters"},
+                        "offset": {"type": "number", "description": "Lateral offset from lane center (meters, positive = left)"}
+                    },
+                    "required": ["scenario_id", "entity_name", "road_id", "lane_id", "s", "offset"]
                 }),
             },
             ToolDefinition {
@@ -584,6 +629,107 @@ impl OpenScenarioServer {
                     y,
                     z,
                     h,
+                )?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "add_pedestrian" => {
+                let scenario_id = args
+                    .get("scenario_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'scenario_id'"))?;
+                let name = args
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'name'"))?;
+                let catalog = args
+                    .get("catalog")
+                    .and_then(Value::as_str)
+                    .map(String::from);
+                let mass = args.get("mass").and_then(Value::as_f64);
+                let result = handle_add_pedestrian(
+                    GLOBAL_STATE.clone(),
+                    scenario_id.to_string(),
+                    name.to_string(),
+                    catalog,
+                    mass,
+                )?;
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text {
+                        text: format!("Added pedestrian: {}", result),
+                    }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "add_misc_object" => {
+                let scenario_id = args
+                    .get("scenario_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'scenario_id'"))?;
+                let name = args
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'name'"))?;
+                let category = args
+                    .get("category")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'category'"))?;
+                let mass = args
+                    .get("mass")
+                    .and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing 'mass'"))?;
+                let result = handle_add_misc_object(
+                    GLOBAL_STATE.clone(),
+                    scenario_id.to_string(),
+                    name.to_string(),
+                    category.to_string(),
+                    mass,
+                )?;
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text {
+                        text: format!("Added misc object: {}", result),
+                    }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "set_lane_position" => {
+                let scenario_id = args
+                    .get("scenario_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'scenario_id' parameter"))?;
+                let entity_name = args
+                    .get("entity_name")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'entity_name' parameter"))?;
+                let road_id = args
+                    .get("road_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'road_id' parameter"))?;
+                let lane_id = args
+                    .get("lane_id")
+                    .and_then(Value::as_i64)
+                    .ok_or_else(|| anyhow!("Missing or invalid 'lane_id' parameter"))?
+                    as i32;
+                let s = args
+                    .get("s")
+                    .and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing or invalid 's' parameter"))?;
+                let offset = args.get("offset").and_then(Value::as_f64).unwrap_or(0.0);
+
+                let result = handle_set_lane_position(
+                    GLOBAL_STATE.clone(),
+                    scenario_id.to_string(),
+                    entity_name.to_string(),
+                    road_id.to_string(),
+                    lane_id,
+                    s,
+                    offset,
                 )?;
 
                 Ok(CallToolResponse {
