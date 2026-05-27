@@ -12,12 +12,13 @@ Complete setup guide for OpenSCENARIO MCP Server.
 
 1. **Rust** (1.70+)
 2. **Python** (3.8+) - for OpenDRIVE conversion
-3. **Git**
+3. **SUMO** (netconvert tool) - for OSM to OpenDRIVE conversion
+4. **Git**
 
 ### Optional (Recommended)
 
-4. **Claude Desktop** - for easiest usage ([guide](CLAUDE_USAGE.md))
-5. **esmini** - for visualizing scenarios ([setup below](#optional-esmini-simulator))
+5. **Claude Desktop** - for easiest usage ([guide](CLAUDE_USAGE.md))
+6. **esmini** - for visualizing scenarios ([setup below](#optional-esmini-simulator))
 
 ---
 
@@ -67,16 +68,59 @@ python3 --version  # Should be 3.8+
 
 ---
 
-### 3. Clone Repository
+### 3. Install SUMO
+
+**SUMO (Simulation of Urban MObility)** provides `netconvert` for OSM → OpenDRIVE conversion.
+
+**Ubuntu/Debian**:
+```bash
+sudo add-apt-repository ppa:sumo/stable
+sudo apt update
+sudo apt install sumo sumo-tools
+```
+
+**Fedora**:
+```bash
+sudo dnf install sumo sumo-tools
+```
+
+**macOS**:
+```bash
+brew install sumo
+```
+
+**Windows**: Download from [sumo.dlr.de](https://sumo.dlr.de/docs/Downloads.php)
+
+**Verify**:
+```bash
+netconvert --version
+# Should show: Eclipse SUMO netconvert Version 1.x
+```
+
+**Troubleshooting**:
+- If `netconvert` not found, add SUMO to PATH:
+  ```bash
+  # Linux/Mac - add to ~/.bashrc or ~/.zshrc
+  export PATH="/usr/share/sumo/bin:$PATH"
+  
+  # Or create symlink
+  sudo ln -s /usr/share/sumo/bin/netconvert /usr/local/bin/netconvert
+  ```
+
+**Note**: Without SUMO, you can't download real-world roads from OpenStreetMap, but you can still use custom `.xodr` files.
+
+---
+
+### 4. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/osc-mcp.git
+git clone https://github.com/jakeaboganda/osc-mcp.git
 cd osc-mcp
 ```
 
 ---
 
-### 4. Install Python Dependencies
+### 5. Install Python Dependencies
 
 ```bash
 # Install scenic and dependencies
@@ -91,7 +135,7 @@ python3 -c "import scenic; print('Scenic OK')"
 
 ---
 
-### 5. Build the Project
+### 6. Build the Project
 
 ```bash
 # Build in release mode (optimized)
@@ -112,7 +156,7 @@ cargo build
 
 ---
 
-### 6. Test Installation
+### 7. Test Installation
 
 ```bash
 # Quick test - download Tokyo road
@@ -290,6 +334,35 @@ pip install scenic
 
 ---
 
+### SUMO Issues
+
+**"netconvert: command not found"**:
+```bash
+# Check if SUMO is installed
+which netconvert
+
+# If missing, install SUMO (see step 3 above)
+# Ubuntu/Debian
+sudo apt install sumo sumo-tools
+
+# Add to PATH if installed but not found
+export PATH="/usr/share/sumo/bin:$PATH"
+# Add to ~/.bashrc to make permanent
+echo 'export PATH="/usr/share/sumo/bin:$PATH"' >> ~/.bashrc
+```
+
+**"OSM download works but conversion fails"**:
+- Verify netconvert works: `netconvert --version`
+- Check the error message in the conversion output
+- Some OSM areas may have data issues
+
+**"Can I use without SUMO?"**:
+- Yes! You can skip OSM downloads
+- Use [custom .xodr files](CUSTOM_XODR.md) instead
+- Load existing OpenDRIVE networks directly
+
+---
+
 ### Permission Issues
 
 **"Permission denied"** during build:
@@ -302,7 +375,7 @@ sudo chown -R $USER:$USER ~/.cargo
 
 ### Still Having Issues?
 
-1. Check [GitHub Issues](https://github.com/yourusername/osc-mcp/issues)
+1. Check [GitHub Issues](https://github.com/jakeaboganda/osc-mcp/issues)
 2. Open a new issue with:
    - Your OS and version
    - Rust version (`rustc --version`)
