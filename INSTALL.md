@@ -1,27 +1,43 @@
-# OpenSCENARIO MCP Server - Fresh Installation Guide
+# Installation Guide
 
-**Complete setup guide for a new machine**
+**📚 Navigation**: [Home](README.md) | **Install** | [Quick Start](QUICKSTART.md) | [Usage](USAGE.md)
+
+Complete setup guide for OpenSCENARIO MCP Server.
 
 ---
 
 ## Prerequisites
 
+### Required
+
+1. **Rust** (1.70+)
+2. **Python** (3.8+) - for OpenDRIVE conversion
+3. **Git**
+
+### Optional (Recommended)
+
+4. **Claude Desktop** - for easiest usage ([guide](CLAUDE_USAGE.md))
+5. **esmini** - for visualizing scenarios ([setup below](#optional-esmini-simulator))
+
+---
+
+## Installation Steps
+
 ### 1. Install Rust
 
 ```bash
-# Install Rust toolchain
+# Linux/Mac
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# Follow prompts (default installation is fine)
-# Then reload shell:
+# Reload shell
 source $HOME/.cargo/env
 
-# Verify installation
-rustc --version
+# Verify
+rustc --version  # Should show 1.70+
 cargo --version
 ```
 
-**Expected output**: `rustc 1.70+` and `cargo 1.70+`
+**Windows**: Download from [rustup.rs](https://rustup.rs)
 
 ---
 
@@ -29,8 +45,7 @@ cargo --version
 
 **Ubuntu/Debian**:
 ```bash
-sudo apt update
-sudo apt install python3 python3-pip
+sudo apt update && sudo apt install python3 python3-pip
 ```
 
 **Fedora**:
@@ -43,309 +58,93 @@ sudo dnf install python3 python3-pip
 brew install python3
 ```
 
+**Windows**: Download from [python.org](https://python.org)
+
 **Verify**:
 ```bash
-python3 --version  # Should be 3.8 or higher
+python3 --version  # Should be 3.8+
 ```
 
 ---
 
-### 3. Install SUMO (Required for OSM conversion)
-
-SUMO provides the `netconvert` tool needed to convert OpenStreetMap data to OpenDRIVE format.
-
-**Ubuntu/Debian**:
-```bash
-sudo add-apt-repository ppa:sumo/stable
-sudo apt update
-sudo apt install sumo sumo-tools
-```
-
-**Fedora**:
-```bash
-sudo dnf install sumo sumo-tools
-```
-
-**macOS**:
-```bash
-brew install sumo
-```
-
-**Verify installation**:
-```bash
-netconvert --version
-```
-
-**Expected output**: `Eclipse SUMO netconvert Version 1.21.0` (or higher)
-
----
-
-## Installation
-
-### Step 1: Clone the Repository
+### 3. Clone Repository
 
 ```bash
-# Choose a location (example uses home directory)
-cd ~
-git clone https://github.com/jakeaboganda/osc-mcp.git
-cd osc-mcp
-```
-
-**Or if you have the code as a tarball**:
-```bash
-tar -xzf osc-mcp.tar.gz
+git clone https://github.com/yourusername/osc-mcp.git
 cd osc-mcp
 ```
 
 ---
 
-### Step 2: Install Python Dependencies
+### 4. Install Python Dependencies
 
 ```bash
-pip3 install requests
+# Install scenic and dependencies
+pip3 install --user scenic
+pip3 install --user shapely numpy
 ```
 
-This is needed for the OSM download script.
+**Verify**:
+```bash
+python3 -c "import scenic; print('Scenic OK')"
+```
 
 ---
 
-### Step 3: Build the MCP Server
+### 5. Build the Project
 
 ```bash
 # Build in release mode (optimized)
 cargo build --release
 
-# This takes 2-5 minutes on first build
-# Binary will be created at: target/release/openscenario-mcp
+# Or build in dev mode (faster compile, slower runtime)
+cargo build
 ```
 
-**Verify build**:
-```bash
-ls -lh target/release/openscenario-mcp
-```
+**First build takes 5-10 minutes** (downloads and compiles dependencies).
 
-You should see the compiled binary (~10-20MB).
+**Expected output**:
+```
+   Compiling openscenario v0.1.0
+   Compiling openscenario-mcp v0.1.0
+    Finished release [optimized] target(s) in 8m 23s
+```
 
 ---
 
-### Step 4: Test the Installation
+### 6. Test Installation
 
 ```bash
-# Test 1: Run a quick example
+# Quick test - download Tokyo road
 cargo run --example test_get_real_world_road
-
-# Expected: Downloads Nihonbashi roads, shows analysis
-# Takes ~20 seconds on first run
 ```
 
 **Expected output**:
 ```
-🧪 Testing MCP Integration: get_real_world_road
-============================================================
-🌍 Fetching real-world road: nihonbashi
-✅ Success!
-Response: {
-  "location": "nihonbashi",
-  "good_roads": 84,
-  "total_roads": 1150,
-  ...
-}
+✅ Downloaded Nihonbashi road network
+   Saved to: cache/osm/nihonbashi.xodr
+   Roads: 1150
+   Quality: 90/100
 ```
+
+**Success?** Installation complete! → [Next: Quick Start](QUICKSTART.md)
+
+**Problems?** → See [Troubleshooting](#troubleshooting) below
 
 ---
 
-## Configuration
+## Configure for Usage
 
-### For Claude Desktop
+Now choose how you want to use it:
 
-**1. Install Claude Desktop**:
-- Download from: https://claude.ai/download
-- Or: `sudo snap install claude-desktop` (if available)
+### Option 1: Claude Desktop (Recommended)
 
-**2. Create configuration file**:
+**Easiest and most natural interface**
 
-```bash
-# Create config directory
-mkdir -p ~/.config/Claude
+1. Install Claude Desktop from [claude.ai](https://claude.ai/download)
+2. Configure MCP server:
 
-# Create config file
-nano ~/.config/Claude/claude_desktop_config.json
-```
-
-**3. Add this configuration** (replace `/path/to/` with your actual path):
-
-```json
-{
-  "mcpServers": {
-    "openscenario": {
-      "command": "cargo",
-      "args": [
-        "run",
-        "--release",
-        "--manifest-path",
-        "/home/YOUR_USERNAME/osc-mcp/openscenario-mcp/Cargo.toml"
-      ],
-      "env": {
-        "RUST_LOG": "info"
-      }
-    }
-  }
-}
-```
-
-**Important**: Replace `/home/YOUR_USERNAME/` with your actual path!
-
-**Quick way to get the path**:
-```bash
-cd ~/osc-mcp/openscenario-mcp
-pwd  # Copy this output
-```
-
-**4. Restart Claude Desktop**
-
-**5. Test it**:
-Open Claude Desktop and say:
-```
-"Create a lane change scenario on Nihonbashi"
-```
-
-Claude should automatically call the MCP tools and generate a scenario!
-
----
-
-### For VS Code (Optional)
-
-**1. Install VS Code**:
-- Download from: https://code.visualstudio.com/
-- Or: `sudo snap install code --classic`
-
-**2. Install GitHub Copilot**:
-- In VS Code: Extensions → Search "GitHub Copilot"
-- Install "GitHub Copilot" and "GitHub Copilot Chat"
-
-**3. Open the project**:
-```bash
-code ~/osc-mcp
-```
-
-**4. Copilot is pre-configured!**
-
-The `.github/copilot-instructions.md` file teaches Copilot about the MCP tools automatically.
-
-**5. Test it**:
-- Press `Ctrl+Shift+I` (Copilot Chat)
-- Ask: "Show me how to use the MCP tools"
-
----
-
-## Directory Structure After Installation
-
-```
-~/osc-mcp/
-├── openscenario/              # Core Rust library
-├── openscenario-mcp/          # MCP server
-│   ├── Cargo.toml
-│   ├── src/
-│   └── examples/
-├── tools/
-│   └── osm/
-│       └── osm_to_opendrive.py  # OSM downloader
-├── cache/
-│   └── osm/                   # Downloaded roads (auto-created)
-├── target/
-│   └── release/
-│       └── openscenario-mcp   # Compiled binary
-├── CLAUDE_USAGE.md            # Usage guide
-├── VSCODE_USAGE.md
-├── USAGE.md
-└── README.md
-```
-
----
-
-## Troubleshooting
-
-### "netconvert not found"
-
-**Problem**: SUMO not installed or not in PATH
-
-**Solution**:
-```bash
-# Install SUMO (see prerequisites above)
-
-# If installed but not in PATH:
-export SUMO_HOME=/usr/share/sumo
-export PATH=$PATH:$SUMO_HOME/bin
-
-# Make permanent:
-echo 'export SUMO_HOME=/usr/share/sumo' >> ~/.bashrc
-echo 'export PATH=$PATH:$SUMO_HOME/bin' >> ~/.bashrc
-source ~/.bashrc
-```
-
----
-
-### "cargo: command not found"
-
-**Problem**: Rust not installed or not in PATH
-
-**Solution**:
-```bash
-# Install Rust (see prerequisites)
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# Reload shell
-source $HOME/.cargo/env
-```
-
----
-
-### Build fails with "linker not found"
-
-**Problem**: Missing build tools
-
-**Solution**:
-
-**Ubuntu/Debian**:
-```bash
-sudo apt install build-essential
-```
-
-**Fedora**:
-```bash
-sudo dnf groupinstall "Development Tools"
-```
-
-**macOS**:
-```bash
-xcode-select --install
-```
-
----
-
-### Python script fails: "ModuleNotFoundError: No module named 'requests'"
-
-**Problem**: Missing Python dependency
-
-**Solution**:
-```bash
-pip3 install requests
-```
-
----
-
-### Claude Desktop doesn't see the MCP server
-
-**Problem**: Configuration file not loaded or wrong path
-
-**Solutions**:
-
-1. **Verify config file exists**:
-```bash
-cat ~/.config/Claude/claude_desktop_config.json
-```
-
-2. **Check the path is absolute**:
+Edit `~/.config/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
@@ -362,167 +161,204 @@ cat ~/.config/Claude/claude_desktop_config.json
 }
 ```
 
-3. **Restart Claude Desktop** (fully quit and reopen)
+**Replace** `/absolute/path/to` with your actual path (e.g., `/home/username/projects/osc-mcp`).
 
-4. **Check Claude Desktop logs** (if available):
-   - Look for MCP server connection messages
-   - Check for error messages about the server
+3. Restart Claude Desktop
+4. Say: "Create a lane change scenario"
 
----
-
-### First OSM download is slow
-
-**This is normal!** First download includes:
-- Querying OpenStreetMap Overpass API
-- Converting with SUMO netconvert
-- Analyzing road network
-
-Takes 20-30 seconds. Subsequent requests use cached data.
+**Detailed guide**: [CLAUDE_USAGE.md](CLAUDE_USAGE.md)
 
 ---
 
-## Verification Checklist
+### Option 2: VS Code + GitHub Copilot
 
-After installation, verify everything works:
+**Best for developers**
 
-- [ ] Rust installed: `cargo --version`
-- [ ] Python installed: `python3 --version`
-- [ ] SUMO installed: `netconvert --version`
-- [ ] Requests module: `python3 -c "import requests; print('OK')"`
-- [ ] Project cloned: `ls ~/osc-mcp/README.md`
-- [ ] Build succeeds: `cargo build --release`
-- [ ] Test passes: `cargo run --example test_get_real_world_road`
-- [ ] Claude Desktop configured (if using)
-- [ ] VS Code opened (if using)
-
----
-
-## Quick Start Commands
-
-After installation is complete:
-
-### Test the Server
+1. Open project in VS Code:
 ```bash
-cd ~/osc-mcp
-cargo run --example test_get_real_world_road
+code /path/to/your/osc-mcp
 ```
 
-### Run the MCP Server Manually
+2. Copilot is pre-configured via `.github/copilot-instructions.md`
+
+3. Ask Copilot (Ctrl+Shift+I):
+```
+"How do I create a lane change scenario?"
+"Generate a cut-in scenario"
+```
+
+**Detailed guide**: [VSCODE_USAGE.md](VSCODE_USAGE.md)
+
+---
+
+### Option 3: Direct MCP API
+
+**For advanced users / custom integrations**
+
 ```bash
-cd ~/osc-mcp/openscenario-mcp
+cd openscenario-mcp
 cargo run --release
 ```
 
-### Use with Claude Desktop
-Just open Claude and talk:
-```
-"Create a lane change scenario on Tokyo roads"
+Server listens on stdio for MCP messages.
+
+**Detailed guide**: [USAGE.md](USAGE.md)
+
+---
+
+## Optional: esmini Simulator
+
+**Visualize your generated scenarios**
+
+### Download esmini
+
+```bash
+# Create tools directory
+mkdir -p ~/tools
+cd ~/tools
+
+# Download esmini (Linux example - adjust URL for your OS)
+wget https://github.com/esmini/esmini/releases/download/v2.37.4/esmini-demo_Ubuntu_20.04.zip
+unzip esmini-demo_Ubuntu_20.04.zip
+
+# Verify
+./esmini-demo/bin/esmini --version
 ```
 
-### Use with VS Code
+**macOS/Windows**: Download from [esmini releases](https://github.com/esmini/esmini/releases)
+
+### Test with a scenario
+
 ```bash
-code ~/osc-mcp
-# Press Ctrl+Shift+I (Copilot Chat)
-# Ask: "How do I use the MCP tools?"
+cd ~/tools/esmini-demo
+./bin/esmini --osc /path/to/your/scenario.xosc
+```
+
+**Detailed guide**: [docs/using-with-esmini.md](docs/using-with-esmini.md)
+
+---
+
+## Troubleshooting
+
+### Build Errors
+
+**"error: linker 'cc' not found"** (Linux):
+```bash
+# Ubuntu/Debian
+sudo apt install build-essential
+
+# Fedora
+sudo dnf install gcc
+```
+
+**"failed to run custom build command for openssl-sys"**:
+```bash
+# Ubuntu/Debian
+sudo apt install pkg-config libssl-dev
+
+# Fedora
+sudo dnf install openssl-devel
+
+# macOS
+brew install openssl
 ```
 
 ---
 
-## Environment Variables (Optional)
+### Python Issues
 
-For convenience, you can add these to `~/.bashrc` or `~/.zshrc`:
-
+**"No module named 'scenic'"**:
 ```bash
-# SUMO
-export SUMO_HOME=/usr/share/sumo
-export PATH=$PATH:$SUMO_HOME/bin
+# Try with --break-system-packages on newer systems
+pip3 install --user scenic --break-system-packages
 
-# Rust
-export PATH=$PATH:$HOME/.cargo/bin
-
-# OSC-MCP shortcut (optional)
-alias osc-mcp='cd ~/osc-mcp && cargo run --release --bin openscenario-mcp'
+# Or use virtual environment
+python3 -m venv venv
+source venv/bin/activate
+pip install scenic
 ```
 
-Reload shell:
+**"ImportError: cannot import name 'Mapping' from 'collections'"** (Python 3.10+):
+
+This is a known scenic issue. Workaround:
 ```bash
-source ~/.bashrc  # or source ~/.zshrc
+# Use Python 3.9
+pyenv install 3.9.18
+pyenv local 3.9.18
+pip install scenic
 ```
 
 ---
 
-## Platform-Specific Notes
+### Permission Issues
 
-### Ubuntu 22.04 / 24.04
-All packages available in official repos. Use `apt` as shown above.
-
-### Fedora 40+
-All packages available in official repos. Use `dnf` as shown above.
-
-### macOS
-Use Homebrew for all dependencies:
+**"Permission denied"** during build:
 ```bash
-brew install rust python3 sumo
+# Fix cargo cache permissions
+sudo chown -R $USER:$USER ~/.cargo
 ```
 
-### Windows (WSL2)
-Install WSL2, then follow Ubuntu instructions inside WSL.
+---
+
+### Still Having Issues?
+
+1. Check [GitHub Issues](https://github.com/yourusername/osc-mcp/issues)
+2. Open a new issue with:
+   - Your OS and version
+   - Rust version (`rustc --version`)
+   - Python version (`python3 --version`)
+   - Full error message
 
 ---
 
-## What to Do Next
+## Verify Everything Works
 
-After successful installation:
+Run the full test suite:
 
-1. **Read the usage guide**: `~/osc-mcp/CLAUDE_USAGE.md` (recommended)
-2. **Try generating a scenario**: Open Claude Desktop and experiment
-3. **Explore examples**: `cargo run --example <example_name>`
-4. **Check documentation**: All guides in `~/osc-mcp/*.md`
-
----
-
-## Getting Help
-
-**Documentation**:
-- `CLAUDE_USAGE.md` - Complete Claude Desktop guide
-- `VSCODE_USAGE.md` - VS Code guide
-- `QUICKSTART.md` - Technical reference
-- `README.md` - Project overview
-
-**Common Issues**:
-- Check the troubleshooting section above
-- Verify all prerequisites are installed
-- Make sure paths are absolute in config files
-
----
-
-## Summary
-
-**Minimum installation** (command sequence):
 ```bash
-# Prerequisites
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source $HOME/.cargo/env
-sudo apt install python3 python3-pip sumo sumo-tools  # Ubuntu
-pip3 install requests
-
-# Install
-cd ~
-git clone https://github.com/jakeaboganda/osc-mcp.git
-cd osc-mcp
-cargo build --release
-
-# Test
+# 1. OSM road download
 cargo run --example test_get_real_world_road
 
-# Configure Claude Desktop (edit paths!)
-mkdir -p ~/.config/Claude
-nano ~/.config/Claude/claude_desktop_config.json
-# (paste config, save, restart Claude)
-```
+# 2. Custom XODR loading
+cargo run --example test_custom_xodr
 
-**Total time**: 15-20 minutes (including downloads)
+# 3. Scenario generation
+cargo run --example test_scenario_templates
+
+# All passing? ✅ You're ready!
+```
 
 ---
 
-**You're ready!** Open Claude Desktop and start generating scenarios! 🚀
+## Next Steps
+
+**Installation complete!** Choose your next step:
+
+1. **[Quick Start Guide](QUICKSTART.md)** - 5-minute test run
+2. **[Claude Desktop Usage](CLAUDE_USAGE.md)** - Start using with Claude
+3. **[VS Code Usage](VSCODE_USAGE.md)** - Developer workflow
+4. **[General Usage](USAGE.md)** - All interfaces and tools
+
+---
+
+## System Requirements
+
+**Minimum**:
+- 4 GB RAM
+- 2 GB disk space
+- Internet connection (for OSM downloads)
+
+**Recommended**:
+- 8 GB RAM
+- 5 GB disk space (includes esmini)
+- SSD for faster builds
+
+**Tested on**:
+- ✅ Ubuntu 20.04, 22.04, 24.04
+- ✅ Fedora 40+
+- ✅ macOS 12+ (Intel & Apple Silicon)
+- ✅ Windows 10/11 (WSL2 recommended)
+
+---
+
+**Questions?** See [CONTRIBUTING.md](CONTRIBUTING.md) or open an issue.

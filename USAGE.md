@@ -1,228 +1,537 @@
-# How to Use OpenSCENARIO MCP Server
+# Usage Guide
 
-Two ways to use the OpenSCENARIO MCP server: **Claude Desktop** (recommended) and **VS Code with Copilot**.
+**📚 Navigation**: [Home](README.md) | [Install](INSTALL.md) | [Quick Start](QUICKSTART.md) | **Usage**
+
+How to use OpenSCENARIO MCP Server with different interfaces.
 
 ---
 
-## 🏆 Method 1: Claude Desktop (Recommended)
+## Choose Your Interface
 
-**Best for**: Interactive scenario generation, no coding needed
+### 🎯 Option 1: Claude Desktop (Recommended)
 
-### Quick Setup
+**Best for**: Natural language scenario generation  
+**Setup time**: 5 minutes  
+**Experience**: Just talk naturally
 
-1. **Install Claude Desktop**: https://claude.ai/download
+**What you get**:
+- Talk to Claude like a human: *"Create a lane change scenario on Tokyo roads"*
+- Claude automatically calls the right MCP tools
+- Get back production-ready `.xosc` files
+- No coding required
 
-2. **Configure MCP server**:
+**Setup**: See detailed guide → **[CLAUDE_USAGE.md](CLAUDE_USAGE.md)**
+
+**Quick setup**:
+1. Install Claude Desktop
+2. Add to `~/.config/Claude/claude_desktop_config.json`:
+   ```json
+   {
+     "mcpServers": {
+       "openscenario": {
+         "command": "cargo",
+         "args": ["run", "--release", "--manifest-path",
+                  "/absolute/path/to/osc-mcp/openscenario-mcp/Cargo.toml"]
+       }
+     }
+   }
+   ```
+3. Restart Claude
+4. Say: "Create a scenario"
+
+---
+
+### 💻 Option 2: VS Code + GitHub Copilot
+
+**Best for**: Developers who want code + scenarios  
+**Setup time**: 2 minutes  
+**Experience**: Ask Copilot questions while coding
+
+**What you get**:
+- Copilot understands OpenSCENARIO project context
+- Get code examples + explanations
+- Generate scenarios while developing
+- Access to full tool API
+
+**Setup**: See detailed guide → **[VSCODE_USAGE.md](VSCODE_USAGE.md)**
+
+**Quick setup**:
+1. Open project: `code /path/to/osc-mcp`
+2. Copilot auto-loads `.github/copilot-instructions.md`
+3. Ask: "How do I create a lane change scenario?"
+
+---
+
+### 🔧 Option 3: Direct MCP API
+
+**Best for**: Advanced users, custom integrations  
+**Setup time**: 1 minute  
+**Experience**: Full programmatic control
+
+**What you get**:
+- Direct access to all 18 MCP tools
+- Build custom AI workflows
+- Integrate with your own systems
+- Stdio protocol communication
+
+**Setup**: See detailed guide below → [Direct API Usage](#direct-api-usage)
+
+---
+
+## Common Workflows
+
+### Workflow 1: Real-World Road Scenario
+
+Generate a scenario on actual roads from OpenStreetMap:
+
+**With Claude**:
+```
+"Create a lane change scenario on Nihonbashi highway in Tokyo"
+```
+
+**With VS Code/Copilot**:
+```
+Ask: "How do I get roads from Shibuya?"
+Copilot shows: get_real_world_road("shibuya")
+```
+
+**With API**:
+```json
+{"method": "tools/call", "params": {
+  "name": "get_real_world_road",
+  "arguments": {"location": "shibuya"}
+}}
+```
+
+---
+
+### Workflow 2: Custom XODR File
+
+Use your own road network file:
+
+**With Claude**:
+```
+"Load my custom track from /home/user/my_track.xodr and create a platoon scenario"
+```
+
+**With VS Code/Copilot**:
+```
+Ask: "How do I use a custom XODR file?"
+```
+
+**With API**:
+```json
+{"method": "tools/call", "params": {
+  "name": "load_road_network",
+  "arguments": {"xodr_path": "/path/to/track.xodr"}
+}}
+```
+
+**Detailed guide**: [CUSTOM_XODR.md](CUSTOM_XODR.md)
+
+---
+
+### Workflow 3: Multi-Entity Scenarios
+
+Add vehicles, pedestrians, obstacles:
+
+**With Claude**:
+```
+"Create a scenario with 3 vehicles and a pedestrian crossing at 100m"
+```
+
+**With API**:
+```json
+// 1. Create scenario
+{"method": "tools/call", "params": {
+  "name": "create_scenario",
+  "arguments": {"name": "crossing_scenario"}
+}}
+
+// 2. Add entities
+{"method": "tools/call", "params": {
+  "name": "add_vehicle",
+  "arguments": {"scenario_id": "...", "name": "vehicle1"}
+}}
+
+{"method": "tools/call", "params": {
+  "name": "add_pedestrian",
+  "arguments": {"scenario_id": "...", "name": "ped1"}
+}}
+
+// 3. Position them
+{"method": "tools/call", "params": {
+  "name": "set_lane_position",
+  "arguments": {"entity_name": "ped1", "road_id": "1", "lane_id": -1, "s": 100, "offset": 0}
+}}
+```
+
+---
+
+## Available Tools Reference
+
+### Road Network Tools
+
+| Tool | Purpose | Example |
+|------|---------|---------|
+| `get_real_world_road` | Download OSM roads | `location: "tokyo"` |
+| `load_road_network` | Load custom `.xodr` | `xodr_path: "/path/to/file.xodr"` |
+| `list_roads` | List available roads | (no args) |
+| `get_road_info` | Get road details | `road_id: "5402"` |
+
+---
+
+### Scenario Creation Tools
+
+| Tool | Purpose | Example |
+|------|---------|---------|
+| `create_scenario` | Create empty scenario | `name: "my_scenario"` |
+| `create_quick_scenario` | Auto-generate scenario | `scenario_type: "lane_change"` |
+| `validate_scenario` | Check scenario validity | `scenario_id: "..."` |
+| `export_xml` | Export to `.xosc` file | `filename: "output.xosc"` |
+
+---
+
+### Entity Tools
+
+| Tool | Purpose | Example |
+|------|---------|---------|
+| `add_vehicle` | Add car/truck | `name: "ego"` |
+| `add_pedestrian` | Add pedestrian | `name: "ped1", mass: 70.0` |
+| `add_misc_object` | Add obstacle/barrier | `category: "barrier", mass: 500` |
+
+---
+
+### Positioning Tools
+
+| Tool | Purpose | Example |
+|------|---------|---------|
+| `set_position` | Set world position | `x: 100, y: 50, z: 0` |
+| `set_lane_position` | Set lane position | `road_id: "1", lane_id: -2, s: 100` |
+| `validate_position` | Check if valid | `road_id: "1", s: 500` |
+| `suggest_spawn_points` | Find good positions | `road_id: "1", count: 5` |
+
+---
+
+### Action Tools
+
+| Tool | Purpose | Example |
+|------|---------|---------|
+| `add_speed_action` | Set speed | `entity: "ego", speed: 25.0` |
+| `add_lane_change_action` | Change lanes | `target_lane_offset: 1` |
+
+---
+
+### Trigger Tools
+
+| Tool | Purpose | Example |
+|------|---------|---------|
+| `set_stop_time` | Stop at time | `time: 10.0` |
+| `set_stop_on_element` | Stop on condition | `element_type: "SpeedCondition"` |
+
+**Full API documentation**: Each tool returns JSON with results or errors.
+
+---
+
+## Direct API Usage
+
+### Starting the Server
+
 ```bash
-mkdir -p ~/.config/Claude
-cat > ~/.config/Claude/claude_desktop_config.json << 'EOF'
+cd openscenario-mcp
+cargo run --release
+```
+
+Server listens on **stdin/stdout** for MCP protocol messages.
+
+---
+
+### MCP Protocol Format
+
+**Request**:
+```json
 {
-  "mcpServers": {
-    "openscenario": {
-      "command": "cargo",
-      "args": [
-        "run",
-        "--release",
-        "--manifest-path",
-        "/absolute/path/to/osc-mcp/openscenario-mcp/Cargo.toml"
-      ],
-      "env": {
-        "RUST_LOG": "info"
-      }
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "tool_name",
+    "arguments": {
+      "arg1": "value1",
+      "arg2": "value2"
     }
   }
 }
-
-**Note**: Replace `/absolute/path/to` with your actual installation path.
-EOF
 ```
 
-3. **Restart Claude Desktop**
-
-4. **Start talking**:
+**Response**:
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {"type": "text", "text": "Result data here"}
+    ]
+  }
+}
 ```
-"Create a lane change scenario on Nihonbashi highway"
-```
-
-**Details**: See [CLAUDE_USAGE.md](./CLAUDE_USAGE.md)
 
 ---
 
-## 💻 Method 2: VS Code with GitHub Copilot
+### Example API Session
 
-**Best for**: Developing code, extending the tool, debugging
-
-### Quick Setup
-
-1. **Open project in VS Code**:
+**1. List available tools**:
 ```bash
-code /path/to/your/osc-mcp  # Replace with your actual path
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | cargo run --release
 ```
 
-2. **Copilot is already configured** (via `.github/copilot-instructions.md`)
-
-3. **Ask Copilot** (Ctrl+Shift+I):
-```
-"Show me how to create a lane change scenario"
-```
-
-**Details**: See [VSCODE_USAGE.md](./VSCODE_USAGE.md)
-
----
-
-## 🆚 Which Should You Use?
-
-### Use Claude Desktop When:
-- ✅ You want to generate scenarios quickly
-- ✅ You prefer natural conversation
-- ✅ No coding needed
-- ✅ Interactive exploration
-- ✅ Testing and experimentation
-
-**Example**: "Create 5 different test scenarios on Tokyo highways"
-
-### Use VS Code Copilot When:
-- ✅ You're writing code that uses the MCP tools
-- ✅ You want to extend the functionality
-- ✅ You need precise control over parameters
-- ✅ Debugging Rust code
-- ✅ Building new features
-
-**Example**: "Write a function that generates 100 test scenarios"
-
----
-
-## 📚 Full Documentation
-
-| Guide | Description |
-|-------|-------------|
-| [CLAUDE_USAGE.md](./CLAUDE_USAGE.md) | Complete Claude Desktop guide |
-| [VSCODE_USAGE.md](./VSCODE_USAGE.md) | Complete VS Code + Copilot guide |
-| [QUICKSTART.md](./QUICKSTART.md) | Technical reference |
-
----
-
-## 🚀 Quick Examples
-
-### Claude Desktop (No Code)
-```
-You: "I need to test lane change on Tokyo roads"
-Claude: [downloads roads, generates scenario, exports]
-Claude: "Done! Scenario saved as lane_change_nihonbashi.xosc"
+**2. Download roads**:
+```bash
+echo '{
+  "jsonrpc":"2.0",
+  "id":2,
+  "method":"tools/call",
+  "params":{
+    "name":"get_real_world_road",
+    "arguments":{"location":"tokyo"}
+  }
+}' | cargo run --release
 ```
 
-### VS Code Copilot (With Code)
-```rust
-// Ask Copilot: "Generate a lane change scenario"
-use openscenario_mcp::handlers::*;
-use openscenario_mcp::scenario_templates::*;
-
-let state = Arc::new(Mutex::new(ServerState::new()));
-handle_get_real_world_road(state.clone(), "nihonbashi".into(), None)?;
-handle_create_quick_scenario(state, "lane_change".into(), Some(3))?;
+**3. Create scenario**:
+```bash
+echo '{
+  "jsonrpc":"2.0",
+  "id":3,
+  "method":"tools/call",
+  "params":{
+    "name":"create_quick_scenario",
+    "arguments":{"scenario_type":"lane_change"}
+  }
+}' | cargo run --release
 ```
 
 ---
 
-## 🎯 Recommendation
+## Output Files
 
-**Start with Claude Desktop!** It's:
-- Faster to set up
-- Easier to use
-- No coding required
-- More interactive
+### Generated Files
 
-**Then use VS Code** when you want to:
-- Build custom tools
-- Integrate into larger systems
-- Write automated tests
-- Extend the MCP server
+Scenarios are saved in the project directory:
 
----
+```
+osc-mcp/
+├── lane_change_nihonbashi.xosc    # Generated scenario
+├── cutin_scenario.xosc             # Another scenario
+└── cache/
+    └── osm/
+        └── nihonbashi.xodr         # Downloaded road data
+```
 
-## 💡 Can You Use Both?
+### File Format
 
-**Yes!** They work great together:
+All scenarios are OpenSCENARIO 1.2 XML format:
 
-1. **Explore with Claude Desktop**: "What roads are available in Shibuya?"
-2. **Build with VS Code**: Write code to automate what you learned
-3. **Test with Claude Desktop**: Verify your new features work
-4. **Deploy**: Use your extended MCP server
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSCENARIO>
+  <FileHeader description="Generated scenario"/>
+  <RoadNetwork>
+    <LogicFile filepath="nihonbashi.xodr"/>
+  </RoadNetwork>
+  <Entities>...</Entities>
+  <Storyboard>...</Storyboard>
+</OpenSCENARIO>
+```
 
----
-
-## 🔧 Prerequisites
-
-Both methods require:
-- ✅ Rust 1.70+
-- ✅ Python 3.8+
-- ✅ SUMO (for netconvert): `sudo apt install sumo sumo-tools`
-
----
-
-## 📊 Feature Comparison
-
-| Feature | Claude Desktop | VS Code Copilot |
-|---------|----------------|-----------------|
-| **Setup time** | 2 minutes | 5 minutes |
-| **Learning curve** | Easy | Medium |
-| **Natural language** | ✅ Full | ⚠️ Code-focused |
-| **No coding** | ✅ Yes | ❌ No |
-| **Code assistance** | ❌ No | ✅ Yes |
-| **Interactive** | ✅ Yes | ⚠️ Limited |
-| **Tool chaining** | ✅ Automatic | ❌ Manual |
-| **Best for beginners** | ✅ Yes | ❌ No |
-| **Best for developers** | ⚠️ Limited | ✅ Yes |
+**Use with**: esmini, CARLA, VTD, IPG, or any OSC-compatible simulator.
 
 ---
 
-## 🎬 Getting Started
+## Tips & Best Practices
 
-### Absolute Beginner?
-→ **Use Claude Desktop**  
-→ Read [CLAUDE_USAGE.md](./CLAUDE_USAGE.md)
+### Road Selection
 
-### Experienced Developer?
-→ **Use VS Code Copilot**  
-→ Read [VSCODE_USAGE.md](./VSCODE_USAGE.md)
+✅ **Do**:
+- Use roads >200m for lane changes
+- Check road quality score (aim for 70+)
+- Use `suggest_spawn_points` for good positions
 
-### Want Both?
-→ **Set up Claude Desktop first** (quick wins)  
-→ **Then add VS Code** (deeper integration)
-
----
-
-## 🚀 Next Steps
-
-**Choose your path**:
-
-**Path A: Claude Desktop** (5 minutes)
-1. Install Claude Desktop
-2. Copy config JSON
-3. Restart Claude
-4. Say: "Create a scenario on Nihonbashi"
-
-**Path B: VS Code** (10 minutes)
-1. `code /path/to/your/osc-mcp`  # Replace with actual path
-2. Open Copilot Chat (Ctrl+Shift+I)
-3. Ask: "How do I use the MCP tools?"
-4. Start coding!
-
-**Path C: Both** (15 minutes)
-1. Set up Claude Desktop (5 min)
-2. Try generating a few scenarios
-3. Open VS Code (5 min)
-4. Build on what you learned (5 min)
+❌ **Don't**:
+- Place vehicles beyond road length
+- Use lane_id = 0 (center line, invalid)
+- Ignore position validation errors
 
 ---
 
-## ✅ You're Ready!
+### Scenario Design
 
-Pick your method and start generating autonomous vehicle test scenarios on real Tokyo roads! 🚗🗺️
+✅ **Do**:
+- Validate scenarios before export
+- Use realistic speeds (20-30 m/s typical)
+- Test in esmini before production use
 
-**Questions?** Check the detailed guides:
-- [CLAUDE_USAGE.md](./CLAUDE_USAGE.md) - Claude Desktop
-- [VSCODE_USAGE.md](./VSCODE_USAGE.md) - VS Code + Copilot
-- [QUICKSTART.md](./QUICKSTART.md) - Technical reference
+❌ **Don't**:
+- Skip validation step
+- Use extreme values (negative speeds, huge masses)
+- Assume all roads have multiple lanes
 
-**Happy testing!** 🎉
+---
+
+### Performance
+
+**First run**: Slow (compiles Rust code)  
+**Subsequent runs**: Fast (uses cached build)
+
+**Optimize**:
+```bash
+# Use release mode for production
+cargo run --release
+
+# Cache OSM downloads
+# (automatically saved in cache/osm/)
+```
+
+---
+
+## Troubleshooting
+
+### "Road not found"
+
+**Cause**: OSM location name not recognized
+
+**Fix**:
+- Try different name: "tokyo_station" instead of "tokyo"
+- Use nearby landmark
+- Check [OpenStreetMap](https://openstreetmap.org) for exact names
+
+---
+
+### "No suitable roads"
+
+**Cause**: Downloaded roads too short or no lanes
+
+**Fix**:
+- Download larger area: "shibuya" instead of specific street
+- Use `list_roads` to see what's available
+- Check quality score (`get_road_info`)
+
+---
+
+### "Position validation failed"
+
+**Cause**: Trying to place entity off-road or in invalid lane
+
+**Fix**:
+- Use `validate_position` first
+- Use `suggest_spawn_points` to find valid positions
+- Check road length with `get_road_info`
+
+---
+
+### "Scenario export failed"
+
+**Cause**: Invalid scenario structure
+
+**Fix**:
+- Run `validate_scenario` first
+- Check all entities have positions set
+- Verify road network is loaded
+
+---
+
+## Advanced Topics
+
+### Custom Integrations
+
+Build your own AI tools that use the MCP server:
+
+```python
+# Python example
+import subprocess
+import json
+
+def call_mcp_tool(tool_name, arguments):
+    request = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {"name": tool_name, "arguments": arguments}
+    }
+    
+    result = subprocess.run(
+        ["cargo", "run", "--release"],
+        input=json.dumps(request),
+        capture_output=True,
+        text=True
+    )
+    
+    return json.loads(result.stdout)
+
+# Use it
+result = call_mcp_tool("get_real_world_road", {"location": "tokyo"})
+print(result)
+```
+
+---
+
+### Batch Processing
+
+Generate multiple scenarios:
+
+```bash
+# Create script
+for location in tokyo osaka kyoto; do
+  echo "Generating scenarios for $location..."
+  echo '{
+    "jsonrpc":"2.0",
+    "id":1,
+    "method":"tools/call",
+    "params":{
+      "name":"get_real_world_road",
+      "arguments":{"location":"'$location'"}
+    }
+  }' | cargo run --release
+done
+```
+
+---
+
+### CI/CD Integration
+
+Use in automated testing:
+
+```yaml
+# GitHub Actions example
+- name: Generate test scenarios
+  run: |
+    cd osc-mcp
+    cargo run --example test_scenario_templates
+    
+- name: Validate scenarios
+  run: |
+    for file in *.xosc; do
+      ~/tools/esmini-demo/bin/esmini --osc $file --headless
+    done
+```
+
+---
+
+## Next Steps
+
+**You now know**:
+- ✅ How to choose an interface
+- ✅ Common workflows
+- ✅ All available tools
+- ✅ API format
+
+**Go deeper**:
+- [Claude Desktop guide](CLAUDE_USAGE.md) - Detailed examples
+- [VS Code guide](VSCODE_USAGE.md) - Developer workflow
+- [Custom XODR guide](CUSTOM_XODR.md) - Use your own roads
+- [Contributing](CONTRIBUTING.md) - Add features
+
+---
+
+**Questions?** Open an issue on GitHub or see [CONTRIBUTING.md](CONTRIBUTING.md)
