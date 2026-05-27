@@ -3,7 +3,7 @@
 
 **Date:** 2026-05-02  
 **Test Suite:** `complex_scenario_tests.rs`  
-**Working Directory:** `~/.openclaw/workspace/osc-mcp/`
+**Working Directory:** `<pathto>/osc-mcp/`
 
 ---
 

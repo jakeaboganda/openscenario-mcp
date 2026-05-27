@@ -21,7 +21,7 @@ cd esmini-tests
 
 Check that all components are in place:
 ```bash
-cd ~/.openclaw/workspace/osc-mcp/esmini-tests
+cd <pathto>/osc-mcp/esmini-tests
 ls -la
 
 # Expected files:

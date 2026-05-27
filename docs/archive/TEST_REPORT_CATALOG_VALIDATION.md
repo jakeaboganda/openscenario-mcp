@@ -1,7 +1,7 @@
 # OpenSCENARIO MCP: Catalog & Validation Test Report
 
 **Test Date**: May 2, 2026  
-**Working Directory**: `~/.openclaw/workspace/osc-mcp/`  
+**Working Directory**: `<pathto>/osc-mcp/`  
 **Test Suite**: Comprehensive Catalog Loading and Scenario Validation
 
 ---

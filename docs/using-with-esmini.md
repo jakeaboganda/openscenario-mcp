@@ -33,7 +33,7 @@ The generated .xosc files need a road network. Edit the file and update the `<Ro
 ### 3. Run in esmini
 
 ```bash
-cd ~/.openclaw/workspace/tools/esmini-demo
+cd /path/to/your/tools/esmini-demo  # Replace with your esmini installation path
 ./bin/esmini --osc ../../osc-mcp/highway_merge.xosc
 ```
 

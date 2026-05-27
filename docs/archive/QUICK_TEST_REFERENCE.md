@@ -4,7 +4,7 @@
 
 ### Run All Tests
 ```bash
-cd ~/.openclaw/workspace/osc-mcp
+cd <pathto>/osc-mcp
 cargo test
 ```
 
@@ -33,7 +33,7 @@ cargo test --test integration_test
 
 ### Run Custom Test Script
 ```bash
-cd ~/.openclaw/workspace/osc-mcp
+cd <pathto>/osc-mcp
 ./test_catalog_validation.sh
 ```
 
@@ -85,7 +85,7 @@ Total: **65+ tests passing, 0 failures**
 ## Troubleshooting
 
 If tests fail:
-1. Ensure you're in the project root: `~/.openclaw/workspace/osc-mcp`
+1. Ensure you're in the project root: `<pathto>/osc-mcp`
 2. Build first: `cargo build`
 3. Check test data files exist in `openscenario/tests/`
 4. Run with verbose output: `cargo test -- --nocapture`

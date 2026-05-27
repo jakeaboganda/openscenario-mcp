@@ -109,7 +109,7 @@ Master script that orchestrates the complete workflow:
 
 Clone and navigate to the testing directory:
 ```bash
-cd ~/.openclaw/workspace/osc-mcp/esmini-tests
+cd <pathto>/osc-mcp/esmini-tests
 ```
 
 ## Usage
@@ -214,7 +214,7 @@ Scenarios are still valid OpenSCENARIO 1.2 files and can be:
 ```
 **Solution:** Ensure you're in the correct directory:
 ```bash
-cd ~/.openclaw/workspace/osc-mcp/esmini-tests
+cd <pathto>/osc-mcp/esmini-tests
 ```
 
 ### Validation fails

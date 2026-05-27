@@ -2,7 +2,7 @@
 
 ## Task Assignment
 **Test Area**: Complex multi-vehicle, multi-action scenarios  
-**Working Directory**: `~/.openclaw/workspace/osc-mcp/`  
+**Working Directory**: `<pathto>/osc-mcp/`  
 **Date**: 2026-05-02
 
 ---
@@ -219,4 +219,4 @@ All required tests have been implemented, executed, and passed successfully. The
 
 **Completed By**: Subagent (Task e1bc1cd6)  
 **Date**: 2026-05-02  
-**Working Directory**: ~/.openclaw/workspace/osc-mcp/
+**Working Directory**: <pathto>/osc-mcp/

@@ -233,4 +233,4 @@ The OpenSCENARIO MCP server's catalog and validation features are **fully functi
 - `TEST_REPORT_CATALOG_VALIDATION.md` - Detailed test documentation
 - `TEST_SUMMARY.md` - This summary (you are here)
 
-**Working Directory**: `~/.openclaw/workspace/osc-mcp/`
+**Working Directory**: `<pathto>/osc-mcp/`

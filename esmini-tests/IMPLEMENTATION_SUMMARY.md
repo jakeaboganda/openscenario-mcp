@@ -183,7 +183,7 @@ Once `mcp` is available:
 
 ### Quick Start (with dependencies)
 ```bash
-cd ~/.openclaw/workspace/osc-mcp/esmini-tests
+cd <pathto>/osc-mcp/esmini-tests
 ./install.sh        # One-time setup
 ./run_pipeline.sh   # Run full pipeline
 ```
