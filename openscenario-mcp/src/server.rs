@@ -525,11 +525,11 @@ impl OpenScenarioServer {
     }
 
     /// List available MCP tools
-    /// 
+    ///
     /// Note: Request parameter is optional for compatibility with different MCP clients.
     /// Some clients may not send a request body for the list_tools method.
     /// The parameter is currently unused as we return all tools without filtering.
-    /// 
+    ///
     /// Future: Could support pagination/filtering via the request parameter.
     pub fn handle_list_tools(_req: Option<ListRequest>) -> Result<ToolsListResponse> {
         Ok(ToolsListResponse {
