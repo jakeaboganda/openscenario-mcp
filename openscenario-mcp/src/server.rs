@@ -571,6 +571,24 @@ impl OpenScenarioServer {
                     "required": ["scenario_id"]
                 }),
             },
+            ToolDefinition {
+                name: "import_scenario".to_string(),
+                description: Some("Import an existing OpenSCENARIO .xosc file to inspect or modify it".to_string()),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "xosc_path": {
+                            "type": "string",
+                            "description": "Path to the .xosc file"
+                        },
+                        "scenario_name": {
+                            "type": "string",
+                            "description": "Optional name for the imported scenario (defaults to filename)"
+                        }
+                    },
+                    "required": ["xosc_path"]
+                }),
+            },
         ]
     }
 
@@ -1299,6 +1317,23 @@ impl OpenScenarioServer {
                 let result = crate::inspection::handle_check_scenario(
                     GLOBAL_STATE.clone(),
                     scenario_id.to_string(),
+                )?;
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "import_scenario" => {
+                let xosc_path = args
+                    .get("xosc_path")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'xosc_path'"))?;
+                let scenario_name = args.get("scenario_name").and_then(Value::as_str).map(String::from);
+                let result = crate::import::handle_import_scenario(
+                    GLOBAL_STATE.clone(),
+                    xosc_path.to_string(),
+                    scenario_name,
                 )?;
                 Ok(CallToolResponse {
                     content: vec![ToolResponseContent::Text { text: result }],

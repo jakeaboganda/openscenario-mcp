@@ -149,4 +149,10 @@ pub enum ScenarioError {
     /// Raised when reading or writing XML scenario files.
     #[error("XML error: {0}")]
     Xml(#[from] quick_xml::Error),
+
+    /// Raised when XML parsing fails.
+    ///
+    /// Generic parsing error for malformed or unexpected XML structure.
+    #[error("Parse error: {0}")]
+    Parse(String),
 }
