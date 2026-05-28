@@ -521,6 +521,56 @@ impl OpenScenarioServer {
                     "required": ["scenario_type"]
                 }),
             },
+            ToolDefinition {
+                name: "list_scenarios".to_string(),
+                description: Some("List all scenarios in the current session".to_string()),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {}
+                }),
+            },
+            ToolDefinition {
+                name: "inspect_scenario".to_string(),
+                description: Some("Inspect a scenario and return comprehensive JSON structure with entities, actions, triggers, conditions, timing, and parameter details".to_string()),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "scenario_id": {
+                            "type": "string",
+                            "description": "Scenario ID to inspect"
+                        }
+                    },
+                    "required": ["scenario_id"]
+                }),
+            },
+            ToolDefinition {
+                name: "describe_scenario".to_string(),
+                description: Some("Get a human-readable Markdown description of a scenario".to_string()),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "scenario_id": {
+                            "type": "string",
+                            "description": "Scenario ID to describe"
+                        }
+                    },
+                    "required": ["scenario_id"]
+                }),
+            },
+            ToolDefinition {
+                name: "check_scenario".to_string(),
+                description: Some("Check a scenario for completeness and get helpful suggestions (checks entities, positions, speeds, etc.)".to_string()),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "scenario_id": {
+                            "type": "string",
+                            "description": "Scenario ID to validate"
+                        }
+                    },
+                    "required": ["scenario_id"]
+                }),
+            },
         ]
     }
 
@@ -1197,6 +1247,59 @@ impl OpenScenarioServer {
                     vehicle_count,
                 )?;
 
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "list_scenarios" => {
+                let result = crate::inspection::handle_list_scenarios(GLOBAL_STATE.clone())?;
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "inspect_scenario" => {
+                let scenario_id = args
+                    .get("scenario_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'scenario_id'"))?;
+                let result = crate::inspection::handle_inspect_scenario(
+                    GLOBAL_STATE.clone(),
+                    scenario_id.to_string(),
+                )?;
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "describe_scenario" => {
+                let scenario_id = args
+                    .get("scenario_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'scenario_id'"))?;
+                let result = crate::inspection::handle_describe_scenario(
+                    GLOBAL_STATE.clone(),
+                    scenario_id.to_string(),
+                )?;
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "check_scenario" => {
+                let scenario_id = args
+                    .get("scenario_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'scenario_id'"))?;
+                let result = crate::inspection::handle_check_scenario(
+                    GLOBAL_STATE.clone(),
+                    scenario_id.to_string(),
+                )?;
                 Ok(CallToolResponse {
                     content: vec![ToolResponseContent::Text { text: result }],
                     is_error: None,

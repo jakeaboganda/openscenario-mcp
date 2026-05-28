@@ -4405,6 +4405,37 @@ impl Scenario {
 
         Ok(())
     }
+
+    // ============================================================================
+    // Inspection Methods
+    // ============================================================================
+
+    /// Returns a reference to the storyboard.
+    ///
+    /// Provides access to the scenario's storyboard for inspection.
+    pub fn storyboard(&self) -> &Storyboard {
+        &self.storyboard
+    }
+
+    /// Returns the number of entities in the scenario.
+    pub fn entity_count(&self) -> usize {
+        self.entities.len()
+    }
+
+    /// Returns the number of stories in the storyboard.
+    pub fn story_count(&self) -> usize {
+        self.storyboard.stories.len()
+    }
+
+    /// Returns an iterator over all stories.
+    pub fn stories(&self) -> impl Iterator<Item = &Story> {
+        self.storyboard.stories.values()
+    }
+
+    /// Returns all parameters.
+    pub fn parameters(&self) -> &[ParameterDeclaration] {
+        &self.parameters
+    }
 }
 
 #[cfg(test)]
