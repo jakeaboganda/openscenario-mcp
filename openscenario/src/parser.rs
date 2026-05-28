@@ -3,8 +3,8 @@
 //! Implements parsing of OpenSCENARIO XML into Scenario structs.
 
 use crate::entities::{
-    CatalogReference, Entity, MiscObject, MiscObjectParams, Pedestrian,
-    PedestrianParams, Vehicle, VehicleCategory, VehicleParams,
+    CatalogReference, Entity, MiscObject, MiscObjectParams, Pedestrian, PedestrianParams, Vehicle,
+    VehicleCategory, VehicleParams,
 };
 use crate::position::Position;
 use crate::scenario::{ParameterDeclaration, ParameterType, Scenario};
@@ -34,8 +34,29 @@ impl Scenario {
     /// let scenario = Scenario::from_xml(&xml).unwrap();
     /// ```
     pub fn from_xml(xml: &str) -> Result<Self> {
+        // Security: Validate file size to prevent DoS
+        const MAX_XML_SIZE: usize = 100 * 1024 * 1024; // 100MB
+        if xml.len() > MAX_XML_SIZE {
+            return Err(ScenarioError::InvalidValue {
+                field: "xml_size".to_string(),
+                reason: format!(
+                    "XML file too large ({} bytes). Maximum size is {} bytes (100MB)",
+                    xml.len(),
+                    MAX_XML_SIZE
+                ),
+            });
+        }
+
+        // Security: Check for empty input
+        if xml.trim().is_empty() {
+            return Err(ScenarioError::Parse(
+                "XML file is empty or contains only whitespace".to_string(),
+            ));
+        }
+
         let mut reader = Reader::from_str(xml);
         reader.config_mut().trim_text(true);
+        reader.config_mut().check_end_names = true; // Validate closing tags
 
         let mut scenario = None;
         let mut buf = Vec::new();
@@ -55,9 +76,8 @@ impl Scenario {
             buf.clear();
         }
 
-        scenario.ok_or_else(|| {
-            ScenarioError::Parse("No OpenSCENARIO root element found".to_string())
-        })
+        scenario
+            .ok_or_else(|| ScenarioError::Parse("No OpenSCENARIO root element found".to_string()))
     }
 }
 
@@ -113,7 +133,8 @@ fn parse_openscenario(reader: &mut Reader<&[u8]>) -> Result<Scenario> {
 }
 
 fn parse_file_header(reader: &mut Reader<&[u8]>) -> Result<OpenScenarioVersion> {
-    let mut version = OpenScenarioVersion::V1_2;
+    let mut major: Option<u8> = None;
+    let mut minor: Option<u8> = None;
     let mut buf = Vec::new();
 
     loop {
@@ -121,21 +142,26 @@ fn parse_file_header(reader: &mut Reader<&[u8]>) -> Result<OpenScenarioVersion> 
             Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"FileHeader" => {
                 for attr in e.attributes() {
                     let attr = attr.map_err(|e| ScenarioError::Parse(e.to_string()))?;
-                    if attr.key.as_ref() == b"revMajor" {
-                        let major =
-                            String::from_utf8_lossy(&attr.value).parse::<u8>().unwrap_or(1);
-                        if major == 1 {
-                            version = OpenScenarioVersion::V1_0; // Will refine with minor
+                    match attr.key.as_ref() {
+                        b"revMajor" => {
+                            let value = String::from_utf8_lossy(&attr.value);
+                            major = Some(value.parse::<u8>().map_err(|_| {
+                                ScenarioError::Parse(format!(
+                                    "Invalid revMajor attribute: '{}'. Expected integer.",
+                                    value
+                                ))
+                            })?);
                         }
-                    }
-                    if attr.key.as_ref() == b"revMinor" {
-                        let minor =
-                            String::from_utf8_lossy(&attr.value).parse::<u8>().unwrap_or(0);
-                        version = match minor {
-                            0 => OpenScenarioVersion::V1_0,
-                            1 => OpenScenarioVersion::V1_1,
-                            _ => OpenScenarioVersion::V1_2,
-                        };
+                        b"revMinor" => {
+                            let value = String::from_utf8_lossy(&attr.value);
+                            minor = Some(value.parse::<u8>().map_err(|_| {
+                                ScenarioError::Parse(format!(
+                                    "Invalid revMinor attribute: '{}'. Expected integer.",
+                                    value
+                                ))
+                            })?);
+                        }
+                        _ => {}
                     }
                 }
             }
@@ -146,6 +172,28 @@ fn parse_file_header(reader: &mut Reader<&[u8]>) -> Result<OpenScenarioVersion> 
         }
         buf.clear();
     }
+
+    // Validate version
+    let major = major.ok_or_else(|| {
+        ScenarioError::Parse("Missing revMajor attribute in FileHeader".to_string())
+    })?;
+    let minor = minor.ok_or_else(|| {
+        ScenarioError::Parse("Missing revMinor attribute in FileHeader".to_string())
+    })?;
+
+    // Only support OpenSCENARIO 1.x
+    if major != 1 {
+        return Err(ScenarioError::Parse(format!(
+            "Unsupported OpenSCENARIO version {}.{}. Only version 1.x is supported (1.0, 1.1, 1.2).",
+            major, minor
+        )));
+    }
+
+    let version = match minor {
+        0 => OpenScenarioVersion::V1_0,
+        1 => OpenScenarioVersion::V1_1,
+        _ => OpenScenarioVersion::V1_2, // 1.2+ all map to V1_2
+    };
 
     Ok(version)
 }
@@ -223,18 +271,24 @@ fn parse_road_network(reader: &mut Reader<&[u8]>) -> Result<Option<String>> {
 }
 
 fn parse_entities(reader: &mut Reader<&[u8]>) -> Result<HashMap<String, Entity>> {
+    const MAX_ENTITIES: usize = 10_000; // Security: Limit entity count
     let mut entities = HashMap::new();
     let mut buf = Vec::new();
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(XmlEvent::Start(e)) => match e.name().as_ref() {
-                b"ScenarioObject" => {
+            Ok(XmlEvent::Start(e)) => {
+                if e.name().as_ref() == b"ScenarioObject" {
+                    if entities.len() >= MAX_ENTITIES {
+                        return Err(ScenarioError::Parse(format!(
+                            "Too many entities (>{}). Possible malicious file.",
+                            MAX_ENTITIES
+                        )));
+                    }
                     let (name, entity) = parse_scenario_object(reader)?;
                     entities.insert(name, entity);
                 }
-                _ => {}
-            },
+            }
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Entities" => break,
             Ok(XmlEvent::Eof) => break,
             Err(e) => return Err(ScenarioError::Xml(e)),
@@ -384,11 +438,13 @@ fn parse_misc_object(reader: &mut Reader<&[u8]>, name: &str) -> Result<Entity> {
                 for attr in e.attributes() {
                     let attr = attr.map_err(|e| ScenarioError::Parse(e.to_string()))?;
                     if attr.key.as_ref() == b"mass" {
-                        mass = Some(
-                            String::from_utf8_lossy(&attr.value)
-                                .parse()
-                                .unwrap_or(0.0),
-                        );
+                        let value = String::from_utf8_lossy(&attr.value);
+                        mass = Some(value.parse::<f64>().map_err(|_| {
+                            ScenarioError::Parse(format!(
+                                "Invalid mass attribute on MiscObject '{}': '{}'. Expected number.",
+                                name, value
+                            ))
+                        })?);
                     }
                     if attr.key.as_ref() == b"miscObjectCategory" {
                         category = Some(String::from_utf8_lossy(&attr.value).to_string());
@@ -450,7 +506,9 @@ fn parse_pedestrian_properties(reader: &mut Reader<&[u8]>) -> Result<f64> {
     Ok(70.0) // Default mass
 }
 
-fn parse_misc_object_properties(reader: &mut Reader<&[u8]>) -> Result<(Option<String>, Option<f64>)> {
+fn parse_misc_object_properties(
+    reader: &mut Reader<&[u8]>,
+) -> Result<(Option<String>, Option<f64>)> {
     skip_element(reader, b"Properties")?;
     Ok((None, None))
 }
@@ -554,10 +612,10 @@ fn parse_story(reader: &mut Reader<&[u8]>) -> Result<Story> {
 fn parse_act(reader: &mut Reader<&[u8]>) -> Result<Act> {
     // Simplified - would need full implementation
     let name = String::new();
-    
+
     // This is a minimal stub - full implementation needed
     skip_to_end(reader, b"Act")?;
-    
+
     Ok(Act {
         name,
         maneuver_groups: HashMap::new(),
@@ -572,10 +630,19 @@ fn skip_element(reader: &mut Reader<&[u8]>, element_name: &[u8]) -> Result<()> {
 }
 
 fn skip_to_end(reader: &mut Reader<&[u8]>, end_name: &[u8]) -> Result<()> {
+    const MAX_DEPTH: usize = 100; // Security: Prevent stack overflow from deeply nested XML
     let mut depth = 1;
     let mut buf = Vec::new();
 
     loop {
+        // Security check: Enforce maximum nesting depth
+        if depth > MAX_DEPTH {
+            return Err(ScenarioError::Parse(format!(
+                "XML nesting too deep (>{} levels). Possible XML bomb attack or malformed file.",
+                MAX_DEPTH
+            )));
+        }
+
         match reader.read_event_into(&mut buf) {
             Ok(XmlEvent::Start(e)) if e.name().as_ref() == end_name => depth += 1,
             Ok(XmlEvent::End(e)) if e.name().as_ref() == end_name => {

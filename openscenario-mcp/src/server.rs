@@ -573,7 +573,20 @@ impl OpenScenarioServer {
             },
             ToolDefinition {
                 name: "import_scenario".to_string(),
-                description: Some("Import an existing OpenSCENARIO .xosc file to inspect or modify it".to_string()),
+                description: Some(
+                    "Import an existing OpenSCENARIO .xosc file to inspect or modify it.\n\n\
+                    Example:\n\
+                    import_scenario(\n\
+                        xosc_path='./scenarios/lane_change.xosc',\n\
+                        scenario_name='my_import'  # optional, defaults to filename\n\
+                    )\n\n\
+                    After importing, use:\n\
+                    - inspect_scenario() for full JSON structure\n\
+                    - describe_scenario() for human-readable summary\n\
+                    - check_scenario() for validation and suggestions\n\
+                    - export_xml() to save modifications"
+                        .to_string(),
+                ),
                 input_schema: json!({
                     "type": "object",
                     "properties": {
@@ -1329,7 +1342,10 @@ impl OpenScenarioServer {
                     .get("xosc_path")
                     .and_then(Value::as_str)
                     .ok_or_else(|| anyhow!("Missing 'xosc_path'"))?;
-                let scenario_name = args.get("scenario_name").and_then(Value::as_str).map(String::from);
+                let scenario_name = args
+                    .get("scenario_name")
+                    .and_then(Value::as_str)
+                    .map(String::from);
                 let result = crate::import::handle_import_scenario(
                     GLOBAL_STATE.clone(),
                     xosc_path.to_string(),
