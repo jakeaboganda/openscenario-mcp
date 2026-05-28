@@ -72,10 +72,15 @@ pub fn handle_create_lane_change_scenario(
         .lock()
         .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
     
-    // Set road network on scenario if one is loaded
-    if let Some(ref road_network_path) = state_lock.current_road_network {
-        scenario.set_road_network(road_network_path)?;
-    }
+    // STRICT REQUIREMENT: Road network must be loaded
+    let road_network_path = state_lock.current_road_network.as_ref()
+        .ok_or_else(|| anyhow!(
+            "No road network loaded. Please load a road network first using:\n\
+             - get_real_world_road(location) to download from OpenStreetMap, or\n\
+             - load_road_network(xodr_path) to use a custom .xodr file"
+        ))?;
+    
+    scenario.set_road_network(road_network_path)?;
     
     state_lock.scenarios.insert(scenario_id.clone(), scenario);
 
@@ -149,10 +154,15 @@ pub fn handle_create_merge_scenario(
         .lock()
         .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
     
-    // Set road network on scenario if one is loaded
-    if let Some(ref road_network_path) = state_lock.current_road_network {
-        scenario.set_road_network(road_network_path)?;
-    }
+    // STRICT REQUIREMENT: Road network must be loaded
+    let road_network_path = state_lock.current_road_network.as_ref()
+        .ok_or_else(|| anyhow!(
+            "No road network loaded. Please load a road network first using:\n\
+             - get_real_world_road(location) to download from OpenStreetMap, or\n\
+             - load_road_network(xodr_path) to use a custom .xodr file"
+        ))?;
+    
+    scenario.set_road_network(road_network_path)?;
     
     state_lock.scenarios.insert(scenario_id.clone(), scenario);
 
@@ -226,10 +236,15 @@ pub fn handle_create_cutin_scenario(
         .lock()
         .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
     
-    // Set road network on scenario if one is loaded
-    if let Some(ref road_network_path) = state_lock.current_road_network {
-        scenario.set_road_network(road_network_path)?;
-    }
+    // STRICT REQUIREMENT: Road network must be loaded
+    let road_network_path = state_lock.current_road_network.as_ref()
+        .ok_or_else(|| anyhow!(
+            "No road network loaded. Please load a road network first using:\n\
+             - get_real_world_road(location) to download from OpenStreetMap, or\n\
+             - load_road_network(xodr_path) to use a custom .xodr file"
+        ))?;
+    
+    scenario.set_road_network(road_network_path)?;
     
     state_lock.scenarios.insert(scenario_id.clone(), scenario);
 
@@ -299,10 +314,15 @@ pub fn handle_create_platoon_scenario(
         .lock()
         .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
     
-    // Set road network on scenario if one is loaded
-    if let Some(ref road_network_path) = state_lock.current_road_network {
-        scenario.set_road_network(road_network_path)?;
-    }
+    // STRICT REQUIREMENT: Road network must be loaded
+    let road_network_path = state_lock.current_road_network.as_ref()
+        .ok_or_else(|| anyhow!(
+            "No road network loaded. Please load a road network first using:\n\
+             - get_real_world_road(location) to download from OpenStreetMap, or\n\
+             - load_road_network(xodr_path) to use a custom .xodr file"
+        ))?;
+    
+    scenario.set_road_network(road_network_path)?;
     
     state_lock.scenarios.insert(scenario_id.clone(), scenario);
 
