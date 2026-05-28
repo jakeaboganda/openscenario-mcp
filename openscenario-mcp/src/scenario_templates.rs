@@ -71,6 +71,12 @@ pub fn handle_create_lane_change_scenario(
     let mut state_lock = state
         .lock()
         .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    
+    // Set road network on scenario if one is loaded
+    if let Some(ref road_network_path) = state_lock.current_road_network {
+        scenario.set_road_network(road_network_path)?;
+    }
+    
     state_lock.scenarios.insert(scenario_id.clone(), scenario);
 
     Ok(json!({
@@ -142,6 +148,12 @@ pub fn handle_create_merge_scenario(
     let mut state_lock = state
         .lock()
         .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    
+    // Set road network on scenario if one is loaded
+    if let Some(ref road_network_path) = state_lock.current_road_network {
+        scenario.set_road_network(road_network_path)?;
+    }
+    
     state_lock.scenarios.insert(scenario_id.clone(), scenario);
 
     Ok(json!({
@@ -213,6 +225,12 @@ pub fn handle_create_cutin_scenario(
     let mut state_lock = state
         .lock()
         .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    
+    // Set road network on scenario if one is loaded
+    if let Some(ref road_network_path) = state_lock.current_road_network {
+        scenario.set_road_network(road_network_path)?;
+    }
+    
     state_lock.scenarios.insert(scenario_id.clone(), scenario);
 
     Ok(json!({
@@ -280,6 +298,12 @@ pub fn handle_create_platoon_scenario(
     let mut state_lock = state
         .lock()
         .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    
+    // Set road network on scenario if one is loaded
+    if let Some(ref road_network_path) = state_lock.current_road_network {
+        scenario.set_road_network(road_network_path)?;
+    }
+    
     state_lock.scenarios.insert(scenario_id.clone(), scenario);
 
     Ok(json!({

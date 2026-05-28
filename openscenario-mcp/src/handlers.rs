@@ -34,15 +34,21 @@ pub fn handle_create_scenario(
     };
 
     // Create scenario
-    let scenario = Scenario::new(osc_version);
+    let mut scenario = Scenario::new(osc_version);
 
     // Generate unique ID
     let scenario_id = format!("{}_{}", name, Uuid::new_v4());
 
-    // Store in state
+    // Store in state and set road network if one is loaded
     let mut state_lock = state
         .lock()
         .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+    
+    // Set road network on scenario if one is loaded
+    if let Some(ref road_network_path) = state_lock.current_road_network {
+        scenario.set_road_network(road_network_path)?;
+    }
+    
     state_lock.scenarios.insert(scenario_id.clone(), scenario);
 
     Ok(scenario_id)
@@ -403,6 +409,7 @@ pub fn handle_export_xml(
     let state_lock = state
         .lock()
         .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+
     let scenario = state_lock
         .scenarios
         .get(&scenario_id)
