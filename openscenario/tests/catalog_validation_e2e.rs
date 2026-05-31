@@ -70,9 +70,13 @@ fn test_end_to_end_catalog_usage() {
             }
         }
         eprintln!("Generated XML:\n{}", xml_output);
-        
+
         // If error is XSD missing, skip assertion (strict mode)
-        if report.errors.iter().any(|e| e.contains("XSD schema not available")) {
+        if report
+            .errors
+            .iter()
+            .any(|e| e.contains("XSD schema not available"))
+        {
             eprintln!("Skipping validation assertion - XSD files not installed");
             return; // Test passes if well-formed
         }
@@ -175,8 +179,11 @@ fn test_validation_error_messages() {
     assert!(!report.valid);
     // Either version mismatch OR missing XSD error
     assert!(
-        report.errors.iter().any(|e| e.contains("Version mismatch")) ||
-        report.errors.iter().any(|e| e.contains("XSD schema not available"))
+        report.errors.iter().any(|e| e.contains("Version mismatch"))
+            || report
+                .errors
+                .iter()
+                .any(|e| e.contains("XSD schema not available"))
     );
 
     // Test 3: Missing version attributes

@@ -16,7 +16,12 @@ fn test_validate_v1_0_scenario() {
     let report = validator.validate(xml);
     // NOTE: Without official XSD files, validation will fail (strict mode)
     // This test verifies well-formed XML is parseable, not XSD-valid
-    if !report.valid && report.errors.iter().any(|e| e.contains("XSD schema not available")) {
+    if !report.valid
+        && report
+            .errors
+            .iter()
+            .any(|e| e.contains("XSD schema not available"))
+    {
         eprintln!("Skipping validation check - XSD files not installed");
         return; // Skip test if XSD missing
     }
@@ -57,7 +62,10 @@ fn test_missing_xsd_strict() {
     }
     assert!(!report.valid, "Should fail without XSD files");
     assert!(
-        report.errors.iter().any(|e| e.contains("XSD schema not available")),
+        report
+            .errors
+            .iter()
+            .any(|e| e.contains("XSD schema not available")),
         "Should report missing XSD as error"
     );
 }

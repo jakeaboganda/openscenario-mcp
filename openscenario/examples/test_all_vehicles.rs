@@ -19,14 +19,19 @@ fn main() {
     ];
 
     for (xml_value, rust_enum) in categories {
-        println!("✅ {} -> {:?} -> {}", xml_value, rust_enum, rust_enum.as_xml_str());
+        println!(
+            "✅ {} -> {:?} -> {}",
+            xml_value,
+            rust_enum,
+            rust_enum.as_xml_str()
+        );
         assert_eq!(rust_enum.as_xml_str(), xml_value);
     }
 
     println!("\n=== Testing XSD Validation with New Categories ===\n");
 
     // Test train
-    let train_xml = format!(r#"<?xml version="1.0"?>
+    let train_xml = r#"<?xml version="1.0"?>
 <OpenSCENARIO>
     <FileHeader revMajor="1" revMinor="2" date="2024-01-01T00:00:00" description="Test" author="Test"/>
     <RoadNetwork>
@@ -54,7 +59,7 @@ fn main() {
         </Init>
         <StopTrigger/>
     </Storyboard>
-</OpenSCENARIO>"#);
+</OpenSCENARIO>"#.to_string();
 
     let validator = XsdValidator::new("1.2");
     let report = validator.validate(&train_xml);

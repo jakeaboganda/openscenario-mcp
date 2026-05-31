@@ -1,15 +1,69 @@
 use openscenario_mcp::handlers::{
     handle_add_lane_change_action, handle_add_speed_action, handle_add_vehicle,
-    handle_create_scenario, handle_export_xml, handle_set_position,
+    handle_create_scenario, handle_export_xml, handle_load_road_network, handle_set_position,
 };
 use openscenario_mcp::server::ServerState;
 use std::fs;
 use std::sync::{Arc, Mutex};
 
+// Minimal OpenDRIVE XML for testing
+const MINIMAL_XODR: &str = r###"<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="6" name="test_road" version="1.0" date="2026-05-31T00:00:00"/>
+    <road name="test_road" length="1000.0" id="1" junction="-1">
+        <link/>
+        <planView>
+            <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="1000.0">
+                <line/>
+            </geometry>
+        </planView>
+        <lanes>
+            <laneSection s="0.0">
+                <center>
+                    <lane id="0" type="none" level="false">
+                        <link/>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link/>
+                        <width sOffset="0.0" a="3.5" b="0.0" c="0.0" d="0.0"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+    </road>
+</OpenDRIVE>
+"###;
+
+/// Setup helper: Creates a state with a minimal road network loaded
+fn setup_state_with_road() -> Arc<Mutex<ServerState>> {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let state = Arc::new(Mutex::new(ServerState::new()));
+
+    // Create temporary XODR file with unique name
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let xodr_path = format!("/tmp/test_minimal_road_{}.xodr", timestamp);
+    fs::write(&xodr_path, MINIMAL_XODR).expect("Failed to write test XODR");
+
+    // Load road network
+    handle_load_road_network(state.clone(), xodr_path.clone())
+        .expect("Failed to load test road network");
+
+    // Clean up
+    let _ = fs::remove_file(&xodr_path);
+
+    state
+}
+
 /// Test 1: Multi-vehicle scenario with 5+ vehicles
 #[test]
 fn test_multi_vehicle_scenario() {
-    let state = Arc::new(Mutex::new(ServerState::new()));
+    let state = setup_state_with_road();
 
     // Create scenario
     let scenario_id = handle_create_scenario(
@@ -72,7 +126,7 @@ fn test_multi_vehicle_scenario() {
 /// Test 2: Many actions on a single vehicle (10+ actions)
 #[test]
 fn test_many_actions_single_vehicle() {
-    let state = Arc::new(Mutex::new(ServerState::new()));
+    let state = setup_state_with_road();
 
     let scenario_id = handle_create_scenario(
         state.clone(),
@@ -126,7 +180,7 @@ fn test_many_actions_single_vehicle() {
 /// Test 3: Mixed action types on same entity
 #[test]
 fn test_mixed_actions_same_entity() {
-    let state = Arc::new(Mutex::new(ServerState::new()));
+    let state = setup_state_with_road();
 
     let scenario_id = handle_create_scenario(
         state.clone(),
@@ -226,7 +280,7 @@ fn test_mixed_actions_same_entity() {
 /// Test 4: Multiple stories with different vehicles
 #[test]
 fn test_multiple_stories_different_vehicles() {
-    let state = Arc::new(Mutex::new(ServerState::new()));
+    let state = setup_state_with_road();
 
     let scenario_id = handle_create_scenario(
         state.clone(),
@@ -292,7 +346,7 @@ fn test_multiple_stories_different_vehicles() {
 /// Test 5: Export and validate XML structure
 #[test]
 fn test_export_validate_xml_structure() {
-    let state = Arc::new(Mutex::new(ServerState::new()));
+    let state = setup_state_with_road();
 
     let scenario_id = handle_create_scenario(
         state.clone(),
@@ -384,7 +438,7 @@ fn test_export_validate_xml_structure() {
 /// Test 6: Round-trip integrity (export XML, parse back, verify)
 #[test]
 fn test_round_trip_integrity() {
-    let state = Arc::new(Mutex::new(ServerState::new()));
+    let state = setup_state_with_road();
 
     // Create original scenario
     let scenario_id = handle_create_scenario(
@@ -483,7 +537,7 @@ fn test_round_trip_integrity() {
 /// Test 7: Large scenario stress test
 #[test]
 fn test_large_scenario_stress() {
-    let state = Arc::new(Mutex::new(ServerState::new()));
+    let state = setup_state_with_road();
 
     let scenario_id =
         handle_create_scenario(state.clone(), "stress_test".to_string(), "1.2".to_string())

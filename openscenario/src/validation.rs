@@ -35,10 +35,10 @@ static SCHEMA_VALIDATORS: OnceLock<HashMap<String, Option<UppsalaValidator>>> = 
 fn get_schema_validators() -> &'static HashMap<String, Option<UppsalaValidator>> {
     SCHEMA_VALIDATORS.get_or_init(|| {
         let mut map = HashMap::new();
-        
+
         for version in &["1.0", "1.1", "1.2"] {
             let schema_path = schema_path_for_version(version);
-            
+
             if !schema_path.exists() {
                 eprintln!(
                     "Warning: XSD schema not found for OpenSCENARIO v{}: {:?}",
@@ -48,7 +48,7 @@ fn get_schema_validators() -> &'static HashMap<String, Option<UppsalaValidator>>
                 map.insert(version.to_string(), None);
                 continue;
             }
-            
+
             // Read schema file
             let schema_xml = match std::fs::read_to_string(&schema_path) {
                 Ok(xml) => xml,
@@ -58,33 +58,25 @@ fn get_schema_validators() -> &'static HashMap<String, Option<UppsalaValidator>>
                     continue;
                 }
             };
-            
+
             match uppsala::parse(&schema_xml) {
-                Ok(schema_doc) => {
-                    match UppsalaValidator::from_schema(&schema_doc) {
-                        Ok(validator) => {
-                            eprintln!("✅ Loaded XSD schema for OpenSCENARIO v{}", version);
-                            map.insert(version.to_string(), Some(validator));
-                        }
-                        Err(e) => {
-                            eprintln!(
-                                "Error building validator for v{}: {}",
-                                version, e
-                            );
-                            map.insert(version.to_string(), None);
-                        }
+                Ok(schema_doc) => match UppsalaValidator::from_schema(&schema_doc) {
+                    Ok(validator) => {
+                        eprintln!("✅ Loaded XSD schema for OpenSCENARIO v{}", version);
+                        map.insert(version.to_string(), Some(validator));
                     }
-                }
+                    Err(e) => {
+                        eprintln!("Error building validator for v{}: {}", version, e);
+                        map.insert(version.to_string(), None);
+                    }
+                },
                 Err(e) => {
-                    eprintln!(
-                        "Error parsing XSD schema for v{}: {}",
-                        version, e
-                    );
+                    eprintln!("Error parsing XSD schema for v{}: {}", version, e);
                     map.insert(version.to_string(), None);
                 }
             }
         }
-        
+
         map
     })
 }
@@ -124,7 +116,7 @@ impl XsdValidator {
     /// ```
     pub fn validate(&self, xml: &str) -> ValidationReport {
         let mut errors = Vec::new();
-        let warnings = Vec::new();  // Reserved for future use
+        let warnings = Vec::new(); // Reserved for future use
 
         // First: Basic XML well-formedness check
         let doc = match uppsala::parse(xml) {
@@ -145,7 +137,7 @@ impl XsdValidator {
             Some(Some(validator)) => {
                 // Full XSD validation
                 let validation_errors = validator.validate(&doc);
-                
+
                 if validation_errors.is_empty() {
                     // Valid!
                     ValidationReport {
@@ -155,11 +147,9 @@ impl XsdValidator {
                     }
                 } else {
                     // XSD validation failed
-                    let error_messages: Vec<String> = validation_errors
-                        .iter()
-                        .map(|e| format!("{}", e))
-                        .collect();
-                    
+                    let error_messages: Vec<String> =
+                        validation_errors.iter().map(|e| format!("{}", e)).collect();
+
                     ValidationReport {
                         valid: false,
                         errors: error_messages,
@@ -175,7 +165,7 @@ impl XsdValidator {
                     Run ./check-schemas.sh to set up XSD files.",
                     self.version
                 ));
-                
+
                 ValidationReport {
                     valid: false,
                     errors,
@@ -217,7 +207,11 @@ mod tests {
 </OpenSCENARIO>"#;
         let report = validator.validate(xml);
         // Strict mode: without XSD, this will fail
-        if report.errors.iter().any(|e| e.contains("XSD schema not available")) {
+        if report
+            .errors
+            .iter()
+            .any(|e| e.contains("XSD schema not available"))
+        {
             // Expected behavior without XSD
             assert!(!report.valid);
         } else {
@@ -253,6 +247,9 @@ mod tests {
             return;
         }
         assert!(!report.valid);
-        assert!(report.errors.iter().any(|e| e.contains("XSD schema not available")));
+        assert!(report
+            .errors
+            .iter()
+            .any(|e| e.contains("XSD schema not available")));
     }
 }

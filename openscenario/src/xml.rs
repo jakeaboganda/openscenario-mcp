@@ -12,21 +12,6 @@ fn format_u8(value: u8) -> String {
     buf.format(value).to_string()
 }
 
-fn format_u32(value: u32) -> String {
-    let mut buf = itoa::Buffer::new();
-    buf.format(value).to_string()
-}
-
-fn format_i32(value: i32) -> String {
-    let mut buf = itoa::Buffer::new();
-    buf.format(value).to_string()
-}
-
-fn format_f64(value: f64) -> String {
-    let mut buf = ryu::Buffer::new();
-    buf.format(value).to_string()
-}
-
 impl Scenario {
     /// Exports the scenario to OpenSCENARIO XML format.
     ///
@@ -192,7 +177,10 @@ impl Scenario {
                     // Inline vehicle definition
                     let mut veh_elem = BytesStart::new("Vehicle");
                     veh_elem.push_attribute(("name", v.name.as_str()));
-                    veh_elem.push_attribute(("vehicleCategory", v.params.vehicle_category.as_xml_str()));
+                    veh_elem.push_attribute((
+                        "vehicleCategory",
+                        v.params.vehicle_category.as_xml_str(),
+                    ));
                     if let Some(props) = &v.params.properties {
                         if let Some(model) = &props.model3d {
                             veh_elem.push_attribute(("model3d", model.as_str()));
@@ -570,7 +558,7 @@ impl Scenario {
                 // Simplified: just reference and s-coordinate
                 // Full implementation would include RouteRef and InRoutePosition sub-elements
                 writer.write_event(XmlEvent::Start(elem.to_owned()))?;
-                
+
                 // RouteRef element (simplified as catalog reference)
                 writer.write_event(XmlEvent::Start(BytesStart::new("RouteRef")))?;
                 let mut cat_ref = BytesStart::new("CatalogReference");
@@ -578,14 +566,14 @@ impl Scenario {
                 cat_ref.push_attribute(("entryName", route_ref.as_str()));
                 writer.write_event(XmlEvent::Empty(cat_ref))?;
                 writer.write_event(XmlEvent::End(BytesEnd::new("RouteRef")))?;
-                
+
                 // InRoutePosition with s-coordinate
                 writer.write_event(XmlEvent::Start(BytesStart::new("InRoutePosition")))?;
                 let mut from_lane = BytesStart::new("FromLaneCoordinates");
                 from_lane.push_attribute(("pathS", s.to_string().as_str()));
                 writer.write_event(XmlEvent::Empty(from_lane))?;
                 writer.write_event(XmlEvent::End(BytesEnd::new("InRoutePosition")))?;
-                
+
                 writer.write_event(XmlEvent::End(BytesEnd::new("RoutePosition")))?;
             }
         }

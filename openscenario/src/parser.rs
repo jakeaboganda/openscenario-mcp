@@ -355,32 +355,34 @@ fn parse_scenario_object(reader: &mut Reader<&[u8]>) -> Result<(String, Entity)>
         .ok_or_else(|| ScenarioError::Parse("No entity found in ScenarioObject".to_string()))
 }
 
-fn parse_vehicle(reader: &mut Reader<&[u8]>, name: &str, start_elem: &BytesStart) -> Result<Entity> {
+fn parse_vehicle(
+    reader: &mut Reader<&[u8]>,
+    name: &str,
+    start_elem: &BytesStart,
+) -> Result<Entity> {
     let mut vehicle_category = VehicleCategory::Car;
-    
+
     // Parse vehicleCategory attribute
-    for attr_result in start_elem.attributes() {
-        if let Ok(attr) = attr_result {
-            if attr.key.as_ref() == b"vehicleCategory" {
-                let value = String::from_utf8_lossy(&attr.value).to_lowercase();
-                vehicle_category = match value.as_str() {
-                    "car" => VehicleCategory::Car,
-                    "van" => VehicleCategory::Van,
-                    "truck" => VehicleCategory::Truck,
-                    "trailer" => VehicleCategory::Trailer,
-                    "semitrailer" => VehicleCategory::Semitrailer,
-                    "bus" => VehicleCategory::Bus,
-                    "motorbike" => VehicleCategory::Motorbike,
-                    "bicycle" => VehicleCategory::Bicycle,
-                    "train" => VehicleCategory::Train,
-                    "tram" => VehicleCategory::Tram,
-                    _ => VehicleCategory::Car, // Default fallback
-                };
-                break;
-            }
+    for attr_result in start_elem.attributes().flatten() {
+        if attr_result.key.as_ref() == b"vehicleCategory" {
+            let value = String::from_utf8_lossy(&attr_result.value).to_lowercase();
+            vehicle_category = match value.as_str() {
+                "car" => VehicleCategory::Car,
+                "van" => VehicleCategory::Van,
+                "truck" => VehicleCategory::Truck,
+                "trailer" => VehicleCategory::Trailer,
+                "semitrailer" => VehicleCategory::Semitrailer,
+                "bus" => VehicleCategory::Bus,
+                "motorbike" => VehicleCategory::Motorbike,
+                "bicycle" => VehicleCategory::Bicycle,
+                "train" => VehicleCategory::Train,
+                "tram" => VehicleCategory::Tram,
+                _ => VehicleCategory::Car, // Default fallback
+            };
+            break;
         }
     }
-    
+
     let mut catalog = None;
     let mut buf = Vec::new();
 
@@ -542,10 +544,13 @@ fn parse_misc_object_properties(
 
 // Remove parse_misc_object_category since we don't need it
 
+// Type alias for complex return type
+type StoryboardResult = Result<(Storyboard, HashMap<String, Position>, HashMap<String, f64>)>;
+
 fn parse_storyboard(
     reader: &mut Reader<&[u8]>,
     entities: &HashMap<String, Entity>,
-) -> Result<(Storyboard, HashMap<String, Position>, HashMap<String, f64>)> {
+) -> StoryboardResult {
     let mut stories = HashMap::new();
     let mut initial_positions = HashMap::new();
     let mut initial_speeds = HashMap::new();

@@ -5,12 +5,61 @@ use mcp_sdk::types::CallToolRequest;
 use openscenario_mcp::handlers::*;
 use openscenario_mcp::server::{OpenScenarioServer, ServerState};
 use serde_json::json;
+use std::fs;
 use std::sync::{Arc, Mutex};
+
+// Minimal OpenDRIVE XML for testing
+const MINIMAL_XODR: &str = r###"<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="6" name="test_road" version="1.0" date="2026-05-31T00:00:00"/>
+    <road name="test_road" length="1000.0" id="1" junction="-1">
+        <link/>
+        <planView>
+            <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="1000.0">
+                <line/>
+            </geometry>
+        </planView>
+        <lanes>
+            <laneSection s="0.0">
+                <center>
+                    <lane id="0" type="none" level="false">
+                        <link/>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link/>
+                        <width sOffset="0.0" a="3.5" b="0.0" c="0.0" d="0.0"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+    </road>
+</OpenDRIVE>
+"###;
 
 // ========== HELPER FUNCTIONS ==========
 
 fn create_test_state() -> Arc<Mutex<ServerState>> {
-    Arc::new(Mutex::new(ServerState::new()))
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let state = Arc::new(Mutex::new(ServerState::new()));
+
+    // Create temporary XODR file with unique name
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let xodr_path = format!("/tmp/test_error_road_{}.xodr", timestamp);
+    fs::write(&xodr_path, MINIMAL_XODR).expect("Failed to write test XODR");
+
+    // Load road network
+    let _ = handle_load_road_network(state.clone(), xodr_path.clone());
+
+    // Clean up
+    let _ = fs::remove_file(&xodr_path);
+
+    state
 }
 
 fn create_test_scenario(state: Arc<Mutex<ServerState>>) -> Result<String> {
