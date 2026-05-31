@@ -63,6 +63,12 @@ fn test_end_to_end_catalog_usage() {
         for error in &report.errors {
             eprintln!("  - {}", error);
         }
+        if !report.warnings.is_empty() {
+            eprintln!("Validation warnings:");
+            for warning in &report.warnings {
+                eprintln!("  - {}", warning);
+            }
+        }
         eprintln!("Generated XML:\n{}", xml_output);
     }
     assert!(report.valid, "Generated scenario should be valid");

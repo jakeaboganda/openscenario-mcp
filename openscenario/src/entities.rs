@@ -27,6 +27,11 @@ pub struct CatalogReference {
 /// Defines the type of vehicle entity according to the OpenSCENARIO standard.
 /// Used for behavior simulation, collision detection, and visualization.
 ///
+/// # Future Compatibility
+/// This enum is marked `#[non_exhaustive]` to allow future OpenSCENARIO
+/// specification updates to add new vehicle categories without breaking changes.
+/// Always include a wildcard pattern (`_ =>`) when matching.
+///
 /// # Examples
 /// ```
 /// use openscenario::entities::VehicleCategory;
@@ -38,6 +43,7 @@ pub struct CatalogReference {
 /// # }
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum VehicleCategory {
     /// Passenger car
     Car,
@@ -62,7 +68,22 @@ pub enum VehicleCategory {
 }
 
 impl VehicleCategory {
-    /// Convert to OpenSCENARIO XML attribute value
+    /// Convert to OpenSCENARIO XML attribute value.
+    ///
+    /// Returns a static string slice (zero allocation) suitable for XML serialization.
+    /// This replaces the previous `format!("{:?}", category).to_lowercase()` pattern
+    /// which allocated memory 3 times per call (Debug format → String, to_lowercase() → String, as_str() → temporary slice).
+    ///
+    /// # Performance
+    /// Zero heap allocations, returns compile-time constant strings.
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::VehicleCategory;
+    ///
+    /// assert_eq!(VehicleCategory::Car.as_xml_str(), "car");
+    /// assert_eq!(VehicleCategory::Train.as_xml_str(), "train");
+    /// ```
     pub fn as_xml_str(&self) -> &'static str {
         match self {
             VehicleCategory::Car => "car",

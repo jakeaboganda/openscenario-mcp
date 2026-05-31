@@ -16,7 +16,6 @@ fn test_validate_v1_0_scenario() {
     let report = validator.validate(xml);
     assert!(report.valid, "Valid XML should pass validation");
     // Note: Without XSD files, there will be a warning about missing schema
-    // This is expected fallback behavior
 }
 
 #[test]

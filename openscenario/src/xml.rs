@@ -217,16 +217,26 @@ impl Scenario {
                     writer.write_event(XmlEvent::End(BytesEnd::new("Axles")))?;
 
                     // Properties (required by XSD, even if empty)
-                    writer.write_event(XmlEvent::Start(BytesStart::new("Properties")))?;
-                    if let Some(props) = &v.params.properties {
-                        if let Some(mass) = props.mass {
-                            let mut prop = BytesStart::new("Property");
-                            prop.push_attribute(("name", "mass"));
-                            prop.push_attribute(("value", mass.to_string().as_str()));
-                            writer.write_event(XmlEvent::Empty(prop))?;
+                    // Use self-closing tag when no properties to reduce XML size
+                    let has_properties = v.params.properties.as_ref()
+                        .map(|p| p.mass.is_some())
+                        .unwrap_or(false);
+                    
+                    if has_properties {
+                        writer.write_event(XmlEvent::Start(BytesStart::new("Properties")))?;
+                        if let Some(props) = &v.params.properties {
+                            if let Some(mass) = props.mass {
+                                let mut prop = BytesStart::new("Property");
+                                prop.push_attribute(("name", "mass"));
+                                prop.push_attribute(("value", mass.to_string().as_str()));
+                                writer.write_event(XmlEvent::Empty(prop))?;
+                            }
                         }
+                        writer.write_event(XmlEvent::End(BytesEnd::new("Properties")))?;
+                    } else {
+                        // Empty properties: use self-closing tag (<Properties/> vs <Properties></Properties>)
+                        writer.write_event(XmlEvent::Empty(BytesStart::new("Properties")))?;
                     }
-                    writer.write_event(XmlEvent::End(BytesEnd::new("Properties")))?;
 
                     writer.write_event(XmlEvent::End(BytesEnd::new("Vehicle")))?;
                 }
@@ -263,14 +273,16 @@ impl Scenario {
                     writer.write_event(XmlEvent::End(BytesEnd::new("BoundingBox")))?;
 
                     // Properties (required by XSD, even if empty)
-                    writer.write_event(XmlEvent::Start(BytesStart::new("Properties")))?;
                     if let Some(mass) = p.params.mass {
+                        writer.write_event(XmlEvent::Start(BytesStart::new("Properties")))?;
                         let mut prop = BytesStart::new("Property");
                         prop.push_attribute(("name", "mass"));
                         prop.push_attribute(("value", mass.to_string().as_str()));
                         writer.write_event(XmlEvent::Empty(prop))?;
+                        writer.write_event(XmlEvent::End(BytesEnd::new("Properties")))?;
+                    } else {
+                        writer.write_event(XmlEvent::Empty(BytesStart::new("Properties")))?;
                     }
-                    writer.write_event(XmlEvent::End(BytesEnd::new("Properties")))?;
 
                     writer.write_event(XmlEvent::End(BytesEnd::new("Pedestrian")))?;
                 }
@@ -305,14 +317,16 @@ impl Scenario {
                     writer.write_event(XmlEvent::End(BytesEnd::new("BoundingBox")))?;
 
                     // Properties (required by XSD, even if empty)
-                    writer.write_event(XmlEvent::Start(BytesStart::new("Properties")))?;
                     if let Some(mass) = m.params.mass {
+                        writer.write_event(XmlEvent::Start(BytesStart::new("Properties")))?;
                         let mut prop = BytesStart::new("Property");
                         prop.push_attribute(("name", "mass"));
                         prop.push_attribute(("value", mass.to_string().as_str()));
                         writer.write_event(XmlEvent::Empty(prop))?;
+                        writer.write_event(XmlEvent::End(BytesEnd::new("Properties")))?;
+                    } else {
+                        writer.write_event(XmlEvent::Empty(BytesStart::new("Properties")))?;
                     }
-                    writer.write_event(XmlEvent::End(BytesEnd::new("Properties")))?;
 
                     writer.write_event(XmlEvent::End(BytesEnd::new("MiscObject")))?;
                 }

@@ -1,6 +1,6 @@
-use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 use uppsala::xsd::XsdValidator as UppsalaValidator;
 
 /// Validation report containing results and any errors
@@ -10,6 +10,8 @@ pub struct ValidationReport {
     pub valid: bool,
     /// List of validation errors with line numbers when available
     pub errors: Vec<String>,
+    /// List of validation warnings (non-fatal issues)
+    pub warnings: Vec<String>,
 }
 
 /// XSD validator for OpenSCENARIO XML documents using Uppsala
@@ -27,9 +29,11 @@ fn schema_path_for_version(version: &str) -> PathBuf {
         .join("OpenSCENARIO.xsd")
 }
 
-// Lazy-loaded validators (parsed once at first use)
-lazy_static! {
-    static ref SCHEMA_VALIDATORS: HashMap<String, Option<UppsalaValidator>> = {
+// Lazy-loaded validators using OnceLock (parsed once at first use)
+static SCHEMA_VALIDATORS: OnceLock<HashMap<String, Option<UppsalaValidator>>> = OnceLock::new();
+
+fn get_schema_validators() -> &'static HashMap<String, Option<UppsalaValidator>> {
+    SCHEMA_VALIDATORS.get_or_init(|| {
         let mut map = HashMap::new();
         
         for version in &["1.0", "1.1", "1.2"] {
@@ -82,7 +86,7 @@ lazy_static! {
         }
         
         map
-    };
+    })
 }
 
 impl XsdValidator {
@@ -104,7 +108,7 @@ impl XsdValidator {
     /// * `xml` - OpenSCENARIO XML string to validate
     ///
     /// # Returns
-    /// * `ValidationReport` with validation results and errors
+    /// * `ValidationReport` with validation results, errors, and warnings
     ///
     /// # Examples
     /// ```
@@ -120,6 +124,7 @@ impl XsdValidator {
     /// ```
     pub fn validate(&self, xml: &str) -> ValidationReport {
         let mut errors = Vec::new();
+        let mut warnings = Vec::new();
 
         // First: Basic XML well-formedness check
         let doc = match uppsala::parse(xml) {
@@ -128,13 +133,15 @@ impl XsdValidator {
                 return ValidationReport {
                     valid: false,
                     errors,
+                    warnings,
                 };
             }
             Ok(doc) => doc,
         };
 
         // Check for XSD validator availability
-        match SCHEMA_VALIDATORS.get(&self.version) {
+        let validators = get_schema_validators();
+        match validators.get(&self.version) {
             Some(Some(validator)) => {
                 // Full XSD validation
                 let validation_errors = validator.validate(&doc);
@@ -144,6 +151,7 @@ impl XsdValidator {
                     ValidationReport {
                         valid: true,
                         errors: vec![],
+                        warnings,
                     }
                 } else {
                     // XSD validation failed
@@ -155,12 +163,13 @@ impl XsdValidator {
                     ValidationReport {
                         valid: false,
                         errors: error_messages,
+                        warnings,
                     }
                 }
             }
             Some(None) => {
                 // Schema not available - fallback to basic validation
-                errors.push(format!(
+                warnings.push(format!(
                     "XSD schema not available for OpenSCENARIO v{}. \
                     Performing basic validation only. \
                     Run ./check-schemas.sh to set up XSD files.",
@@ -171,8 +180,9 @@ impl XsdValidator {
                 self.validate_version_basic(xml, &mut errors);
                 
                 ValidationReport {
-                    valid: errors.len() == 1, // Only the warning
+                    valid: errors.is_empty(),
                     errors,
+                    warnings,
                 }
             }
             None => {
@@ -184,6 +194,7 @@ impl XsdValidator {
                 ValidationReport {
                     valid: false,
                     errors,
+                    warnings,
                 }
             }
         }
@@ -270,7 +281,7 @@ mod tests {
 </OpenSCENARIO>"#;
         let report = validator.validate(xml);
         // Should at least parse without errors
-        assert!(report.valid || report.errors.iter().any(|e| e.contains("XSD schema not available")));
+        assert!(report.valid || !report.warnings.is_empty());
     }
 
     #[test]
@@ -295,7 +306,8 @@ mod tests {
 </OpenSCENARIO>"#;
         let report = validator.validate(xml);
         // Should detect version mismatch (if XSD not available, falls back to basic check)
-        let has_version_error = report.errors.iter().any(|e| e.contains("Version mismatch") || e.contains("XSD"));
-        assert!(has_version_error);
+        let has_version_error = report.errors.iter().any(|e| e.contains("Version mismatch"));
+        let has_warning = !report.warnings.is_empty();
+        assert!(has_version_error || has_warning);
     }
 }
