@@ -1,0 +1,540 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" version="1.2.0">
+  
+  <!-- Root element -->
+  <xs:element name="OpenSCENARIO">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="FileHeader" type="FileHeaderType"/>
+        <xs:element name="ParameterDeclarations" type="ParameterDeclarationsType" minOccurs="0"/>
+        <xs:element name="CatalogLocations" type="CatalogLocationsType" minOccurs="0"/>
+        <xs:element name="RoadNetwork" type="RoadNetworkType"/>
+        <xs:element name="Entities" type="EntitiesType"/>
+        <xs:element name="Storyboard" type="StoryboardType"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  
+  <!-- FileHeader -->
+  <xs:complexType name="FileHeaderType">
+    <xs:sequence>
+      <xs:element name="License" type="LicenseType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="revMajor" type="xs:unsignedShort" use="required"/>
+    <xs:attribute name="revMinor" type="xs:unsignedShort" use="required"/>
+    <xs:attribute name="date" type="xs:dateTime" use="required"/>
+    <xs:attribute name="description" type="xs:string" use="required"/>
+    <xs:attribute name="author" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="LicenseType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="resource" type="xs:string"/>
+    <xs:attribute name="spdxId" type="xs:string"/>
+  </xs:complexType>
+  
+  <!-- ParameterDeclarations -->
+  <xs:complexType name="ParameterDeclarationsType">
+    <xs:sequence>
+      <xs:element name="ParameterDeclaration" type="ParameterDeclarationType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="ParameterDeclarationType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="parameterType" type="ParameterTypeEnum" use="required"/>
+    <xs:attribute name="value" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <xs:simpleType name="ParameterTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="integer"/>
+      <xs:enumeration value="double"/>
+      <xs:enumeration value="string"/>
+      <xs:enumeration value="unsignedInt"/>
+      <xs:enumeration value="unsignedShort"/>
+      <xs:enumeration value="boolean"/>
+      <xs:enumeration value="dateTime"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <!-- CatalogLocations -->
+  <xs:complexType name="CatalogLocationsType">
+    <xs:sequence>
+      <xs:element name="VehicleCatalog" type="CatalogLocationType" minOccurs="0"/>
+      <xs:element name="ControllerCatalog" type="CatalogLocationType" minOccurs="0"/>
+      <xs:element name="PedestrianCatalog" type="CatalogLocationType" minOccurs="0"/>
+      <xs:element name="MiscObjectCatalog" type="CatalogLocationType" minOccurs="0"/>
+      <xs:element name="EnvironmentCatalog" type="CatalogLocationType" minOccurs="0"/>
+      <xs:element name="ManeuverCatalog" type="CatalogLocationType" minOccurs="0"/>
+      <xs:element name="TrajectoryCatalog" type="CatalogLocationType" minOccurs="0"/>
+      <xs:element name="RouteCatalog" type="CatalogLocationType" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="CatalogLocationType">
+    <xs:sequence>
+      <xs:element name="Directory" type="DirectoryType"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="DirectoryType">
+    <xs:attribute name="path" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <!-- RoadNetwork -->
+  <xs:complexType name="RoadNetworkType">
+    <xs:sequence>
+      <xs:element name="LogicFile" type="FileType" minOccurs="0"/>
+      <xs:element name="SceneGraphFile" type="FileType" minOccurs="0"/>
+      <xs:element name="TrafficSignals" type="TrafficSignalsType" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="FileType">
+    <xs:attribute name="filepath" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="TrafficSignalsType">
+    <xs:sequence>
+      <xs:element name="TrafficSignalController" type="TrafficSignalControllerType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="TrafficSignalControllerType">
+    <xs:sequence>
+      <xs:element name="Phase" type="PhaseType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="delay" type="xs:double"/>
+  </xs:complexType>
+  
+  <xs:complexType name="PhaseType">
+    <xs:sequence>
+      <xs:element name="TrafficSignalState" type="TrafficSignalStateType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="duration" type="xs:double" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="TrafficSignalStateType">
+    <xs:attribute name="trafficSignalId" type="xs:string" use="required"/>
+    <xs:attribute name="state" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <!-- Entities -->
+  <xs:complexType name="EntitiesType">
+    <xs:sequence>
+      <xs:element name="ScenarioObject" type="ScenarioObjectType" maxOccurs="unbounded"/>
+      <xs:element name="EntitySelection" type="EntitySelectionType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="ScenarioObjectType">
+    <xs:sequence>
+      <xs:choice>
+        <xs:element name="CatalogReference" type="CatalogReferenceType"/>
+        <xs:element name="Vehicle" type="VehicleType"/>
+        <xs:element name="Pedestrian" type="PedestrianType"/>
+        <xs:element name="MiscObject" type="MiscObjectType"/>
+      </xs:choice>
+      <xs:element name="ObjectController" type="ObjectControllerType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="VehicleType">
+    <xs:sequence>
+      <xs:element name="ParameterDeclarations" type="ParameterDeclarationsType" minOccurs="0"/>
+      <xs:element name="BoundingBox" type="BoundingBoxType"/>
+      <xs:element name="Performance" type="PerformanceType"/>
+      <xs:element name="Axles" type="AxlesType"/>
+      <xs:element name="Properties" type="PropertiesType"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="vehicleCategory" type="VehicleCategoryEnum" use="required"/>
+  </xs:complexType>
+  
+  <xs:simpleType name="VehicleCategoryEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="car"/>
+      <xs:enumeration value="van"/>
+      <xs:enumeration value="truck"/>
+      <xs:enumeration value="trailer"/>
+      <xs:enumeration value="semitrailer"/>
+      <xs:enumeration value="bus"/>
+      <xs:enumeration value="motorbike"/>
+      <xs:enumeration value="bicycle"/>
+      <xs:enumeration value="train"/>
+      <xs:enumeration value="tram"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <!-- Simplified types for brevity -->
+  <xs:complexType name="CatalogReferenceType">
+    <xs:attribute name="catalogName" type="xs:string" use="required"/>
+    <xs:attribute name="entryName" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="PedestrianType">
+    <xs:sequence>
+      <xs:element name="BoundingBox" type="BoundingBoxType"/>
+      <xs:element name="Properties" type="PropertiesType"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="mass" type="xs:double" use="required"/>
+    <xs:attribute name="model" type="xs:string" use="required"/>
+    <xs:attribute name="pedestrianCategory" type="PedestrianCategoryEnum" use="required"/>
+  </xs:complexType>
+  
+  <xs:simpleType name="PedestrianCategoryEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="pedestrian"/>
+      <xs:enumeration value="wheelchair"/>
+      <xs:enumeration value="animal"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:complexType name="MiscObjectType">
+    <xs:sequence>
+      <xs:element name="BoundingBox" type="BoundingBoxType"/>
+      <xs:element name="Properties" type="PropertiesType"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="mass" type="xs:double" use="required"/>
+    <xs:attribute name="miscObjectCategory" type="MiscObjectCategoryEnum" use="required"/>
+  </xs:complexType>
+  
+  <xs:simpleType name="MiscObjectCategoryEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="none"/>
+      <xs:enumeration value="obstacle"/>
+      <xs:enumeration value="pole"/>
+      <xs:enumeration value="tree"/>
+      <xs:enumeration value="vegetation"/>
+      <xs:enumeration value="barrier"/>
+      <xs:enumeration value="building"/>
+      <xs:enumeration value="parkingSpace"/>
+      <xs:enumeration value="patch"/>
+      <xs:enumeration value="railing"/>
+      <xs:enumeration value="trafficIsland"/>
+      <xs:enumeration value="crosswalk"/>
+      <xs:enumeration value="streetLamp"/>
+      <xs:enumeration value="gantry"/>
+      <xs:enumeration value="soundBarrier"/>
+      <xs:enumeration value="wind"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:complexType name="BoundingBoxType">
+    <xs:sequence>
+      <xs:element name="Center" type="CenterType"/>
+      <xs:element name="Dimensions" type="DimensionsType"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="CenterType">
+    <xs:attribute name="x" type="xs:double" use="required"/>
+    <xs:attribute name="y" type="xs:double" use="required"/>
+    <xs:attribute name="z" type="xs:double" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="DimensionsType">
+    <xs:attribute name="width" type="xs:double" use="required"/>
+    <xs:attribute name="length" type="xs:double" use="required"/>
+    <xs:attribute name="height" type="xs:double" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="PerformanceType">
+    <xs:attribute name="maxSpeed" type="xs:double" use="required"/>
+    <xs:attribute name="maxAcceleration" type="xs:double" use="required"/>
+    <xs:attribute name="maxDeceleration" type="xs:double" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="AxlesType">
+    <xs:sequence>
+      <xs:element name="FrontAxle" type="AxleType"/>
+      <xs:element name="RearAxle" type="AxleType"/>
+      <xs:element name="AdditionalAxle" type="AxleType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="AxleType">
+    <xs:attribute name="maxSteering" type="xs:double" use="required"/>
+    <xs:attribute name="wheelDiameter" type="xs:double" use="required"/>
+    <xs:attribute name="trackWidth" type="xs:double" use="required"/>
+    <xs:attribute name="positionX" type="xs:double" use="required"/>
+    <xs:attribute name="positionZ" type="xs:double" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="PropertiesType">
+    <xs:sequence>
+      <xs:element name="Property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="File" type="FileType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="PropertyType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="value" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="ObjectControllerType">
+    <xs:sequence>
+      <xs:choice>
+        <xs:element name="CatalogReference" type="CatalogReferenceType"/>
+        <xs:element name="Controller" type="ControllerType"/>
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="ControllerType">
+    <xs:sequence>
+      <xs:element name="Properties" type="PropertiesType"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="EntitySelectionType">
+    <xs:sequence>
+      <xs:element name="Members" type="SelectedEntitiesType"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="SelectedEntitiesType">
+    <xs:sequence>
+      <xs:element name="EntityRef" type="EntityRefType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="EntityRefType">
+    <xs:attribute name="entityRef" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <!-- Storyboard (simplified) -->
+  <xs:complexType name="StoryboardType">
+    <xs:sequence>
+      <xs:element name="Init" type="InitType"/>
+      <xs:element name="Story" type="StoryType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="StopTrigger" type="TriggerType"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="InitType">
+    <xs:sequence>
+      <xs:element name="Actions" type="InitActionsType"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="InitActionsType">
+    <xs:sequence>
+      <xs:element name="Private" type="PrivateType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="GlobalAction" type="GlobalActionType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="UserDefinedAction" type="UserDefinedActionType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="PrivateType">
+    <xs:sequence>
+      <xs:element name="PrivateAction" type="PrivateActionType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="entityRef" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="PrivateActionType">
+    <xs:choice>
+      <xs:element name="LongitudinalAction" type="LongitudinalActionType"/>
+      <xs:element name="LateralAction" type="LateralActionType"/>
+      <xs:element name="VisibilityAction" type="VisibilityActionType"/>
+      <xs:element name="SynchronizeAction" type="SynchronizeActionType"/>
+      <xs:element name="ActivateControllerAction" type="ActivateControllerActionType"/>
+      <xs:element name="ControllerAction" type="ControllerActionType"/>
+      <xs:element name="TeleportAction" type="TeleportActionType"/>
+      <xs:element name="RoutingAction" type="RoutingActionType"/>
+    </xs:choice>
+  </xs:complexType>
+  
+  <!-- Simplified action types -->
+  <xs:complexType name="LongitudinalActionType">
+    <xs:sequence>
+      <xs:element name="SpeedAction" type="SpeedActionType"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="SpeedActionType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="LateralActionType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="VisibilityActionType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="SynchronizeActionType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="ActivateControllerActionType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="ControllerActionType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="TeleportActionType">
+    <xs:sequence>
+      <xs:element name="Position" type="PositionType"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="PositionType">
+    <xs:choice>
+      <xs:element name="WorldPosition" type="WorldPositionType"/>
+      <xs:element name="RelativeWorldPosition" type="RelativeWorldPositionType"/>
+      <xs:element name="RelativeObjectPosition" type="RelativeObjectPositionType"/>
+      <xs:element name="RoadPosition" type="RoadPositionType"/>
+      <xs:element name="RelativeRoadPosition" type="RelativeRoadPositionType"/>
+      <xs:element name="LanePosition" type="LanePositionType"/>
+      <xs:element name="RelativeLanePosition" type="RelativeLanePositionType"/>
+      <xs:element name="RoutePosition" type="RoutePositionType"/>
+    </xs:choice>
+  </xs:complexType>
+  
+  <xs:complexType name="WorldPositionType">
+    <xs:attribute name="x" type="xs:double" use="required"/>
+    <xs:attribute name="y" type="xs:double" use="required"/>
+    <xs:attribute name="z" type="xs:double"/>
+    <xs:attribute name="h" type="xs:double"/>
+    <xs:attribute name="p" type="xs:double"/>
+    <xs:attribute name="r" type="xs:double"/>
+  </xs:complexType>
+  
+  <!-- Other position types simplified -->
+  <xs:complexType name="RelativeWorldPositionType">
+    <xs:attribute name="entityRef" type="xs:string" use="required"/>
+    <xs:attribute name="dx" type="xs:double" use="required"/>
+    <xs:attribute name="dy" type="xs:double" use="required"/>
+    <xs:attribute name="dz" type="xs:double"/>
+  </xs:complexType>
+  
+  <xs:complexType name="RelativeObjectPositionType">
+    <xs:attribute name="entityRef" type="xs:string" use="required"/>
+    <xs:attribute name="dx" type="xs:double" use="required"/>
+    <xs:attribute name="dy" type="xs:double" use="required"/>
+    <xs:attribute name="dz" type="xs:double"/>
+  </xs:complexType>
+  
+  <xs:complexType name="RoadPositionType">
+    <xs:attribute name="roadId" type="xs:string" use="required"/>
+    <xs:attribute name="s" type="xs:double" use="required"/>
+    <xs:attribute name="t" type="xs:double" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="RelativeRoadPositionType">
+    <xs:attribute name="entityRef" type="xs:string" use="required"/>
+    <xs:attribute name="ds" type="xs:double" use="required"/>
+    <xs:attribute name="dt" type="xs:double" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="LanePositionType">
+    <xs:attribute name="roadId" type="xs:string" use="required"/>
+    <xs:attribute name="laneId" type="xs:string" use="required"/>
+    <xs:attribute name="s" type="xs:double" use="required"/>
+    <xs:attribute name="offset" type="xs:double"/>
+  </xs:complexType>
+  
+  <xs:complexType name="RelativeLanePositionType">
+    <xs:attribute name="entityRef" type="xs:string" use="required"/>
+    <xs:attribute name="dLane" type="xs:int" use="required"/>
+    <xs:attribute name="ds" type="xs:double" use="required"/>
+    <xs:attribute name="offset" type="xs:double"/>
+  </xs:complexType>
+  
+  <xs:complexType name="RoutePositionType">
+    <xs:sequence>
+      <xs:element name="RouteRef" type="RouteRefType"/>
+      <xs:element name="InRoutePosition" type="InRoutePositionType"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="RouteRefType">
+    <xs:choice>
+      <xs:element name="Route" type="RouteType"/>
+      <xs:element name="CatalogReference" type="CatalogReferenceType"/>
+    </xs:choice>
+  </xs:complexType>
+  
+  <xs:complexType name="InRoutePositionType">
+    <xs:sequence>
+      <xs:element name="FromCurrentPosition" minOccurs="0"/>
+      <xs:element name="FromRoadCoordinates" type="PositionOfCurrentEntityType" minOccurs="0"/>
+      <xs:element name="FromLaneCoordinates" type="PositionInLaneCoordinatesType" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="PositionOfCurrentEntityType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="PositionInLaneCoordinatesType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="RouteType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="RoutingActionType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="GlobalActionType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="UserDefinedActionType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="StoryType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:complexType name="TriggerType">
+    <xs:complexContent>
+      <xs:extension base="xs:anyType"/>
+    </xs:complexContent>
+  </xs:complexType>
+  
+</xs:schema>

@@ -41,18 +41,42 @@ pub struct CatalogReference {
 pub enum VehicleCategory {
     /// Passenger car
     Car,
-    /// Heavy truck
-    Truck,
-    /// Public transit bus
-    Bus,
-    /// Trailer or semi-trailer
-    Trailer,
     /// Delivery van or minivan
     Van,
+    /// Heavy truck
+    Truck,
+    /// Trailer or semi-trailer
+    Trailer,
+    /// Semi-trailer (articulated trailer)
+    Semitrailer,
+    /// Public transit bus
+    Bus,
     /// Motorcycle or scooter
     Motorbike,
     /// Bicycle
     Bicycle,
+    /// Train or railway vehicle
+    Train,
+    /// Tram or streetcar
+    Tram,
+}
+
+impl VehicleCategory {
+    /// Convert to OpenSCENARIO XML attribute value
+    pub fn as_xml_str(&self) -> &'static str {
+        match self {
+            VehicleCategory::Car => "car",
+            VehicleCategory::Van => "van",
+            VehicleCategory::Truck => "truck",
+            VehicleCategory::Trailer => "trailer",
+            VehicleCategory::Semitrailer => "semitrailer",
+            VehicleCategory::Bus => "bus",
+            VehicleCategory::Motorbike => "motorbike",
+            VehicleCategory::Bicycle => "bicycle",
+            VehicleCategory::Train => "train",
+            VehicleCategory::Tram => "tram",
+        }
+    }
 }
 
 /// Physical properties of a vehicle.

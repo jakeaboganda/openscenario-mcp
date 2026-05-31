@@ -40,6 +40,9 @@ pub enum ParameterType {
     Double,
     String,
     Boolean,
+    UnsignedInt,
+    UnsignedShort,
+    DateTime,
 }
 
 pub struct Scenario {

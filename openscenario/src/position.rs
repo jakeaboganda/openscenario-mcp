@@ -113,6 +113,13 @@ pub enum Position {
         dt: f64,
         orientation: Option<Orientation>,
     },
+    /// Position along a predefined route
+    Route {
+        /// Route reference (catalog or inline)
+        route_ref: String,
+        /// Position within the route (s-coordinate along route)
+        s: f64,
+    },
 }
 
 impl Position {

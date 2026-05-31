@@ -10,7 +10,7 @@ use crate::position::Position;
 use crate::scenario::{ParameterDeclaration, ParameterType, Scenario};
 use crate::storyboard::{Act, Story, Storyboard};
 use crate::{OpenScenarioVersion, Result, ScenarioError};
-use quick_xml::events::Event as XmlEvent;
+use quick_xml::events::{BytesStart, Event as XmlEvent};
 use quick_xml::Reader;
 use std::collections::HashMap;
 
@@ -219,6 +219,9 @@ fn parse_parameter_declarations(reader: &mut Reader<&[u8]>) -> Result<Vec<Parame
                                 b"double" => ParameterType::Double,
                                 b"string" => ParameterType::String,
                                 b"boolean" => ParameterType::Boolean,
+                                b"unsignedInt" => ParameterType::UnsignedInt,
+                                b"unsignedShort" => ParameterType::UnsignedShort,
+                                b"dateTime" => ParameterType::DateTime,
                                 _ => ParameterType::String,
                             }
                         }
@@ -334,7 +337,7 @@ fn parse_scenario_object(reader: &mut Reader<&[u8]>) -> Result<(String, Entity)>
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(XmlEvent::Start(e)) => match e.name().as_ref() {
-                b"Vehicle" => entity = Some(parse_vehicle(reader, &name)?),
+                b"Vehicle" => entity = Some(parse_vehicle(reader, &name, &e)?),
                 b"Pedestrian" => entity = Some(parse_pedestrian(reader, &name)?),
                 b"MiscObject" => entity = Some(parse_misc_object(reader, &name)?),
                 _ => skip_element(reader, e.name().as_ref())?,
@@ -352,8 +355,32 @@ fn parse_scenario_object(reader: &mut Reader<&[u8]>) -> Result<(String, Entity)>
         .ok_or_else(|| ScenarioError::Parse("No entity found in ScenarioObject".to_string()))
 }
 
-fn parse_vehicle(reader: &mut Reader<&[u8]>, name: &str) -> Result<Entity> {
+fn parse_vehicle(reader: &mut Reader<&[u8]>, name: &str, start_elem: &BytesStart) -> Result<Entity> {
     let mut vehicle_category = VehicleCategory::Car;
+    
+    // Parse vehicleCategory attribute
+    for attr_result in start_elem.attributes() {
+        if let Ok(attr) = attr_result {
+            if attr.key.as_ref() == b"vehicleCategory" {
+                let value = String::from_utf8_lossy(&attr.value).to_lowercase();
+                vehicle_category = match value.as_str() {
+                    "car" => VehicleCategory::Car,
+                    "van" => VehicleCategory::Van,
+                    "truck" => VehicleCategory::Truck,
+                    "trailer" => VehicleCategory::Trailer,
+                    "semitrailer" => VehicleCategory::Semitrailer,
+                    "bus" => VehicleCategory::Bus,
+                    "motorbike" => VehicleCategory::Motorbike,
+                    "bicycle" => VehicleCategory::Bicycle,
+                    "train" => VehicleCategory::Train,
+                    "tram" => VehicleCategory::Tram,
+                    _ => VehicleCategory::Car, // Default fallback
+                };
+                break;
+            }
+        }
+    }
+    
     let mut catalog = None;
     let mut buf = Vec::new();
 

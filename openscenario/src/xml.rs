@@ -123,6 +123,9 @@ impl Scenario {
                 crate::scenario::ParameterType::Double => "double",
                 crate::scenario::ParameterType::String => "string",
                 crate::scenario::ParameterType::Boolean => "boolean",
+                crate::scenario::ParameterType::UnsignedInt => "unsignedInt",
+                crate::scenario::ParameterType::UnsignedShort => "unsignedShort",
+                crate::scenario::ParameterType::DateTime => "dateTime",
             };
             elem.push_attribute(("parameterType", param_type_str));
             elem.push_attribute(("value", param.value.as_str()));
@@ -166,12 +169,7 @@ impl Scenario {
                     // Inline vehicle definition
                     let mut veh_elem = BytesStart::new("Vehicle");
                     veh_elem.push_attribute(("name", v.name.as_str()));
-                    veh_elem.push_attribute((
-                        "vehicleCategory",
-                        format!("{:?}", v.params.vehicle_category)
-                            .to_lowercase()
-                            .as_str(),
-                    ));
+                    veh_elem.push_attribute(("vehicleCategory", v.params.vehicle_category.as_xml_str()));
                     if let Some(props) = &v.params.properties {
                         if let Some(model) = &props.model3d {
                             veh_elem.push_attribute(("model3d", model.as_str()));
@@ -218,19 +216,17 @@ impl Scenario {
                     writer.write_event(XmlEvent::Empty(rear))?;
                     writer.write_event(XmlEvent::End(BytesEnd::new("Axles")))?;
 
-                    // Properties (if mass is specified)
+                    // Properties (required by XSD, even if empty)
+                    writer.write_event(XmlEvent::Start(BytesStart::new("Properties")))?;
                     if let Some(props) = &v.params.properties {
-                        if props.mass.is_some() {
-                            writer.write_event(XmlEvent::Start(BytesStart::new("Properties")))?;
-                            if let Some(mass) = props.mass {
-                                let mut prop = BytesStart::new("Property");
-                                prop.push_attribute(("name", "mass"));
-                                prop.push_attribute(("value", mass.to_string().as_str()));
-                                writer.write_event(XmlEvent::Empty(prop))?;
-                            }
-                            writer.write_event(XmlEvent::End(BytesEnd::new("Properties")))?;
+                        if let Some(mass) = props.mass {
+                            let mut prop = BytesStart::new("Property");
+                            prop.push_attribute(("name", "mass"));
+                            prop.push_attribute(("value", mass.to_string().as_str()));
+                            writer.write_event(XmlEvent::Empty(prop))?;
                         }
                     }
+                    writer.write_event(XmlEvent::End(BytesEnd::new("Properties")))?;
 
                     writer.write_event(XmlEvent::End(BytesEnd::new("Vehicle")))?;
                 }
@@ -266,17 +262,15 @@ impl Scenario {
                     writer.write_event(XmlEvent::Empty(dims))?;
                     writer.write_event(XmlEvent::End(BytesEnd::new("BoundingBox")))?;
 
-                    // Properties (if mass is specified)
-                    if p.params.mass.is_some() {
-                        writer.write_event(XmlEvent::Start(BytesStart::new("Properties")))?;
-                        if let Some(mass) = p.params.mass {
-                            let mut prop = BytesStart::new("Property");
-                            prop.push_attribute(("name", "mass"));
-                            prop.push_attribute(("value", mass.to_string().as_str()));
-                            writer.write_event(XmlEvent::Empty(prop))?;
-                        }
-                        writer.write_event(XmlEvent::End(BytesEnd::new("Properties")))?;
+                    // Properties (required by XSD, even if empty)
+                    writer.write_event(XmlEvent::Start(BytesStart::new("Properties")))?;
+                    if let Some(mass) = p.params.mass {
+                        let mut prop = BytesStart::new("Property");
+                        prop.push_attribute(("name", "mass"));
+                        prop.push_attribute(("value", mass.to_string().as_str()));
+                        writer.write_event(XmlEvent::Empty(prop))?;
                     }
+                    writer.write_event(XmlEvent::End(BytesEnd::new("Properties")))?;
 
                     writer.write_event(XmlEvent::End(BytesEnd::new("Pedestrian")))?;
                 }
@@ -310,17 +304,15 @@ impl Scenario {
                     writer.write_event(XmlEvent::Empty(dims))?;
                     writer.write_event(XmlEvent::End(BytesEnd::new("BoundingBox")))?;
 
-                    // Properties (if mass is specified)
-                    if m.params.mass.is_some() {
-                        writer.write_event(XmlEvent::Start(BytesStart::new("Properties")))?;
-                        if let Some(mass) = m.params.mass {
-                            let mut prop = BytesStart::new("Property");
-                            prop.push_attribute(("name", "mass"));
-                            prop.push_attribute(("value", mass.to_string().as_str()));
-                            writer.write_event(XmlEvent::Empty(prop))?;
-                        }
-                        writer.write_event(XmlEvent::End(BytesEnd::new("Properties")))?;
+                    // Properties (required by XSD, even if empty)
+                    writer.write_event(XmlEvent::Start(BytesStart::new("Properties")))?;
+                    if let Some(mass) = m.params.mass {
+                        let mut prop = BytesStart::new("Property");
+                        prop.push_attribute(("name", "mass"));
+                        prop.push_attribute(("value", mass.to_string().as_str()));
+                        writer.write_event(XmlEvent::Empty(prop))?;
                     }
+                    writer.write_event(XmlEvent::End(BytesEnd::new("Properties")))?;
 
                     writer.write_event(XmlEvent::End(BytesEnd::new("MiscObject")))?;
                 }
@@ -549,6 +541,29 @@ impl Scenario {
                     elem.push_attribute(("roll", ori.r.to_string().as_str()));
                 }
                 writer.write_event(XmlEvent::Empty(elem))?;
+            }
+            Position::Route { route_ref, s } => {
+                let elem = BytesStart::new("RoutePosition");
+                // Simplified: just reference and s-coordinate
+                // Full implementation would include RouteRef and InRoutePosition sub-elements
+                writer.write_event(XmlEvent::Start(elem.to_owned()))?;
+                
+                // RouteRef element (simplified as catalog reference)
+                writer.write_event(XmlEvent::Start(BytesStart::new("RouteRef")))?;
+                let mut cat_ref = BytesStart::new("CatalogReference");
+                cat_ref.push_attribute(("catalogName", "RouteCatalog"));
+                cat_ref.push_attribute(("entryName", route_ref.as_str()));
+                writer.write_event(XmlEvent::Empty(cat_ref))?;
+                writer.write_event(XmlEvent::End(BytesEnd::new("RouteRef")))?;
+                
+                // InRoutePosition with s-coordinate
+                writer.write_event(XmlEvent::Start(BytesStart::new("InRoutePosition")))?;
+                let mut from_lane = BytesStart::new("FromLaneCoordinates");
+                from_lane.push_attribute(("pathS", s.to_string().as_str()));
+                writer.write_event(XmlEvent::Empty(from_lane))?;
+                writer.write_event(XmlEvent::End(BytesEnd::new("InRoutePosition")))?;
+                
+                writer.write_event(XmlEvent::End(BytesEnd::new("RoutePosition")))?;
             }
         }
 

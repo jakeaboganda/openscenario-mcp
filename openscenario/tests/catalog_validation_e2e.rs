@@ -58,6 +58,13 @@ fn test_end_to_end_catalog_usage() {
     // Validate the generated scenario
     let validator = XsdValidator::new("1.2");
     let report = validator.validate(&xml_output);
+    if !report.valid {
+        eprintln!("Validation errors:");
+        for error in &report.errors {
+            eprintln!("  - {}", error);
+        }
+        eprintln!("Generated XML:\n{}", xml_output);
+    }
     assert!(report.valid, "Generated scenario should be valid");
 }
 
