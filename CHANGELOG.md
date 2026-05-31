@@ -9,14 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **XSD Validation**: Full W3C-conformant XSD validation using Uppsala pure-Rust validator
-  - Lazy-loaded schema caching with `std::sync::OnceLock`
-  - Graceful fallback when XSD files missing
+  - Lazy-loaded schema caching with `lazy_static`
+  - Strict validation: fails without official XSD files (no graceful fallback)
   - Separate `warnings` field in `ValidationReport`
 - **Vehicle Categories**: Added 3 missing categories to `VehicleCategory` enum
   - `Semitrailer` - Articulated trailer
   - `Train` - Railway vehicle
   - `Tram` - Streetcar
 - **Position Types**: Added `Route` variant to `Position` enum for route-based positioning
+  - ⚠️ **UNVERIFIED**: Not yet tested against official ASAM XSD
 - **Parameter Types**: Added 3 new types to `ParameterType` enum
   - `UnsignedInt` - Unsigned integer
   - `UnsignedShort` - Unsigned short integer
@@ -24,28 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API**: `VehicleCategory` now re-exported in crate root for ergonomics
 
 ### Changed
-- **BREAKING**: `VehicleCategory`, `Position`, and `ParameterType` enums now marked `#[non_exhaustive]`
-  - **Migration**: Add wildcard pattern `_ => {}` to exhaustive matches on these enums
-  - Example:
-    ```rust
-    // Before (breaks in 0.2.0):
-    match category {
-        VehicleCategory::Car => {},
-        // ... only 7 variants
-    }
-    
-    // After (works in 0.2.0+):
-    match category {
-        VehicleCategory::Car => {},
-        // ... handle variants you care about
-        _ => {} // Required with #[non_exhaustive]
-    }
-    ```
 - **BREAKING**: `ValidationReport` now has `warnings: Vec<String>` field
-  - XSD-missing warnings moved from `errors` to `warnings`
+  - XSD-missing errors moved from fallback warnings to strict errors
   - **Migration**: Check both `report.errors` and `report.warnings`
-- XML serialization now always emits `<Properties/>` element (XSD compliance)
-- Replaced `lazy_static` with stdlib `std::sync::OnceLock` (zero external dependencies for validation)
+- **BREAKING**: Validation now **fails** without XSD files (no graceful fallback)
+  - Previous: `valid: true` with warning when XSD missing
+  - Now: `valid: false` with error message
+  - **Migration**: Ensure official ASAM XSD files are installed before validation
+- XML serialization now always emits `<Properties></Properties>` element (XSD compliance)
 
 ### Fixed
 - Properties element now always present in Vehicle/Pedestrian/MiscObject (XSD requirement)
@@ -54,19 +41,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes Summary
 
-**Enum Exhaustiveness**:
+**Enum Variants**:
 - **VehicleCategory**: 7 → 10 variants (+Semitrailer, Train, Tram)
-- **Position**: 7 → 8 variants (+Route)
+- **Position**: 7 → 8 variants (+Route, unverified)
 - **ParameterType**: 4 → 7 variants (+UnsignedInt, UnsignedShort, DateTime)
 
-All three enums now require wildcard patterns due to `#[non_exhaustive]`.
+These enums are **NOT** marked `#[non_exhaustive]` - breaking changes expected in 0.x series.
 
 **API Changes**:
 - `ValidationReport` gained `warnings` field
 - `VehicleCategory::as_xml_str()` method added (public API)
+- Validation now **fails** without XSD (was graceful fallback)
 
 **Semver**: This is a **0.x MINOR** release (breaking changes allowed in 0.x per semver).
-Upgrading from 0.1.x will require code changes for exhaustive enum matches.
+Upgrading from 0.1.x will require code changes for exhaustive enum matches and validation behavior.
 
 ---
 
@@ -85,32 +73,22 @@ Upgrading from 0.1.x will require code changes for exhaustive enum matches.
 
 ## Migration Guide: 0.1.x → 0.2.0
 
-### 1. Update Enum Matches
+### 1. Update Validation Behavior
 
-Add wildcard patterns to exhaustive matches:
+**Validation now requires XSD files**:
 
 ```rust
-// VehicleCategory
-match vehicle.category {
-    VehicleCategory::Car => { /* ... */ },
-    VehicleCategory::Truck => { /* ... */ },
-    _ => { /* handle other categories */ }  // ← ADD THIS
-}
+// Before: Validation passes with warning when XSD missing
+let report = validator.validate(xml);
+assert!(report.valid); // true even without XSD
 
-// Position
-match position {
-    Position::World { .. } => { /* ... */ },
-    Position::Lane { .. } => { /* ... */ },
-    _ => { /* handle other positions */ }  // ← ADD THIS
-}
-
-// ParameterType
-match param_type {
-    ParameterType::Integer => { /* ... */ },
-    ParameterType::String => { /* ... */ },
-    _ => { /* handle other types */ }  // ← ADD THIS
-}
+// After: Validation fails without XSD
+let report = validator.validate(xml);
+assert!(!report.valid); // false, error message tells you to install XSD
+assert!(report.errors[0].contains("XSD schema not available"));
 ```
+
+**Action**: Install official ASAM XSD files. Run `./check-schemas.sh` for instructions.
 
 ### 2. Update ValidationReport Usage
 
@@ -131,7 +109,42 @@ if !report.warnings.is_empty() {
 }
 ```
 
-### 3. Update Imports (Optional)
+### 3. Update Enum Matches
+
+No wildcard required (enums not `#[non_exhaustive]`):
+
+```rust
+// VehicleCategory: Handle new variants explicitly
+match vehicle.category {
+    VehicleCategory::Car => { /* ... */ },
+    VehicleCategory::Truck => { /* ... */ },
+    VehicleCategory::Semitrailer => { /* ... */ },  // NEW
+    VehicleCategory::Train => { /* ... */ },        // NEW
+    VehicleCategory::Tram => { /* ... */ },         // NEW
+    // ... handle all 10 variants
+}
+
+// Position: Handle Route variant
+match position {
+    Position::World { .. } => { /* ... */ },
+    Position::Route { .. } => {  // NEW (UNVERIFIED)
+        eprintln!("Warning: Route position not XSD-verified");
+        // ...
+    },
+    // ... handle all variants
+}
+
+// ParameterType: Handle new types
+match param_type {
+    ParameterType::Integer => { /* ... */ },
+    ParameterType::UnsignedInt => { /* ... */ },     // NEW
+    ParameterType::UnsignedShort => { /* ... */ },   // NEW
+    ParameterType::DateTime => { /* ... */ },        // NEW
+    // ... handle all 7 types
+}
+```
+
+### 4. Update Imports (Optional)
 
 You can now import `VehicleCategory` from crate root:
 

@@ -44,11 +44,6 @@ impl Default for Orientation {
 /// road/lane coordinates (for OpenDRIVE compatibility), or relative to another entity.
 /// Each variant contains the parameters needed for that coordinate system.
 ///
-/// # Future Compatibility
-/// This enum is marked `#[non_exhaustive]` to allow future OpenSCENARIO
-/// specification updates to add new position types without breaking changes.
-/// Always include a wildcard pattern (`_ =>`) when matching.
-///
 /// # Examples
 /// ```
 /// use openscenario::position::Position;
@@ -62,7 +57,6 @@ impl Default for Orientation {
 /// # }
 /// ```
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
 pub enum Position {
     /// Absolute position in world coordinates (Cartesian)
     World {
@@ -120,6 +114,10 @@ pub enum Position {
         orientation: Option<Orientation>,
     },
     /// Position along a predefined route
+    ///
+    /// ⚠️ **UNVERIFIED**: This variant has not been verified against official ASAM XSD schema.
+    /// XML serialization structure is based on specification reading but not XSD-tested.
+    /// Use with caution in production until verified with official OpenSCENARIO XSD files.
     Route {
         /// Route reference (catalog or inline)
         route_ref: String,

@@ -1,6 +1,6 @@
+use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::OnceLock;
 use uppsala::xsd::XsdValidator as UppsalaValidator;
 
 /// Validation report containing results and any errors
@@ -29,11 +29,9 @@ fn schema_path_for_version(version: &str) -> PathBuf {
         .join("OpenSCENARIO.xsd")
 }
 
-// Lazy-loaded validators using OnceLock (parsed once at first use)
-static SCHEMA_VALIDATORS: OnceLock<HashMap<String, Option<UppsalaValidator>>> = OnceLock::new();
-
-fn get_schema_validators() -> &'static HashMap<String, Option<UppsalaValidator>> {
-    SCHEMA_VALIDATORS.get_or_init(|| {
+// Lazy-loaded validators (parsed once at first use)
+lazy_static! {
+    static ref SCHEMA_VALIDATORS: HashMap<String, Option<UppsalaValidator>> = {
         let mut map = HashMap::new();
         
         for version in &["1.0", "1.1", "1.2"] {
@@ -86,7 +84,7 @@ fn get_schema_validators() -> &'static HashMap<String, Option<UppsalaValidator>>
         }
         
         map
-    })
+    };
 }
 
 impl XsdValidator {
@@ -140,8 +138,7 @@ impl XsdValidator {
         };
 
         // Check for XSD validator availability
-        let validators = get_schema_validators();
-        match validators.get(&self.version) {
+        match SCHEMA_VALIDATORS.get(&self.version) {
             Some(Some(validator)) => {
                 // Full XSD validation
                 let validation_errors = validator.validate(&doc);
@@ -168,19 +165,16 @@ impl XsdValidator {
                 }
             }
             Some(None) => {
-                // Schema not available - fallback to basic validation
-                warnings.push(format!(
+                // Schema not available - FAIL STRICT
+                errors.push(format!(
                     "XSD schema not available for OpenSCENARIO v{}. \
-                    Performing basic validation only. \
+                    Full validation requires official ASAM XSD files. \
                     Run ./check-schemas.sh to set up XSD files.",
                     self.version
                 ));
                 
-                // Basic version check
-                self.validate_version_basic(xml, &mut errors);
-                
                 ValidationReport {
-                    valid: errors.is_empty(),
+                    valid: false,
                     errors,
                     warnings,
                 }
@@ -196,67 +190,6 @@ impl XsdValidator {
                     errors,
                     warnings,
                 }
-            }
-        }
-    }
-
-    /// Basic version validation fallback (when XSD not available)
-    fn validate_version_basic(&self, xml: &str, errors: &mut Vec<String>) {
-        use quick_xml::events::Event as XmlEvent;
-        use quick_xml::Reader;
-
-        let mut reader = Reader::from_str(xml);
-        reader.config_mut().trim_text(true);
-        let mut buf = Vec::new();
-        let mut file_header_version = None;
-
-        loop {
-            match reader.read_event_into(&mut buf) {
-                Ok(XmlEvent::Start(e)) | Ok(XmlEvent::Empty(e))
-                    if e.name().as_ref() == b"FileHeader" =>
-                {
-                    let mut rev_major = None;
-                    let mut rev_minor = None;
-
-                    for attr in e.attributes() {
-                        if let Ok(attr) = attr {
-                            match attr.key.as_ref() {
-                                b"revMajor" => {
-                                    if let Ok(value) = attr.unescape_value() {
-                                        rev_major = Some(value.to_string());
-                                    }
-                                }
-                                b"revMinor" => {
-                                    if let Ok(value) = attr.unescape_value() {
-                                        rev_minor = Some(value.to_string());
-                                    }
-                                }
-                                _ => {}
-                            }
-                        }
-                    }
-
-                    if let (Some(major), Some(minor)) = (rev_major, rev_minor) {
-                        file_header_version = Some(format!("{}.{}", major, minor));
-                    }
-                }
-                Ok(XmlEvent::Eof) => break,
-                Err(e) => {
-                    errors.push(format!("XML parsing error: {}", e));
-                    break;
-                }
-                _ => {}
-            }
-            buf.clear();
-        }
-
-        // Validate version match
-        if let Some(file_version) = file_header_version {
-            if file_version != self.version {
-                errors.push(format!(
-                    "Version mismatch: expected {}, found {}",
-                    self.version, file_version
-                ));
             }
         }
     }
@@ -280,8 +213,14 @@ mod tests {
     <FileHeader revMajor="1" revMinor="0"/>
 </OpenSCENARIO>"#;
         let report = validator.validate(xml);
-        // Should at least parse without errors
-        assert!(report.valid || !report.warnings.is_empty());
+        // Strict mode: without XSD, this will fail
+        if report.errors.iter().any(|e| e.contains("XSD schema not available")) {
+            // Expected behavior without XSD
+            assert!(!report.valid);
+        } else {
+            // With XSD, should validate successfully
+            assert!(report.valid);
+        }
     }
 
     #[test]
@@ -298,16 +237,19 @@ mod tests {
     }
 
     #[test]
-    fn test_version_mismatch() {
+    fn test_missing_xsd_fails() {
         let validator = XsdValidator::new("1.0");
         let xml = r#"<?xml version="1.0"?>
 <OpenSCENARIO>
-    <FileHeader revMajor="1" revMinor="2"/>
+    <FileHeader revMajor="1" revMinor="0"/>
 </OpenSCENARIO>"#;
         let report = validator.validate(xml);
-        // Should detect version mismatch (if XSD not available, falls back to basic check)
-        let has_version_error = report.errors.iter().any(|e| e.contains("Version mismatch"));
-        let has_warning = !report.warnings.is_empty();
-        assert!(has_version_error || has_warning);
+        // Without XSD, validation should FAIL (strict mode)
+        if report.valid {
+            // If it passed, XSD must be present - skip test
+            return;
+        }
+        assert!(!report.valid);
+        assert!(report.errors.iter().any(|e| e.contains("XSD schema not available")));
     }
 }

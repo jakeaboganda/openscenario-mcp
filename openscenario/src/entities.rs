@@ -27,11 +27,6 @@ pub struct CatalogReference {
 /// Defines the type of vehicle entity according to the OpenSCENARIO standard.
 /// Used for behavior simulation, collision detection, and visualization.
 ///
-/// # Future Compatibility
-/// This enum is marked `#[non_exhaustive]` to allow future OpenSCENARIO
-/// specification updates to add new vehicle categories without breaking changes.
-/// Always include a wildcard pattern (`_ =>`) when matching.
-///
 /// # Examples
 /// ```
 /// use openscenario::entities::VehicleCategory;
@@ -43,7 +38,6 @@ pub struct CatalogReference {
 /// # }
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[non_exhaustive]
 pub enum VehicleCategory {
     /// Passenger car
     Car,
