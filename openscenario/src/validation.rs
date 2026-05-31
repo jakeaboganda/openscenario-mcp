@@ -1,6 +1,6 @@
-use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 use uppsala::xsd::XsdValidator as UppsalaValidator;
 
 /// Validation report containing results and any errors
@@ -29,9 +29,11 @@ fn schema_path_for_version(version: &str) -> PathBuf {
         .join("OpenSCENARIO.xsd")
 }
 
-// Lazy-loaded validators (parsed once at first use)
-lazy_static! {
-    static ref SCHEMA_VALIDATORS: HashMap<String, Option<UppsalaValidator>> = {
+// Lazy-loaded validators using OnceLock (parsed once at first use)
+static SCHEMA_VALIDATORS: OnceLock<HashMap<String, Option<UppsalaValidator>>> = OnceLock::new();
+
+fn get_schema_validators() -> &'static HashMap<String, Option<UppsalaValidator>> {
+    SCHEMA_VALIDATORS.get_or_init(|| {
         let mut map = HashMap::new();
         
         for version in &["1.0", "1.1", "1.2"] {
@@ -84,7 +86,7 @@ lazy_static! {
         }
         
         map
-    };
+    })
 }
 
 impl XsdValidator {
@@ -122,7 +124,7 @@ impl XsdValidator {
     /// ```
     pub fn validate(&self, xml: &str) -> ValidationReport {
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();  // Reserved for future use
 
         // First: Basic XML well-formedness check
         let doc = match uppsala::parse(xml) {
@@ -138,7 +140,8 @@ impl XsdValidator {
         };
 
         // Check for XSD validator availability
-        match SCHEMA_VALIDATORS.get(&self.version) {
+        let validators = get_schema_validators();
+        match validators.get(&self.version) {
             Some(Some(validator)) => {
                 // Full XSD validation
                 let validation_errors = validator.validate(&doc);

@@ -35,7 +35,13 @@ pub struct ParameterDeclaration {
 }
 
 /// OpenSCENARIO parameter type classification.
+///
+/// # Future Compatibility
+/// This enum is marked `#[non_exhaustive]` to allow future OpenSCENARIO
+/// specification updates to add new parameter types without breaking changes.
+/// Always include a wildcard pattern (`_ =>`) when matching.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum ParameterType {
     Integer,
     Double,
