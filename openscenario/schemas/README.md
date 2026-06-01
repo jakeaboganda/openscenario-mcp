@@ -7,6 +7,7 @@ This directory contains **official ASAM OpenSCENARIO XSD schemas** for the follo
 - **v1.1.1** - OpenSCENARIO 1.1.1
 - **v1.2.0** - OpenSCENARIO 1.2.0  
 - **v1.3.0** - OpenSCENARIO 1.3.0
+- **v1.3.1** - OpenSCENARIO 1.3.1 (Latest)
 
 These are the **complete, production-ready schemas** from ASAM.
 
@@ -14,13 +15,14 @@ These are the **complete, production-ready schemas** from ASAM.
 
 ## Supported Versions
 
-The library now supports **three OpenSCENARIO versions**:
+The library now supports **four OpenSCENARIO versions**:
 
 | Version | Schema Location | Status |
 |---------|----------------|---------|
 | **1.1.1** | `v1.1.1/OpenSCENARIO.xsd` | ✅ Full XSD validation |
 | **1.2.0** | `v1.2.0/OpenSCENARIO.xsd` | ✅ Full XSD validation |
 | **1.3.0** | `v1.3.0/OpenSCENARIO.xsd` | ✅ Full XSD validation |
+| **1.3.1** | `v1.3.1/OpenSCENARIO.xsd` | ✅ Full XSD validation (Latest) |
 
 ---
 
@@ -37,7 +39,7 @@ The validator automatically selects the correct XSD based on the scenario's `rev
 **Mapping**:
 - `revMajor="1" revMinor="1"` → v1.1.1 schema
 - `revMajor="1" revMinor="2"` → v1.2.0 schema
-- `revMajor="1" revMinor="3"` → v1.3.0 schema
+- `revMajor="1" revMinor="3"` → v1.3.0 or v1.3.1 schema
 
 ---
 
@@ -121,6 +123,12 @@ These schemas are the **official ASAM OpenSCENARIO XML schemas**:
 - Enhanced controller management (`objectControllerRef`)
 - Improved `GeoPosition` with vertical road selection
 
+### v1.3.0 → v1.3.1
+- Bug fixes and minor improvements
+- Schema refinements for edge cases
+- Improved validation coverage
+- Maintains full backward compatibility with v1.3.0
+
 ---
 
 ## Adding New Versions
@@ -162,6 +170,7 @@ Expected output:
 ✅ Found: schemas/v1.1.1/OpenSCENARIO.xsd
 ✅ Found: schemas/v1.2.0/OpenSCENARIO.xsd  
 ✅ Found: schemas/v1.3.0/OpenSCENARIO.xsd
+✅ Found: schemas/v1.3.1/OpenSCENARIO.xsd
 
 ✅ All XSD schema files present!
 ```
@@ -202,9 +211,10 @@ find . -name "OpenSCENARIO.xsd" | sort
 
 ## Summary
 
-✅ **Three production versions supported**: 1.1.1, 1.2.0, 1.3.0  
+✅ **Four production versions supported**: 1.1.1, 1.2.0, 1.3.0, 1.3.1  
 ✅ **Full XSD validation** for all supported versions  
 ✅ **Automatic version detection** from FileHeader  
 ✅ **Strict validation mode** - no silent failures  
 
 **Current Status**: Ready for production use with complete schema coverage.
+**Latest Version**: v1.3.1 (recommended for new scenarios)
