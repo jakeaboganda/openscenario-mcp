@@ -758,3 +758,106 @@ pub fn handle_get_real_world_road(
     })
     .to_string())
 }
+
+/// Set a time-based trigger for an Act or Event
+///
+/// # Arguments
+/// * `state` - Shared server state
+/// * `scenario_id` - ID of the scenario
+/// * `element_type` - "Act" or "Event"
+/// * `story_name` - Name of the story containing the element
+/// * `act_name` - Name of the act (for both Act and Event triggers)
+/// * `maneuver_group` - Name of the maneuver group (required for Event triggers)
+/// * `maneuver` - Name of the maneuver (required for Event triggers)
+/// * `event_name` - Name of the event (required for Event triggers)
+/// * `time_seconds` - Simulation time in seconds for the trigger
+/// * `delay_seconds` - Optional delay after condition is met (default: 0.0)
+///
+/// # Returns
+/// Success message
+///
+/// # Errors
+/// * If scenario not found
+/// * If element type is invalid
+/// * If Act/Event not found
+pub fn handle_set_trigger_time(
+    state: Arc<Mutex<ServerState>>,
+    scenario_id: String,
+    element_type: String,
+    story_name: String,
+    act_name: String,
+    maneuver_group: Option<String>,
+    maneuver: Option<String>,
+    event_name: Option<String>,
+    time_seconds: f64,
+    delay_seconds: Option<f64>,
+) -> Result<String> {
+    use openscenario::storyboard::{Condition, ConditionEdge, ConditionGroup, Rule, Trigger};
+
+    // Validate element_type
+    if element_type != "Act" && element_type != "Event" {
+        return Err(anyhow!(
+            "element_type must be 'Act' or 'Event' (got '{}')",
+            element_type
+        ));
+    }
+
+    // Validate Event has required fields
+    if element_type == "Event" {
+        if maneuver_group.is_none() || maneuver.is_none() || event_name.is_none() {
+            return Err(anyhow!(
+                "Event triggers require maneuver_group, maneuver, and event_name parameters"
+            ));
+        }
+    }
+
+    // Get delay (default 0.0)
+    let delay = delay_seconds.unwrap_or(0.0);
+
+    // Acquire state lock
+    let mut state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+
+    // Get scenario
+    let scenario = state_lock
+        .scenarios
+        .get_mut(&scenario_id)
+        .ok_or_else(|| anyhow!("Scenario '{}' not found", scenario_id))?;
+
+    // Create simulation time condition with delay
+    let mut condition = Condition::simulation_time(time_seconds, Rule::GreaterThan);
+    condition.delay = delay;
+    condition.condition_edge = ConditionEdge::Rising; // Trigger once when time reached
+
+    // Create trigger with condition group
+    let condition_group = ConditionGroup::new(vec![condition]);
+    let trigger = Trigger::new(condition_group);
+
+    // Apply trigger based on element type
+    match element_type.as_str() {
+        "Act" => {
+            scenario
+                .set_act_start_trigger(&story_name, &act_name, trigger)
+                .map_err(|e| anyhow!("Failed to set Act trigger: {}", e))?;
+            Ok(format!(
+                "Set start trigger for Act '{}' in story '{}' at t={}s (delay: {}s)",
+                act_name, story_name, time_seconds, delay
+            ))
+        }
+        "Event" => {
+            let mg = maneuver_group.unwrap();
+            let mn = maneuver.unwrap();
+            let ev = event_name.unwrap();
+            
+            scenario
+                .set_event_start_trigger(&story_name, &act_name, &mg, &mn, &ev, trigger)
+                .map_err(|e| anyhow!("Failed to set Event trigger: {}", e))?;
+            Ok(format!(
+                "Set start trigger for Event '{}' (in maneuver '{}') at t={}s (delay: {}s)",
+                ev, mn, time_seconds, delay
+            ))
+        }
+        _ => unreachable!("Already validated element_type"),
+    }
+}

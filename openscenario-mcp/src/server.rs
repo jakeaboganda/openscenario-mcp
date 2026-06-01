@@ -3,7 +3,7 @@ use crate::handlers::{
     handle_add_speed_action, handle_add_vehicle, handle_create_scenario, handle_export_xml,
     handle_get_real_world_road, handle_get_road_info, handle_list_roads, handle_load_road_network,
     handle_set_lane_position, handle_set_position, handle_set_stop_on_element,
-    handle_set_stop_time, handle_suggest_spawn_points, handle_validate_position,
+    handle_set_stop_time, handle_set_trigger_time, handle_suggest_spawn_points, handle_validate_position,
     handle_validate_scenario,
 };
 use crate::scenario_templates::{
@@ -331,6 +331,55 @@ impl OpenScenarioServer {
                         }
                     },
                     "required": ["scenario_id", "element_type", "element_ref", "state", "delay"]
+                }),
+            },
+            ToolDefinition {
+                name: "set_trigger_time".to_string(),
+                description: Some(
+                    "Set a time-based trigger for an Act or Event to start at a specific simulation time. For Acts created by add_speed_action/add_lane_change_action, use story name + '_act' for act_name (e.g., 'main_act').".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "scenario_id": {
+                            "type": "string",
+                            "description": "Scenario ID"
+                        },
+                        "element_type": {
+                            "type": "string",
+                            "enum": ["Act", "Event"],
+                            "description": "Element type: 'Act' or 'Event'"
+                        },
+                        "story_name": {
+                            "type": "string",
+                            "description": "Name of the story (e.g., 'main')"
+                        },
+                        "act_name": {
+                            "type": "string",
+                            "description": "Name of the act (e.g., 'main_act')"
+                        },
+                        "maneuver_group": {
+                            "type": "string",
+                            "description": "Name of maneuver group (required for Event triggers only)"
+                        },
+                        "maneuver": {
+                            "type": "string",
+                            "description": "Name of maneuver (required for Event triggers only)"
+                        },
+                        "event_name": {
+                            "type": "string",
+                            "description": "Name of the event (required for Event triggers only)"
+                        },
+                        "time_seconds": {
+                            "type": "number",
+                            "description": "Simulation time in seconds when the trigger should activate"
+                        },
+                        "delay_seconds": {
+                            "type": "number",
+                            "description": "Optional delay in seconds after condition is met (default: 0.0)"
+                        }
+                    },
+                    "required": ["scenario_id", "element_type", "story_name", "act_name", "time_seconds"]
                 }),
             },
             ToolDefinition {
@@ -985,6 +1034,53 @@ impl OpenScenarioServer {
                     element_ref.to_string(),
                     state.to_string(),
                     delay,
+                )?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "set_trigger_time" => {
+                let scenario_id = args
+                    .get("scenario_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'scenario_id' parameter"))?;
+                let element_type = args
+                    .get("element_type")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'element_type' parameter"))?;
+                let story_name = args
+                    .get("story_name")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'story_name' parameter"))?;
+                let act_name = args
+                    .get("act_name")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'act_name' parameter"))?;
+                let time_seconds = args
+                    .get("time_seconds")
+                    .and_then(Value::as_f64)
+                    .ok_or_else(|| anyhow!("Missing or invalid 'time_seconds' parameter"))?;
+                let delay_seconds = args.get("delay_seconds").and_then(Value::as_f64);
+                
+                // Optional params for Event triggers
+                let maneuver_group = args.get("maneuver_group").and_then(Value::as_str).map(String::from);
+                let maneuver = args.get("maneuver").and_then(Value::as_str).map(String::from);
+                let event_name = args.get("event_name").and_then(Value::as_str).map(String::from);
+
+                let result = handle_set_trigger_time(
+                    GLOBAL_STATE.clone(),
+                    scenario_id.to_string(),
+                    element_type.to_string(),
+                    story_name.to_string(),
+                    act_name.to_string(),
+                    maneuver_group,
+                    maneuver,
+                    event_name,
+                    time_seconds,
+                    delay_seconds,
                 )?;
 
                 Ok(CallToolResponse {
