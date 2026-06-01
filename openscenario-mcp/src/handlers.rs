@@ -861,3 +861,128 @@ pub fn handle_set_trigger_time(
         _ => unreachable!("Already validated element_type"),
     }
 }
+
+/// Set a collision-based trigger for an Act or Event
+///
+/// # Arguments
+/// * `state` - Shared server state
+/// * `scenario_id` - ID of the scenario
+/// * `element_type` - "Act" or "Event"
+/// * `story_name` - Name of the story containing the element
+/// * `act_name` - Name of the act (for both Act and Event triggers)
+/// * `maneuver_group` - Name of the maneuver group (required for Event triggers)
+/// * `maneuver` - Name of the maneuver (required for Event triggers)
+/// * `event_name` - Name of the event (required for Event triggers)
+/// * `entity_refs` - List of entities to monitor for collisions
+/// * `target_entity` - Entity to detect collisions with
+/// * `trigger_rule` - "any" or "all" (whether any or all entities must collide)
+/// * `delay_seconds` - Optional delay after condition is met (default: 0.0)
+///
+/// # Returns
+/// Success message
+///
+/// # Errors
+/// * If scenario not found
+/// * If element type is invalid
+/// * If Act/Event not found
+pub fn handle_set_collision_trigger(
+    state: Arc<Mutex<ServerState>>,
+    scenario_id: String,
+    element_type: String,
+    story_name: String,
+    act_name: String,
+    maneuver_group: Option<String>,
+    maneuver: Option<String>,
+    event_name: Option<String>,
+    entity_refs: Vec<String>,
+    target_entity: String,
+    trigger_rule: String,
+    delay_seconds: Option<f64>,
+) -> Result<String> {
+    use openscenario::storyboard::{
+        Condition, ConditionGroup, Trigger, TriggeringEntitiesRule,
+    };
+
+    // Validate element_type
+    if element_type != "Act" && element_type != "Event" {
+        return Err(anyhow!(
+            "element_type must be 'Act' or 'Event' (got '{}')",
+            element_type
+        ));
+    }
+
+    // Validate Event has required fields
+    if element_type == "Event" {
+        if maneuver_group.is_none() || maneuver.is_none() || event_name.is_none() {
+            return Err(anyhow!(
+                "Event triggers require maneuver_group, maneuver, and event_name parameters"
+            ));
+        }
+    }
+
+    // Validate trigger_rule
+    let rule = match trigger_rule.to_lowercase().as_str() {
+        "any" => TriggeringEntitiesRule::Any,
+        "all" => TriggeringEntitiesRule::All,
+        _ => {
+            return Err(anyhow!(
+                "trigger_rule must be 'any' or 'all' (got '{}')",
+                trigger_rule
+            ))
+        }
+    };
+
+    // Validate entity_refs not empty
+    if entity_refs.is_empty() {
+        return Err(anyhow!("entity_refs must contain at least one entity"));
+    }
+
+    // Get delay (default 0.0)
+    let delay = delay_seconds.unwrap_or(0.0);
+
+    // Acquire state lock
+    let mut state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+
+    // Get scenario
+    let scenario = state_lock
+        .scenarios
+        .get_mut(&scenario_id)
+        .ok_or_else(|| anyhow!("Scenario '{}' not found", scenario_id))?;
+
+    // Create collision condition
+    let mut condition = Condition::collision(entity_refs.clone(), &target_entity, rule);
+    condition.delay = delay;
+
+    // Create trigger with condition group
+    let condition_group = ConditionGroup::new(vec![condition]);
+    let trigger = Trigger::new(condition_group);
+
+    // Apply trigger based on element type
+    match element_type.as_str() {
+        "Act" => {
+            scenario
+                .set_act_start_trigger(&story_name, &act_name, trigger)
+                .map_err(|e| anyhow!("Failed to set Act trigger: {}", e))?;
+            Ok(format!(
+                "Set collision trigger for Act '{}' in story '{}': {} of [{}] collide with '{}' (delay: {}s)",
+                act_name, story_name, trigger_rule, entity_refs.join(", "), target_entity, delay
+            ))
+        }
+        "Event" => {
+            let mg = maneuver_group.unwrap();
+            let mn = maneuver.unwrap();
+            let ev = event_name.unwrap();
+
+            scenario
+                .set_event_start_trigger(&story_name, &act_name, &mg, &mn, &ev, trigger)
+                .map_err(|e| anyhow!("Failed to set Event trigger: {}", e))?;
+            Ok(format!(
+                "Set collision trigger for Event '{}' (in maneuver '{}'): {} of [{}] collide with '{}' (delay: {}s)",
+                ev, mn, trigger_rule, entity_refs.join(", "), target_entity, delay
+            ))
+        }
+        _ => unreachable!("Already validated element_type"),
+    }
+}

@@ -1402,6 +1402,53 @@ impl Condition {
             })),
         }
     }
+
+    /// Creates a collision detection condition.
+    ///
+    /// Triggers when the specified entity(ies) collide with a target entity.
+    /// Uses `ConditionEdge::Rising` by default for one-time activation on collision start.
+    ///
+    /// # Arguments
+    /// * `entity_refs` - List of entity names to check for collisions
+    /// * `target_entity` - Name of the entity to detect collisions with
+    /// * `rule` - Triggering rule: `Any` (at least one) or `All` (all entities)
+    ///
+    /// # Examples
+    /// ```
+    /// use openscenario::storyboard::{Condition, TriggeringEntitiesRule};
+    ///
+    /// # fn main() {
+    /// // Trigger when ego collides with any obstacle
+    /// let cond = Condition::collision(
+    ///     vec!["ego"],
+    ///     "obstacle_1",
+    ///     TriggeringEntitiesRule::Any
+    /// );
+    /// # }
+    /// ```
+    pub fn collision(
+        entity_refs: Vec<impl Into<String>>,
+        target_entity: impl Into<String>,
+        rule: TriggeringEntitiesRule,
+    ) -> Self {
+        let entity_refs: Vec<String> = entity_refs.into_iter().map(|e| e.into()).collect();
+        let target_entity = target_entity.into();
+        
+        Self {
+            name: format!("Collision_{}_{}", entity_refs.join("_"), target_entity),
+            delay: 0.0,
+            condition_edge: ConditionEdge::Rising, // Trigger once on collision start
+            kind: ConditionKind::ByEntity(ByEntityCondition {
+                triggering_entities: TriggeringEntities {
+                    rule,
+                    entity_refs,
+                },
+                entity_condition: EntityCondition::Collision(CollisionCondition {
+                    target_entity_ref: target_entity,
+                }),
+            }),
+        }
+    }
 }
 
 /// Edge detection mode for condition evaluation.

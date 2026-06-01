@@ -2,7 +2,7 @@ use crate::handlers::{
     handle_add_lane_change_action, handle_add_misc_object, handle_add_pedestrian,
     handle_add_speed_action, handle_add_vehicle, handle_create_scenario, handle_export_xml,
     handle_get_real_world_road, handle_get_road_info, handle_list_roads, handle_load_road_network,
-    handle_set_lane_position, handle_set_position, handle_set_stop_on_element,
+    handle_set_collision_trigger, handle_set_lane_position, handle_set_position, handle_set_stop_on_element,
     handle_set_stop_time, handle_set_trigger_time, handle_suggest_spawn_points, handle_validate_position,
     handle_validate_scenario,
 };
@@ -380,6 +380,65 @@ impl OpenScenarioServer {
                         }
                     },
                     "required": ["scenario_id", "element_type", "story_name", "act_name", "time_seconds"]
+                }),
+            },
+            ToolDefinition {
+                name: "set_collision_trigger".to_string(),
+                description: Some(
+                    "Set a collision-based trigger for an Act or Event. Triggers when specified entities collide with a target entity. Useful for emergency scenarios, obstacle detection, or interaction triggers.".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "scenario_id": {
+                            "type": "string",
+                            "description": "Scenario ID"
+                        },
+                        "element_type": {
+                            "type": "string",
+                            "enum": ["Act", "Event"],
+                            "description": "Element type: 'Act' or 'Event'"
+                        },
+                        "story_name": {
+                            "type": "string",
+                            "description": "Name of the story (e.g., 'main')"
+                        },
+                        "act_name": {
+                            "type": "string",
+                            "description": "Name of the act (e.g., 'main_act')"
+                        },
+                        "maneuver_group": {
+                            "type": "string",
+                            "description": "Name of maneuver group (required for Event triggers only)"
+                        },
+                        "maneuver": {
+                            "type": "string",
+                            "description": "Name of maneuver (required for Event triggers only)"
+                        },
+                        "event_name": {
+                            "type": "string",
+                            "description": "Name of the event (required for Event triggers only)"
+                        },
+                        "entity_refs": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of entity names to monitor for collisions (e.g., ['ego', 'vehicle2'])"
+                        },
+                        "target_entity": {
+                            "type": "string",
+                            "description": "Name of the entity to detect collisions with (e.g., 'obstacle_1')"
+                        },
+                        "trigger_rule": {
+                            "type": "string",
+                            "enum": ["any", "all"],
+                            "description": "Triggering rule: 'any' (at least one entity) or 'all' (all entities must collide)"
+                        },
+                        "delay_seconds": {
+                            "type": "number",
+                            "description": "Optional delay in seconds after collision detected (default: 0.0)"
+                        }
+                    },
+                    "required": ["scenario_id", "element_type", "story_name", "act_name", "entity_refs", "target_entity", "trigger_rule"]
                 }),
             },
             ToolDefinition {
@@ -1080,6 +1139,66 @@ impl OpenScenarioServer {
                     maneuver,
                     event_name,
                     time_seconds,
+                    delay_seconds,
+                )?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "set_collision_trigger" => {
+                let scenario_id = args
+                    .get("scenario_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'scenario_id' parameter"))?;
+                let element_type = args
+                    .get("element_type")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'element_type' parameter"))?;
+                let story_name = args
+                    .get("story_name")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'story_name' parameter"))?;
+                let act_name = args
+                    .get("act_name")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'act_name' parameter"))?;
+                let entity_refs = args
+                    .get("entity_refs")
+                    .and_then(Value::as_array)
+                    .ok_or_else(|| anyhow!("Missing or invalid 'entity_refs' parameter"))?
+                    .iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect::<Vec<String>>();
+                let target_entity = args
+                    .get("target_entity")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'target_entity' parameter"))?;
+                let trigger_rule = args
+                    .get("trigger_rule")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'trigger_rule' parameter"))?;
+                let delay_seconds = args.get("delay_seconds").and_then(Value::as_f64);
+
+                // Optional params for Event triggers
+                let maneuver_group = args.get("maneuver_group").and_then(Value::as_str).map(String::from);
+                let maneuver = args.get("maneuver").and_then(Value::as_str).map(String::from);
+                let event_name = args.get("event_name").and_then(Value::as_str).map(String::from);
+
+                let result = handle_set_collision_trigger(
+                    GLOBAL_STATE.clone(),
+                    scenario_id.to_string(),
+                    element_type.to_string(),
+                    story_name.to_string(),
+                    act_name.to_string(),
+                    maneuver_group,
+                    maneuver,
+                    event_name,
+                    entity_refs,
+                    target_entity.to_string(),
+                    trigger_rule.to_string(),
                     delay_seconds,
                 )?;
 
