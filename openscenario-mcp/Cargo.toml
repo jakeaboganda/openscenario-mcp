@@ -16,7 +16,7 @@ name = "openscenario-mcp"
 path = "src/main.rs"
 
 [dependencies]
-openscenario = { path = "../openscenario" }
+openscenario = { version = "0.2.0", path = "../openscenario" }
 mcp-sdk = "0.0.3"
 tokio = { version = "1.40", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
