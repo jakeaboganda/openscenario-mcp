@@ -186,9 +186,31 @@ Now choose how you want to use it:
 **Easiest and most natural interface**
 
 1. Install Claude Desktop from [claude.ai](https://claude.ai/download)
-2. Configure MCP server:
+2. Build the release binary:
+
+```bash
+cd osc-mcp
+cargo build --release
+```
+
+3. Configure MCP server:
 
 Edit `~/.config/Claude/claude_desktop_config.json`:
+
+**Option A: Use pre-built binary** (fastest, recommended):
+```json
+{
+  "mcpServers": {
+    "openscenario": {
+      "command": "/absolute/path/to/osc-mcp/target/release/openscenario-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+
+**Option B: Build on-demand** (slower startup, always uses latest code):
 ```json
 {
   "mcpServers": {
@@ -205,10 +227,35 @@ Edit `~/.config/Claude/claude_desktop_config.json`:
 }
 ```
 
-**Replace** `/absolute/path/to` with your actual path (e.g., `/home/username/projects/osc-mcp`).
+**Option C: Install globally** (cleanest, works from anywhere):
+```bash
+# Install to ~/.cargo/bin/
+cd osc-mcp/openscenario-mcp
+cargo install --path .
 
-3. Restart Claude Desktop
-4. Say: "Create a lane change scenario"
+# Then configure:
+# ~/.config/Claude/claude_desktop_config.json
+{
+  "mcpServers": {
+    "openscenario": {
+      "command": "openscenario-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+**Replace** `/absolute/path/to` with your actual path:
+- Linux/Mac: `/home/username/projects/osc-mcp` or `~/projects/osc-mcp` (~ doesn't work, use full path)
+- Windows: `C:\Users\username\projects\osc-mcp`
+
+**Tip**: Get your full path:
+```bash
+cd osc-mcp && pwd  # Copy this path
+```
+
+4. Restart Claude Desktop
+5. Say: "Create a lane change scenario"
 
 **Detailed guide**: [CLAUDE_USAGE.md](CLAUDE_USAGE.md)
 

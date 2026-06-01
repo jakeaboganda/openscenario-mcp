@@ -24,20 +24,21 @@ How to use OpenSCENARIO MCP Server with different interfaces.
 
 **Quick setup**:
 1. Install Claude Desktop
-2. Add to `~/.config/Claude/claude_desktop_config.json`:
+2. Build the server: `cd osc-mcp && cargo build --release`
+3. Add to `~/.config/Claude/claude_desktop_config.json`:
    ```json
    {
      "mcpServers": {
        "openscenario": {
-         "command": "cargo",
-         "args": ["run", "--release", "--manifest-path",
-                  "/absolute/path/to/osc-mcp/openscenario-mcp/Cargo.toml"]
+         "command": "/absolute/path/to/osc-mcp/target/release/openscenario-mcp",
+         "args": []
        }
      }
    }
    ```
-3. Restart Claude
-4. Say: "Create a scenario"
+   Or install globally: `cargo install --path openscenario-mcp` then use `"command": "openscenario-mcp"`
+4. Restart Claude
+5. Say: "Create a scenario"
 
 ---
 

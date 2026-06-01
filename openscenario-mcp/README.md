@@ -32,8 +32,24 @@ The server communicates via **JSON-RPC over stdio**:
 
 ### Integration with OpenClaw
 
-Add to your OpenClaw MCP server configuration:
+Add to your MCP server configuration:
 
+**Option 1: Pre-built binary** (recommended):
+```json
+{
+  "mcpServers": {
+    "openscenario": {
+      "command": "/path/to/osc-mcp/target/release/openscenario-mcp",
+      "args": [],
+      "env": {
+        "RUST_LOG": "info"
+      }
+    }
+  }
+}
+```
+
+**Option 2: Build on-demand**:
 ```json
 {
   "mcpServers": {
@@ -44,6 +60,22 @@ Add to your OpenClaw MCP server configuration:
       "env": {
         "RUST_LOG": "info"
       }
+    }
+  }
+}
+```
+
+**Option 3: Global install**:
+```bash
+cargo install --path .
+
+# Then configure:
+{
+  "mcpServers": {
+    "openscenario": {
+      "command": "openscenario-mcp",
+      "args": [],
+      "env": {"RUST_LOG": "info"}
     }
   }
 }

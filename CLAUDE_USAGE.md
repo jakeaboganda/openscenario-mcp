@@ -39,6 +39,22 @@ nano ~/.config/Claude/claude_desktop_config.json
 
 Add this configuration:
 
+**Recommended: Use pre-built binary** (fastest):
+```json
+{
+  "mcpServers": {
+    "openscenario": {
+      "command": "/absolute/path/to/osc-mcp/target/release/openscenario-mcp",
+      "args": [],
+      "env": {
+        "RUST_LOG": "info"
+      }
+    }
+  }
+}
+```
+
+**Alternative: Build on-demand** (slower startup):
 ```json
 {
   "mcpServers": {
@@ -56,8 +72,30 @@ Add this configuration:
     }
   }
 }
+```
+
+**Alternative: Global install** (works from anywhere):
+```bash
+# First install:
+cd osc-mcp/openscenario-mcp
+cargo install --path .
+
+# Then configure:
+{
+  "mcpServers": {
+    "openscenario": {
+      "command": "openscenario-mcp",
+      "args": [],
+      "env": {
+        "RUST_LOG": "info"
+      }
+    }
+  }
+}
+```
 
 > **Note**: Replace `/absolute/path/to` with where you cloned the repo (e.g., `/home/username/projects/osc-mcp`).
+> **Tip**: Get your path: `cd osc-mcp && pwd`
 ```
 
 **Save and close** (Ctrl+X, Y, Enter in nano)
