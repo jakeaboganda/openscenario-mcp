@@ -1,85 +1,156 @@
 # OpenSCENARIO XSD Schemas
 
-## ⚠️ IMPORTANT: Test Schema vs Production Schema
+## ✅ Official Schemas Installed
 
-### Current Status
+This directory contains **official ASAM OpenSCENARIO XSD schemas** for the following versions:
 
-This directory contains **MINIMAL TEST SCHEMAS** for basic XSD validation during development.
+- **v1.1.1** - OpenSCENARIO 1.1.1
+- **v1.2.0** - OpenSCENARIO 1.2.0  
+- **v1.3.0** - OpenSCENARIO 1.3.0
 
-**These are NOT production-ready schemas!**
-
----
-
-## What's Included
-
-**v1.2/OpenSCENARIO_MINIMAL_TEST.xsd**
-- Simplified test schema with ~10% coverage
-- Basic element structures
-- Many complex types stubbed with `<xs:anyType/>`
-- **Use**: Development, basic validation, unit tests
-- **DO NOT USE**: Production validation, compliance checking
+These are the **complete, production-ready schemas** from ASAM.
 
 ---
 
-## Why is the schema incomplete?
+## Supported Versions
 
-The bundled schema was created for testing the XSD validation infrastructure:
-- Verifies validator loads schemas correctly
-- Tests basic element/attribute validation
-- Provides fast feedback during development
+The library now supports **three OpenSCENARIO versions**:
 
-**Missing** from test schema:
-- Full action type definitions (Speed, Lateral, Routing, etc.)
-- Complete trigger/condition structures
-- Detailed dynamics models
-- Controller specifications
-- Advanced trajectory definitions
-- ~90% of the full specification
+| Version | Schema Location | Status |
+|---------|----------------|---------|
+| **1.1.1** | `v1.1.1/OpenSCENARIO.xsd` | ✅ Full XSD validation |
+| **1.2.0** | `v1.2.0/OpenSCENARIO.xsd` | ✅ Full XSD validation |
+| **1.3.0** | `v1.3.0/OpenSCENARIO.xsd` | ✅ Full XSD validation |
 
 ---
 
-## How to Get Official XSD Schemas
+## Version Selection
 
-### Option A: Download from ASAM (Recommended)
+The validator automatically selects the correct XSD based on the scenario's `revMajor` and `revMinor` attributes:
 
-1. Visit: https://www.asam.net/standards/detail/openscenario/
-2. Download OpenSCENARIO releases:
-   - OpenSCENARIO 1.0
-   - OpenSCENARIO 1.1
-   - OpenSCENARIO 1.2
-3. Extract `OpenSCENARIO.xsd` from each archive
-4. Place in respective version directories:
-   ```
-   schemas/v1.0/OpenSCENARIO.xsd
-   schemas/v1.1/OpenSCENARIO.xsd
-   schemas/v1.2/OpenSCENARIO.xsd
-   ```
-
-### Option B: Use esmini Schemas
-
-If you have esmini installed:
-```bash
-# Find esmini's XSD files
-find /path/to/esmini -name "*.xsd"
-
-# Copy to schema directories
-cp /path/to/esmini/resources/xsd/OpenSCENARIO_v1.0.xsd schemas/v1.0/OpenSCENARIO.xsd
-cp /path/to/esmini/resources/xsd/OpenSCENARIO_v1.1.xsd schemas/v1.1/OpenSCENARIO.xsd
-cp /path/to/esmini/resources/xsd/OpenSCENARIO_v1.2.xsd schemas/v1.2/OpenSCENARIO.xsd
+```xml
+<FileHeader revMajor="1" revMinor="2" ...>
+  <!-- Uses v1.2.0 schema -->
+</FileHeader>
 ```
 
-### Option C: Use OpenSCENARIO GitHub
+**Mapping**:
+- `revMajor="1" revMinor="1"` → v1.1.1 schema
+- `revMajor="1" revMinor="2"` → v1.2.0 schema
+- `revMajor="1" revMinor="3"` → v1.3.0 schema
 
-```bash
-cd schemas/v1.2
-curl -O https://raw.githubusercontent.com/OpenSCENARIO/OpenSCENARIO/master/schema/OpenSCENARIO.xsd
+---
+
+## Legacy Versions
+
+These directories remain for backward compatibility but are no longer actively supported:
+
+- `v1.0/` - OpenSCENARIO 1.0 (legacy)
+- `v1.1/` - OpenSCENARIO 1.1.0 (superseded by 1.1.1)
+- `v1.2/` - Contains minimal test schema (superseded by v1.2.0)
+
+**Recommendation**: Use v1.1.1, v1.2.0, or v1.3.0 for new scenarios.
+
+---
+
+## Validation Behavior
+
+### With Official Schemas (Current State)
+
+✅ **Full XSD Validation**:
+- Complete element structure checking
+- Attribute constraint validation
+- Cardinality enforcement (minOccurs, maxOccurs)
+- Data type validation
+- Enumeration checking
+
+**Example**:
+```rust
+let report = scenario.validate_with_xsd()?;
+assert!(report.valid);  // Strict validation
 ```
+
+### Without Schemas (Fallback)
+
+If schemas are missing, the validator returns an error:
+
+```rust
+ValidationReport {
+    valid: false,
+    errors: vec!["XSD schema not available for OpenSCENARIO v1.2.0. Full validation requires official ASAM XSD files."],
+    warnings: vec![]
+}
+```
+
+**Strict Mode**: No graceful fallback. This ensures you know when full validation isn't happening.
+
+---
+
+## Schema Sources
+
+These schemas are the **official ASAM OpenSCENARIO XML schemas**:
+
+- **Source**: ASAM e.V. (Association for Standardization of Automation and Measuring Systems)
+- **Standard**: https://www.asam.net/standards/detail/openscenario/
+- **License**: ASAM license terms
+- **Copyright**: © ASAM e.V., 2021-2024
+
+**Usage**: These files are distributable under ASAM license terms for implementation purposes.
+
+---
+
+## Version Differences
+
+### v1.1.1 → v1.2.0
+- New `ColorType`, `AutomaticGearType` enumerations
+- `ControllerType` enum added
+- `DirectionalDimension` for acceleration conditions
+- Enhanced lighting and animation support
+- `VariableAction` and `VariableCondition` added
+- Improved vehicle component definitions
+
+### v1.2.0 → v1.3.0
+- New `AngleType`, `AngleCondition` for orientation checks
+- `RelativeAngleCondition` added
+- `CoordinateSystem` enum extended (added `world`)
+- `ClothoidSpline` and `ClothoidSplineSegment` for advanced trajectories
+- `ConnectTrailerAction`, `DisconnectTrailerAction` for trailer handling
+- `SetMonitorAction` and `MonitorDeclarations` for monitoring
+- `LogNormalDistribution` for stochastic distributions
+- `Lane` element for lane references
+- Enhanced controller management (`objectControllerRef`)
+- Improved `GeoPosition` with vertical road selection
+
+---
+
+## Adding New Versions
+
+To add support for new OpenSCENARIO versions:
+
+1. **Create version directory**:
+   ```bash
+   mkdir -p schemas/v1.4.0
+   ```
+
+2. **Add official XSD**:
+   ```bash
+   cp /path/to/OpenSCENARIO_v1.4.0.xsd schemas/v1.4.0/OpenSCENARIO.xsd
+   ```
+
+3. **Update validator code** (if needed):
+   - `openscenario/src/validation.rs` - Add version mapping
+   - Usually automatic if schema follows naming convention
+
+4. **Test validation**:
+   ```bash
+   cargo test validation_tests
+   ```
 
 ---
 
 ## Verification
 
-After placing official schemas:
+Check schema installation:
 
 ```bash
 cd ../..  # Back to openscenario/ directory
@@ -88,66 +159,52 @@ cd ../..  # Back to openscenario/ directory
 
 Expected output:
 ```
-✅ Found: schemas/v1.0/OpenSCENARIO.xsd
-✅ Found: schemas/v1.1/OpenSCENARIO.xsd  
-✅ Found: schemas/v1.2/OpenSCENARIO.xsd
+✅ Found: schemas/v1.1.1/OpenSCENARIO.xsd
+✅ Found: schemas/v1.2.0/OpenSCENARIO.xsd  
+✅ Found: schemas/v1.3.0/OpenSCENARIO.xsd
 
 ✅ All XSD schema files present!
 ```
 
+Or check with `find`:
+```bash
+cd schemas
+find . -name "OpenSCENARIO.xsd" | sort
+```
+
 ---
 
-## Schema File Naming
+## File Requirements
 
 **For Uppsala validator to recognize schemas:**
-- File MUST be named `OpenSCENARIO.xsd`
-- Test schema uses different name: `OpenSCENARIO_MINIMAL_TEST.xsd`
-- This prevents accidental use of test schema for production validation
+- File MUST be named exactly: `OpenSCENARIO.xsd`
+- File MUST be XML Schema Definition (XSD) format
+- File MUST be in version-specific directory (e.g., `v1.2.0/`)
+
+**Directory naming**:
+- Use semantic versioning: `v{major}.{minor}.{patch}`
+- Examples: `v1.1.1`, `v1.2.0`, `v1.3.0`
 
 ---
 
 ## License & Copyright
 
-OpenSCENARIO XSD schemas are copyrighted by ASAM e.V.
+**OpenSCENARIO XSD Schemas**:
+- Copyright © ASAM e.V., 2021-2024
+- Licensed under ASAM terms
+- See: https://www.asam.net/license.html
 
-- **Standard**: https://www.asam.net/standards/detail/openscenario/
-- **License**: Check ASAM website for current terms
-- **Usage**: Typically permitted for implementation purposes
-
-**Bundled test schema** is a derivative work created for testing only.
-
----
-
-## What Happens Without Official Schemas?
-
-The validator falls back to basic validation:
-- XML well-formedness check
-- FileHeader version verification
-- Root element structure
-
-**Limitations**:
-- No detailed element validation
-- No attribute constraint checking
-- No cardinality enforcement
-- Invalid documents may pass
-
-**Warning in validation report**:
-```
-ValidationReport {
-    valid: true,
-    warnings: vec!["XSD schema not available for OpenSCENARIO v1.2. Performing basic validation only."]
-}
-```
+**This Library (openscenario-rs)**:
+- Uses schemas for validation purposes
+- Compliant with ASAM implementation guidelines
 
 ---
 
 ## Summary
 
-| Schema Type | Location | Use Case | Coverage |
-|-------------|----------|----------|----------|
-| **Test** | v1.2/OpenSCENARIO_MINIMAL_TEST.xsd | Development, unit tests | ~10% |
-| **Production** | v1.2/OpenSCENARIO.xsd (not included) | Validation, compliance | 100% |
+✅ **Three production versions supported**: 1.1.1, 1.2.0, 1.3.0  
+✅ **Full XSD validation** for all supported versions  
+✅ **Automatic version detection** from FileHeader  
+✅ **Strict validation mode** - no silent failures  
 
-**Action Required**: Obtain official ASAM schemas for production use.
-
-Run `./check-schemas.sh` to verify setup.
+**Current Status**: Ready for production use with complete schema coverage.
