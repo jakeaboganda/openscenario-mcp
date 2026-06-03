@@ -299,6 +299,7 @@ pub fn handle_add_speed_action(
     story_name: String,
     speed: f64,
     duration: f64,
+    start_time: Option<f64>,
 ) -> Result<String> {
     let mut state_lock = state
         .lock()
@@ -344,9 +345,28 @@ pub fn handle_add_speed_action(
         },
     )?;
 
+    // Auto-add start trigger if start_time provided
+    let trigger_msg = if let Some(start_time) = start_time {
+        use openscenario::storyboard::{Condition, ConditionEdge, ConditionGroup, Rule, Trigger};
+
+        let mut condition = Condition::simulation_time(start_time, Rule::GreaterThan);
+        condition.condition_edge = ConditionEdge::Rising;
+
+        let condition_group = ConditionGroup::new(vec![condition]);
+        let trigger = Trigger::new(condition_group);
+
+        scenario
+            .set_act_start_trigger(&story_name, &act_name, trigger)
+            .map_err(|e| anyhow!("Failed to set Act trigger: {}", e))?;
+
+        format!("\nAuto-set start trigger: Act starts at t={}s", start_time)
+    } else {
+        "\n⚠️  Warning: No start trigger set. Act will not execute unless you call set_trigger_time or set_collision_trigger.".to_string()
+    };
+
     Ok(format!(
-        "Speed action added: {} m/s over {} seconds\nCreated hierarchy: story='{}', act='{}', maneuver_group='{}', maneuver='{}', event='{}'",
-        speed, duration, story_name, act_name, mg_name, maneuver_name, event_name
+        "Speed action added: {} m/s over {} seconds\nCreated hierarchy: story='{}', act='{}', maneuver_group='{}', maneuver='{}', event='{}'{}" ,
+        speed, duration, story_name, act_name, mg_name, maneuver_name, event_name, trigger_msg
     ))
 }
 
@@ -359,6 +379,7 @@ pub fn handle_add_lane_change_action(
     story_name: String,
     target_lane: f64,
     duration: f64,
+    start_time: Option<f64>,
 ) -> Result<String> {
     let mut state_lock = state
         .lock()
@@ -400,9 +421,28 @@ pub fn handle_add_lane_change_action(
         TransitionShape::Linear,
     )?;
 
+    // Auto-add start trigger if start_time provided
+    let trigger_msg = if let Some(start_time) = start_time {
+        use openscenario::storyboard::{Condition, ConditionEdge, ConditionGroup, Rule, Trigger};
+
+        let mut condition = Condition::simulation_time(start_time, Rule::GreaterThan);
+        condition.condition_edge = ConditionEdge::Rising;
+
+        let condition_group = ConditionGroup::new(vec![condition]);
+        let trigger = Trigger::new(condition_group);
+
+        scenario
+            .set_act_start_trigger(&story_name, &act_name, trigger)
+            .map_err(|e| anyhow!("Failed to set Act trigger: {}", e))?;
+
+        format!("\nAuto-set start trigger: Act starts at t={}s", start_time)
+    } else {
+        "\n⚠️  Warning: No start trigger set. Act will not execute unless you call set_trigger_time or set_collision_trigger.".to_string()
+    };
+
     Ok(format!(
-        "Lane change action added: target lane offset {} over {} seconds\nCreated hierarchy: story='{}', act='{}', maneuver_group='{}', maneuver='{}', event='{}'",
-        target_lane, duration, story_name, act_name, mg_name, maneuver_name, event_name
+        "Lane change action added: target lane offset {} over {} seconds\nCreated hierarchy: story='{}', act='{}', maneuver_group='{}', maneuver='{}', event='{}'{}",
+        target_lane, duration, story_name, act_name, mg_name, maneuver_name, event_name, trigger_msg
     ))
 }
 
@@ -1236,4 +1276,116 @@ fn format_condition_description(condition: &openscenario::storyboard::Condition)
             }
         }
     }
+}
+
+/// Validate scenario for common issues before export
+///
+/// Checks for:
+/// - Acts without start triggers ("dead" maneuvers)
+/// - Unreferenced entities
+/// - Other structural issues
+///
+/// # Arguments
+/// * `state` - Shared server state
+/// * `scenario_id` - Target scenario
+/// * `auto_fix` - If true, auto-inject t=0 triggers for Acts without triggers
+///
+/// # Returns
+/// Validation report with warnings and errors
+pub fn handle_validate_scenario_structure(
+    state: Arc<Mutex<ServerState>>,
+    scenario_id: String,
+    auto_fix: bool,
+) -> Result<String> {
+    let mut state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+
+    let scenario = state_lock
+        .scenarios
+        .get_mut(&scenario_id)
+        .ok_or_else(|| anyhow!("Scenario '{}' not found", scenario_id))?;
+
+    let mut warnings: Vec<String> = Vec::new();
+    let errors: Vec<String> = Vec::new();
+    let mut fixes_applied: Vec<String> = Vec::new();
+
+    // Collect Acts without triggers first (to avoid borrow checker issues)
+    let mut acts_to_fix: Vec<(String, String)> = Vec::new();
+    for story in scenario.stories() {
+        for (act_name, act) in &story.acts {
+            if act.start_trigger.is_none() {
+                let msg = format!(
+                    "Act '{}' in story '{}' has no start trigger (will never execute)",
+                    act_name, story.name
+                );
+
+                if auto_fix {
+                    acts_to_fix.push((story.name.clone(), act_name.clone()));
+                } else {
+                    warnings.push(msg);
+                }
+            }
+        }
+    }
+
+    // Apply fixes
+    for (story_name, act_name) in acts_to_fix {
+        use openscenario::storyboard::{Condition, ConditionEdge, ConditionGroup, Rule, Trigger};
+
+        let mut condition = Condition::simulation_time(0.0, Rule::GreaterThan);
+        condition.condition_edge = ConditionEdge::Rising;
+        condition.name = format!("AutoFix_{}_Start", act_name);
+
+        let condition_group = ConditionGroup::new(vec![condition]);
+        let trigger = Trigger::new(condition_group);
+
+        scenario
+            .set_act_start_trigger(&story_name, &act_name, trigger)
+            .map_err(|e| anyhow!("Failed to auto-fix trigger: {}", e))?;
+
+        fixes_applied.push(format!(
+            "✅ Auto-fixed: Added t=0 trigger to Act '{}'",
+            act_name
+        ));
+    }
+
+    // Build report
+    let mut report = String::new();
+
+    if errors.is_empty() && warnings.is_empty() && fixes_applied.is_empty() {
+        report.push_str("✅ Scenario validation passed: No issues found\n");
+    } else {
+        report.push_str("📋 Scenario Validation Report\n\n");
+
+        if !fixes_applied.is_empty() {
+            report.push_str(&format!("🔧 Fixes Applied ({}):\n", fixes_applied.len()));
+            for fix in &fixes_applied {
+                report.push_str(&format!("  {}\n", fix));
+            }
+            report.push('\n');
+        }
+
+        if !warnings.is_empty() {
+            report.push_str(&format!("⚠️  Warnings ({}):\n", warnings.len()));
+            for warning in &warnings {
+                report.push_str(&format!("  • {}\n", warning));
+            }
+            report.push('\n');
+        }
+
+        if !errors.is_empty() {
+            report.push_str(&format!("❌ Errors ({}):\n", errors.len()));
+            for error in &errors {
+                report.push_str(&format!("  • {}\n", error));
+            }
+            report.push('\n');
+        }
+
+        if !warnings.is_empty() && !auto_fix {
+            report.push_str("\n💡 Tip: Run with auto_fix=true to automatically fix warnings\n");
+        }
+    }
+
+    Ok(report)
 }

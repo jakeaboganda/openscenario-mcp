@@ -5,6 +5,7 @@ use crate::handlers::{
     handle_load_road_network, handle_set_collision_trigger, handle_set_lane_position,
     handle_set_position, handle_set_stop_on_element, handle_set_stop_time, handle_set_trigger_time,
     handle_suggest_spawn_points, handle_validate_position, handle_validate_scenario,
+    handle_validate_scenario_structure,
 };
 use crate::scenario_templates::{
     handle_create_cutin_scenario, handle_create_lane_change_scenario,
@@ -191,7 +192,7 @@ impl OpenScenarioServer {
             },
             ToolDefinition {
                 name: "add_speed_action".to_string(),
-                description: Some("Add a speed action to a scenario".to_string()),
+                description: Some("Add a speed action to a scenario. Auto-creates Act/Maneuver hierarchy.".to_string()),
                 input_schema: json!({
                     "type": "object",
                     "properties": {
@@ -214,6 +215,10 @@ impl OpenScenarioServer {
                         "duration": {
                             "type": "number",
                             "description": "Duration in seconds"
+                        },
+                        "start_time": {
+                            "type": "number",
+                            "description": "Optional: Simulation time when Act should start (default: no trigger, must set manually)"
                         }
                     },
                     "required": ["scenario_id", "entity_name", "story_name", "speed", "duration"]
@@ -221,7 +226,7 @@ impl OpenScenarioServer {
             },
             ToolDefinition {
                 name: "add_lane_change_action".to_string(),
-                description: Some("Add a lane change action to a scenario".to_string()),
+                description: Some("Add a lane change action to a scenario. Auto-creates Act/Maneuver hierarchy.".to_string()),
                 input_schema: json!({
                     "type": "object",
                     "properties": {
@@ -244,6 +249,10 @@ impl OpenScenarioServer {
                         "duration": {
                             "type": "number",
                             "description": "Duration in seconds"
+                        },
+                        "start_time": {
+                            "type": "number",
+                            "description": "Optional: Simulation time when Act should start (default: no trigger, must set manually)"
                         }
                     },
                     "required": ["scenario_id", "entity_name", "story_name", "target_lane", "duration"]
@@ -278,6 +287,26 @@ impl OpenScenarioServer {
                         "scenario_id": {
                             "type": "string",
                             "description": "Scenario ID to validate"
+                        }
+                    },
+                    "required": ["scenario_id"]
+                }),
+            },
+            ToolDefinition {
+                name: "validate_scenario_structure".to_string(),
+                description: Some(
+                    "Validate scenario structure for common issues (dead Acts, missing triggers, etc.). Can auto-fix issues when auto_fix=true.".to_string(),
+                ),
+                input_schema: json!({
+                    "type": "object",
+                    "properties": {
+                        "scenario_id": {
+                            "type": "string",
+                            "description": "Scenario ID to validate"
+                        },
+                        "auto_fix": {
+                            "type": "boolean",
+                            "description": "If true, automatically fix common issues (e.g., add t=0 triggers to Acts without triggers)"
                         }
                     },
                     "required": ["scenario_id"]
@@ -996,6 +1025,7 @@ impl OpenScenarioServer {
                     .get("duration")
                     .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing or invalid 'duration' parameter"))?;
+                let start_time = args.get("start_time").and_then(Value::as_f64);
 
                 let result = handle_add_speed_action(
                     GLOBAL_STATE.clone(),
@@ -1004,6 +1034,7 @@ impl OpenScenarioServer {
                     story_name.to_string(),
                     speed,
                     duration,
+                    start_time,
                 )?;
 
                 Ok(CallToolResponse {
@@ -1033,6 +1064,7 @@ impl OpenScenarioServer {
                     .get("duration")
                     .and_then(Value::as_f64)
                     .ok_or_else(|| anyhow!("Missing or invalid 'duration' parameter"))?;
+                let start_time = args.get("start_time").and_then(Value::as_f64);
 
                 let result = handle_add_lane_change_action(
                     GLOBAL_STATE.clone(),
@@ -1041,6 +1073,7 @@ impl OpenScenarioServer {
                     story_name.to_string(),
                     target_lane,
                     duration,
+                    start_time,
                 )?;
 
                 Ok(CallToolResponse {
@@ -1079,6 +1112,28 @@ impl OpenScenarioServer {
 
                 let result =
                     handle_validate_scenario(GLOBAL_STATE.clone(), scenario_id.to_string())?;
+
+                Ok(CallToolResponse {
+                    content: vec![ToolResponseContent::Text { text: result }],
+                    is_error: None,
+                    meta: None,
+                })
+            }
+            "validate_scenario_structure" => {
+                let scenario_id = args
+                    .get("scenario_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("Missing 'scenario_id' parameter"))?;
+                let auto_fix = args
+                    .get("auto_fix")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false);
+
+                let result = handle_validate_scenario_structure(
+                    GLOBAL_STATE.clone(),
+                    scenario_id.to_string(),
+                    auto_fix,
+                )?;
 
                 Ok(CallToolResponse {
                     content: vec![ToolResponseContent::Text { text: result }],
