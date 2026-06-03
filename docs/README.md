@@ -18,7 +18,7 @@ Welcome to the osc-mcp documentation!
 
 ## 🎨 Advanced Topics
 
-- **[Phase 4 Visualizations](phase4-visualizations.md)** - Visualization capabilities
+- **[Visualizations](visualizations.md)** - Visualization capabilities
 
 ## 📦 Archive
 

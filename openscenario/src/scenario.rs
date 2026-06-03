@@ -4446,6 +4446,106 @@ impl Scenario {
     pub fn parameters(&self) -> &[ParameterDeclaration] {
         &self.parameters
     }
+
+    /// Get the start trigger for an Act by name.
+    ///
+    /// Searches through all stories to find the Act and returns its start trigger.
+    ///
+    /// # Arguments
+    /// * `act_name` - Name of the act
+    ///
+    /// # Returns
+    /// * `Ok(Some(&Trigger))` if Act found and has a trigger
+    /// * `Ok(None)` if Act found but has no trigger
+    /// * `Err` if Act not found
+    pub fn get_act_start_trigger(
+        &self,
+        act_name: impl Into<String>,
+    ) -> Result<Option<&crate::storyboard::Trigger>> {
+        let act_name = act_name.into();
+
+        for story in self.storyboard.stories.values() {
+            if let Some(act) = story.acts.get(&act_name) {
+                return Ok(act.start_trigger.as_ref());
+            }
+        }
+
+        Err(ScenarioError::EntityNotFound {
+            entity: act_name,
+            context: "in scenario storyboard".to_string(),
+        })
+    }
+
+    /// Get the start trigger for an Event by full path.
+    ///
+    /// # Arguments
+    /// * `story_name` - Name of the story
+    /// * `act_name` - Name of the act
+    /// * `maneuver_group` - Name of the maneuver group
+    /// * `maneuver` - Name of the maneuver
+    /// * `event_name` - Name of the event
+    ///
+    /// # Returns
+    /// * `Ok(Some(&Trigger))` if Event found and has a trigger
+    /// * `Ok(None)` if Event found but has no trigger
+    /// * `Err` if Event not found in hierarchy
+    pub fn get_event_start_trigger(
+        &self,
+        story_name: impl Into<String>,
+        act_name: impl Into<String>,
+        maneuver_group: impl Into<String>,
+        maneuver: impl Into<String>,
+        event_name: impl Into<String>,
+    ) -> Result<Option<&crate::storyboard::Trigger>> {
+        let story_name = story_name.into();
+        let act_name = act_name.into();
+        let mg_name = maneuver_group.into();
+        let maneuver_name = maneuver.into();
+        let event_name = event_name.into();
+
+        let story = self.storyboard.stories.get(&story_name).ok_or_else(|| {
+            ScenarioError::StoryNotFound {
+                name: story_name.clone(),
+                available: self.storyboard.stories.keys().cloned().collect(),
+            }
+        })?;
+
+        let act = story
+            .acts
+            .get(&act_name)
+            .ok_or_else(|| ScenarioError::EntityNotFound {
+                entity: act_name.clone(),
+                context: format!("in story '{}'", story_name),
+            })?;
+
+        let mg =
+            act.maneuver_groups
+                .get(&mg_name)
+                .ok_or_else(|| ScenarioError::EntityNotFound {
+                    entity: mg_name.clone(),
+                    context: format!("maneuver group in act '{}'", act_name),
+                })?;
+
+        let maneuver = mg
+            .maneuvers
+            .iter()
+            .find(|m| m.name == maneuver_name)
+            .ok_or_else(|| ScenarioError::EntityNotFound {
+                entity: maneuver_name.clone(),
+                context: format!("maneuver in group '{}'", mg_name),
+            })?;
+
+        let event = maneuver
+            .events
+            .iter()
+            .find(|e| e.name == event_name)
+            .ok_or_else(|| ScenarioError::EntityNotFound {
+                entity: event_name.clone(),
+                context: format!("event in maneuver '{}'", maneuver_name),
+            })?;
+
+        Ok(event.start_trigger.as_ref())
+    }
 }
 
 #[cfg(test)]

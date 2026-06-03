@@ -345,8 +345,8 @@ pub fn handle_add_speed_action(
     )?;
 
     Ok(format!(
-        "Speed action added: {} m/s over {} seconds",
-        speed, duration
+        "Speed action added: {} m/s over {} seconds\nCreated hierarchy: story='{}', act='{}', maneuver_group='{}', maneuver='{}', event='{}'",
+        speed, duration, story_name, act_name, mg_name, maneuver_name, event_name
     ))
 }
 
@@ -401,8 +401,8 @@ pub fn handle_add_lane_change_action(
     )?;
 
     Ok(format!(
-        "Lane change action added: target lane offset {} over {} seconds",
-        target_lane, duration
+        "Lane change action added: target lane offset {} over {} seconds\nCreated hierarchy: story='{}', act='{}', maneuver_group='{}', maneuver='{}', event='{}'",
+        target_lane, duration, story_name, act_name, mg_name, maneuver_name, event_name
     ))
 }
 
@@ -759,6 +759,125 @@ pub fn handle_get_real_world_road(
     .to_string())
 }
 
+/// Generic trigger setter for Acts and Events
+///
+/// Handles the common logic for setting triggers on Acts or Events:
+/// - Parameter validation (element_type, Event requirements)
+/// - State management (lock, scenario lookup)
+/// - Branching (Act vs Event path)
+/// - Error handling and descriptive return messages
+///
+/// # Arguments
+/// * `state` - Shared server state
+/// * `scenario_id` - Target scenario
+/// * `element_type` - "Act" or "Event"
+/// * `story_name` - Parent story name
+/// * `act_name` - Parent act name
+/// * `maneuver_group` - Parent maneuver group (Event only)
+/// * `maneuver` - Parent maneuver (Event only)
+/// * `event_name` - Target event name (Event only)
+/// * `condition_builder` - Closure that creates the condition
+/// * `description` - Human-readable description of the trigger for response message
+///
+/// # Returns
+/// Success message describing what was set
+///
+/// # Errors
+/// * If scenario not found
+/// * If element type is invalid
+/// * If Event requirements not met
+/// * If Act/Event not found in hierarchy
+fn set_element_trigger<F>(
+    state: Arc<Mutex<ServerState>>,
+    scenario_id: String,
+    element_type: String,
+    story_name: String,
+    act_name: String,
+    maneuver_group: Option<String>,
+    maneuver: Option<String>,
+    event_name: Option<String>,
+    condition_builder: F,
+    description: String,
+) -> Result<String>
+where
+    F: FnOnce() -> openscenario::storyboard::Condition,
+{
+    use openscenario::storyboard::{ConditionGroup, Trigger};
+
+    // Validate element_type
+    if element_type != "Act" && element_type != "Event" {
+        return Err(anyhow!(
+            "element_type must be 'Act' or 'Event' (got '{}'). Expected: Set to 'Act' for Act-level triggers or 'Event' for Event-level triggers.",
+            element_type
+        ));
+    }
+
+    // Validate Event has required fields
+    let event_params = if element_type == "Event" {
+        let mg = maneuver_group.ok_or_else(|| {
+            anyhow!(
+                "Missing 'maneuver_group' parameter. Event triggers require: maneuver_group, maneuver, and event_name. For auto-generated names from add_speed_action/add_lane_change_action, use pattern '{{entity}}_mg' (e.g., 'ego_mg')."
+            )
+        })?;
+        let mn = maneuver.ok_or_else(|| {
+            anyhow!(
+                "Missing 'maneuver' parameter. Event triggers require: maneuver_group, maneuver, and event_name. For auto-generated names, use pattern '{{entity}}_maneuver' (e.g., 'ego_maneuver')."
+            )
+        })?;
+        let ev = event_name.ok_or_else(|| {
+            anyhow!(
+                "Missing 'event_name' parameter. Event triggers require: maneuver_group, maneuver, and event_name. For auto-generated names, use pattern '{{entity}}_event' (e.g., 'ego_event')."
+            )
+        })?;
+        Some((mg, mn, ev))
+    } else {
+        None
+    };
+
+    // Acquire state lock
+    let mut state_lock = state
+        .lock()
+        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
+
+    // Get scenario
+    let scenario = state_lock
+        .scenarios
+        .get_mut(&scenario_id)
+        .ok_or_else(|| anyhow!("Scenario '{}' not found", scenario_id))?;
+
+    // Create condition using provided builder
+    let condition = condition_builder();
+
+    // Create trigger with condition group
+    let condition_group = ConditionGroup::new(vec![condition]);
+    let trigger = Trigger::new(condition_group);
+
+    // Apply trigger based on element type
+    match element_type.as_str() {
+        "Act" => {
+            scenario
+                .set_act_start_trigger(&story_name, &act_name, trigger)
+                .map_err(|e| anyhow!("Failed to set Act trigger: {}", e))?;
+            Ok(format!(
+                "Set {} for Act '{}' in story '{}'",
+                description, act_name, story_name
+            ))
+        }
+        "Event" => {
+            let (mg, mn, ev) = event_params.unwrap(); // Safe: validated above
+
+            scenario
+                .set_event_start_trigger(&story_name, &act_name, &mg, &mn, &ev, trigger)
+                .map_err(|e| anyhow!("Failed to set Event trigger: {}", e))?;
+            Ok(format!(
+                "Set {} for Event '{}' (in maneuver '{}')",
+                description, ev, mn
+            ))
+        }
+        _ => unreachable!("Already validated element_type"),
+    }
+}
+
 /// Set a time-based trigger for an Act or Event
 ///
 /// # Arguments
@@ -792,74 +911,47 @@ pub fn handle_set_trigger_time(
     time_seconds: f64,
     delay_seconds: Option<f64>,
 ) -> Result<String> {
-    use openscenario::storyboard::{Condition, ConditionEdge, ConditionGroup, Rule, Trigger};
+    use openscenario::storyboard::{Condition, ConditionEdge, Rule};
 
-    // Validate element_type
-    if element_type != "Act" && element_type != "Event" {
+    // Validate time_seconds is non-negative
+    if time_seconds < 0.0 {
         return Err(anyhow!(
-            "element_type must be 'Act' or 'Event' (got '{}')",
-            element_type
+            "time_seconds must be non-negative (got {}). Expected: Use a positive simulation time value (e.g., 5.0 for 5 seconds).",
+            time_seconds
         ));
     }
 
-    // Validate Event has required fields
-    if element_type == "Event" {
-        if maneuver_group.is_none() || maneuver.is_none() || event_name.is_none() {
-            return Err(anyhow!(
-                "Event triggers require maneuver_group, maneuver, and event_name parameters"
-            ));
-        }
-    }
-
-    // Get delay (default 0.0)
+    // Validate delay_seconds if provided
     let delay = delay_seconds.unwrap_or(0.0);
-
-    // Acquire state lock
-    let mut state_lock = state
-        .lock()
-        .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
-
-    // Get scenario
-    let scenario = state_lock
-        .scenarios
-        .get_mut(&scenario_id)
-        .ok_or_else(|| anyhow!("Scenario '{}' not found", scenario_id))?;
-
-    // Create simulation time condition with delay
-    let mut condition = Condition::simulation_time(time_seconds, Rule::GreaterThan);
-    condition.delay = delay;
-    condition.condition_edge = ConditionEdge::Rising; // Trigger once when time reached
-
-    // Create trigger with condition group
-    let condition_group = ConditionGroup::new(vec![condition]);
-    let trigger = Trigger::new(condition_group);
-
-    // Apply trigger based on element type
-    match element_type.as_str() {
-        "Act" => {
-            scenario
-                .set_act_start_trigger(&story_name, &act_name, trigger)
-                .map_err(|e| anyhow!("Failed to set Act trigger: {}", e))?;
-            Ok(format!(
-                "Set start trigger for Act '{}' in story '{}' at t={}s (delay: {}s)",
-                act_name, story_name, time_seconds, delay
-            ))
-        }
-        "Event" => {
-            let mg = maneuver_group.unwrap();
-            let mn = maneuver.unwrap();
-            let ev = event_name.unwrap();
-            
-            scenario
-                .set_event_start_trigger(&story_name, &act_name, &mg, &mn, &ev, trigger)
-                .map_err(|e| anyhow!("Failed to set Event trigger: {}", e))?;
-            Ok(format!(
-                "Set start trigger for Event '{}' (in maneuver '{}') at t={}s (delay: {}s)",
-                ev, mn, time_seconds, delay
-            ))
-        }
-        _ => unreachable!("Already validated element_type"),
+    if delay < 0.0 {
+        return Err(anyhow!(
+            "delay_seconds must be non-negative (got {}). Expected: Use a positive delay value or omit for immediate trigger.",
+            delay
+        ));
     }
+
+    let description = format!(
+        "time-based trigger at t={}s (delay: {}s)",
+        time_seconds, delay
+    );
+
+    set_element_trigger(
+        state,
+        scenario_id,
+        element_type,
+        story_name,
+        act_name,
+        maneuver_group,
+        maneuver,
+        event_name,
+        || {
+            let mut condition = Condition::simulation_time(time_seconds, Rule::GreaterThan);
+            condition.delay = delay;
+            condition.condition_edge = ConditionEdge::Rising;
+            condition
+        },
+        description,
+    )
 }
 
 /// Set a collision-based trigger for an Act or Event
@@ -899,10 +991,104 @@ pub fn handle_set_collision_trigger(
     trigger_rule: String,
     delay_seconds: Option<f64>,
 ) -> Result<String> {
-    use openscenario::storyboard::{
-        Condition, ConditionGroup, Trigger, TriggeringEntitiesRule,
+    use openscenario::storyboard::{Condition, TriggeringEntitiesRule};
+
+    // Validate trigger_rule
+    let rule = match trigger_rule.to_lowercase().as_str() {
+        "any" => TriggeringEntitiesRule::Any,
+        "all" => TriggeringEntitiesRule::All,
+        _ => {
+            return Err(anyhow!(
+                "trigger_rule must be 'any' or 'all' (got '{}'). Expected: Use 'any' if at least one entity should trigger, or 'all' if all entities must trigger.",
+                trigger_rule
+            ))
+        }
     };
 
+    // Validate entity_refs not empty
+    if entity_refs.is_empty() {
+        return Err(anyhow!(
+            "entity_refs must contain at least one entity. Expected: Provide an array of entity names to monitor (e.g., ['ego', 'vehicle2'])."
+        ));
+    }
+
+    // Check for duplicate entities
+    let unique_count = entity_refs
+        .iter()
+        .collect::<std::collections::HashSet<_>>()
+        .len();
+    if unique_count != entity_refs.len() {
+        return Err(anyhow!(
+            "entity_refs contains duplicate entities. Expected: Each entity should appear only once in the array."
+        ));
+    }
+
+    // Validate delay_seconds if provided
+    let delay = delay_seconds.unwrap_or(0.0);
+    if delay < 0.0 {
+        return Err(anyhow!(
+            "delay_seconds must be non-negative (got {}). Expected: Use a positive delay value or omit for immediate trigger.",
+            delay
+        ));
+    }
+
+    let description = format!(
+        "collision trigger: {} of [{}] collide with '{}' (delay: {}s)",
+        trigger_rule,
+        entity_refs.join(", "),
+        target_entity,
+        delay
+    );
+
+    set_element_trigger(
+        state,
+        scenario_id,
+        element_type,
+        story_name,
+        act_name,
+        maneuver_group,
+        maneuver,
+        event_name,
+        || {
+            let mut condition = Condition::collision(entity_refs.clone(), &target_entity, rule);
+            condition.delay = delay;
+            condition
+        },
+        description,
+    )
+}
+
+/// List triggers for an Act or Event
+///
+/// Retrieves and displays the start trigger configuration for a specified Act or Event.
+///
+/// # Arguments
+/// * `state` - Shared server state
+/// * `scenario_id` - Target scenario
+/// * `element_type` - "Act" or "Event"
+/// * `story_name` - Parent story name (optional for Act-level search)
+/// * `act_name` - Parent act name
+/// * `maneuver_group` - Parent maneuver group (Event only)
+/// * `maneuver` - Parent maneuver (Event only)
+/// * `event_name` - Target event name (Event only)
+///
+/// # Returns
+/// Human-readable trigger description or "No trigger set"
+///
+/// # Errors
+/// * If scenario not found
+/// * If element type is invalid
+/// * If Act/Event not found
+pub fn handle_list_triggers(
+    state: Arc<Mutex<ServerState>>,
+    scenario_id: String,
+    element_type: String,
+    act_name: String,
+    story_name: Option<String>,
+    maneuver_group: Option<String>,
+    maneuver: Option<String>,
+    event_name: Option<String>,
+) -> Result<String> {
     // Validate element_type
     if element_type != "Act" && element_type != "Event" {
         return Err(anyhow!(
@@ -911,78 +1097,143 @@ pub fn handle_set_collision_trigger(
         ));
     }
 
-    // Validate Event has required fields
-    if element_type == "Event" {
-        if maneuver_group.is_none() || maneuver.is_none() || event_name.is_none() {
-            return Err(anyhow!(
-                "Event triggers require maneuver_group, maneuver, and event_name parameters"
-            ));
-        }
-    }
-
-    // Validate trigger_rule
-    let rule = match trigger_rule.to_lowercase().as_str() {
-        "any" => TriggeringEntitiesRule::Any,
-        "all" => TriggeringEntitiesRule::All,
-        _ => {
-            return Err(anyhow!(
-                "trigger_rule must be 'any' or 'all' (got '{}')",
-                trigger_rule
-            ))
-        }
-    };
-
-    // Validate entity_refs not empty
-    if entity_refs.is_empty() {
-        return Err(anyhow!("entity_refs must contain at least one entity"));
-    }
-
-    // Get delay (default 0.0)
-    let delay = delay_seconds.unwrap_or(0.0);
-
     // Acquire state lock
-    let mut state_lock = state
+    let state_lock = state
         .lock()
         .map_err(|_| anyhow!("Failed to acquire state lock: mutex poisoned"))?;
 
     // Get scenario
     let scenario = state_lock
         .scenarios
-        .get_mut(&scenario_id)
+        .get(&scenario_id)
         .ok_or_else(|| anyhow!("Scenario '{}' not found", scenario_id))?;
 
-    // Create collision condition
-    let mut condition = Condition::collision(entity_refs.clone(), &target_entity, rule);
-    condition.delay = delay;
-
-    // Create trigger with condition group
-    let condition_group = ConditionGroup::new(vec![condition]);
-    let trigger = Trigger::new(condition_group);
-
-    // Apply trigger based on element type
-    match element_type.as_str() {
-        "Act" => {
-            scenario
-                .set_act_start_trigger(&story_name, &act_name, trigger)
-                .map_err(|e| anyhow!("Failed to set Act trigger: {}", e))?;
-            Ok(format!(
-                "Set collision trigger for Act '{}' in story '{}': {} of [{}] collide with '{}' (delay: {}s)",
-                act_name, story_name, trigger_rule, entity_refs.join(", "), target_entity, delay
-            ))
-        }
+    // Get trigger based on element type
+    let trigger_opt = match element_type.as_str() {
+        "Act" => scenario.get_act_start_trigger(&act_name)?,
         "Event" => {
-            let mg = maneuver_group.unwrap();
-            let mn = maneuver.unwrap();
-            let ev = event_name.unwrap();
+            let story =
+                story_name.ok_or_else(|| anyhow!("story_name required for Event triggers"))?;
+            let mg = maneuver_group
+                .ok_or_else(|| anyhow!("maneuver_group required for Event triggers"))?;
+            let mn = maneuver.ok_or_else(|| anyhow!("maneuver required for Event triggers"))?;
+            let ev = event_name.ok_or_else(|| anyhow!("event_name required for Event triggers"))?;
 
-            scenario
-                .set_event_start_trigger(&story_name, &act_name, &mg, &mn, &ev, trigger)
-                .map_err(|e| anyhow!("Failed to set Event trigger: {}", e))?;
-            Ok(format!(
-                "Set collision trigger for Event '{}' (in maneuver '{}'): {} of [{}] collide with '{}' (delay: {}s)",
-                ev, mn, trigger_rule, entity_refs.join(", "), target_entity, delay
-            ))
+            scenario.get_event_start_trigger(&story, &act_name, &mg, &mn, &ev)?
         }
         _ => unreachable!("Already validated element_type"),
+    };
+
+    // Format trigger information
+    match trigger_opt {
+        None => Ok(format!(
+            "No trigger set for {} '{}'",
+            element_type, act_name
+        )),
+        Some(trigger) => {
+            let mut parts = Vec::new();
+
+            for cond_group in &trigger.condition_groups {
+                for condition in &cond_group.conditions {
+                    let desc = format_condition_description(condition);
+                    parts.push(desc);
+                }
+            }
+
+            if parts.is_empty() {
+                Ok(format!(
+                    "Trigger exists but has no conditions for {} '{}'",
+                    element_type, act_name
+                ))
+            } else {
+                Ok(format!(
+                    "Triggers for {} '{}':\n{}",
+                    element_type,
+                    act_name,
+                    parts.join("\n")
+                ))
+            }
+        }
+    }
+}
+
+/// Format a condition into a human-readable description
+fn format_condition_description(condition: &openscenario::storyboard::Condition) -> String {
+    use openscenario::storyboard::{ByValueCondition, ConditionKind, EntityCondition};
+
+    let delay_str = if condition.delay > 0.0 {
+        format!(" (delay: {}s)", condition.delay)
+    } else {
+        String::new()
+    };
+
+    let edge_str = format!("{:?}", condition.condition_edge).to_lowercase();
+
+    match &condition.kind {
+        ConditionKind::ByValue(by_value) => match by_value {
+            ByValueCondition::SimulationTime { value, rule } => {
+                format!(
+                    "- SimulationTime: {:?} {} (edge: {}){}",
+                    rule, value, edge_str, delay_str
+                )
+            }
+            ByValueCondition::StoryboardElementState {
+                element_type,
+                element_ref,
+                state,
+            } => {
+                format!(
+                    "- StoryboardElement: {} '{}' reaches '{}' (edge: {}){}",
+                    element_type, element_ref, state, edge_str, delay_str
+                )
+            }
+            ByValueCondition::Parameter(param) => {
+                format!(
+                    "- Parameter: {} {:?} '{}' (edge: {}){}",
+                    param.parameter_ref, param.rule, param.value, edge_str, delay_str
+                )
+            }
+        },
+        ConditionKind::ByEntity(by_entity) => {
+            let entities: Vec<&str> = by_entity
+                .triggering_entities
+                .entity_refs
+                .iter()
+                .map(|e| e.as_str())
+                .collect();
+
+            match &by_entity.entity_condition {
+                EntityCondition::Collision(collision) => {
+                    format!(
+                        "- Collision: {:?} of [{}] with '{}' (edge: {}){}",
+                        by_entity.triggering_entities.rule,
+                        entities.join(", "),
+                        collision.target_entity_ref,
+                        edge_str,
+                        delay_str
+                    )
+                }
+                EntityCondition::Speed(speed) => {
+                    format!(
+                        "- Speed: {:?} of [{}] {:?} {} (edge: {}){}",
+                        by_entity.triggering_entities.rule,
+                        entities.join(", "),
+                        speed.rule,
+                        speed.value,
+                        edge_str,
+                        delay_str
+                    )
+                }
+                _ => {
+                    format!(
+                        "- EntityCondition: {:?} of [{}] (edge: {}){}",
+                        by_entity.triggering_entities.rule,
+                        entities.join(", "),
+                        edge_str,
+                        delay_str
+                    )
+                }
+            }
+        }
     }
 }

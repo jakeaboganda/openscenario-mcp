@@ -1433,16 +1433,13 @@ impl Condition {
     ) -> Self {
         let entity_refs: Vec<String> = entity_refs.into_iter().map(|e| e.into()).collect();
         let target_entity = target_entity.into();
-        
+
         Self {
             name: format!("Collision_{}_{}", entity_refs.join("_"), target_entity),
             delay: 0.0,
             condition_edge: ConditionEdge::Rising, // Trigger once on collision start
             kind: ConditionKind::ByEntity(ByEntityCondition {
-                triggering_entities: TriggeringEntities {
-                    rule,
-                    entity_refs,
-                },
+                triggering_entities: TriggeringEntities { rule, entity_refs },
                 entity_condition: EntityCondition::Collision(CollisionCondition {
                     target_entity_ref: target_entity,
                 }),
