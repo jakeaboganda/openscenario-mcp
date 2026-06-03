@@ -105,6 +105,7 @@ fn test_complete_scenario_workflow() {
         "main_story".to_string(),
         30.0, // speed: 30 m/s
         5.0,  // duration: 5 seconds
+        None,
     )
     .expect("Failed to add speed action");
 

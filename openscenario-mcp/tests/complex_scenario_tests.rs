@@ -153,6 +153,7 @@ fn test_many_actions_single_vehicle() {
             format!("story_{}", i),
             20.0 + (i as f64 * 5.0),
             2.0 + (i as f64 * 0.5),
+            None,
         );
         assert!(result.is_ok(), "Failed to add speed action {}", i);
     }
@@ -219,6 +220,7 @@ fn test_mixed_actions_same_entity() {
             format!("speed_story_{}", i),
             30.0 + (i as f64 * 10.0),
             3.0,
+            None,
         )
         .unwrap();
     }
@@ -232,6 +234,7 @@ fn test_mixed_actions_same_entity() {
             format!("lane_story_{}", i),
             -3.5 * (i as f64 + 1.0),
             4.0,
+            None,
         )
         .unwrap();
     }
@@ -319,6 +322,7 @@ fn test_multiple_stories_different_vehicles() {
             story_name.to_string(),
             25.0,
             3.0,
+            None,
         )
         .unwrap();
     }
@@ -383,6 +387,7 @@ fn test_export_validate_xml_structure() {
         "speed_story".to_string(),
         60.0,
         5.0,
+        None,
     )
     .unwrap();
 
@@ -478,6 +483,7 @@ fn test_round_trip_integrity() {
             format!("{}_story", vehicle),
             45.0,
             4.5,
+            None,
         )
         .unwrap();
     }
@@ -563,6 +569,7 @@ fn test_large_scenario_stress() {
                 format!("vehicle_{}_story_{}", i, j),
                 20.0 + (j as f64 * 10.0),
                 2.0,
+                None,
             )
             .unwrap();
         }

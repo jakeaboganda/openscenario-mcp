@@ -84,6 +84,7 @@ fn test_add_speed_action_handler() {
         "test_story".to_string(),
         50.0,
         5.0,
+        None,
     );
 
     assert!(result.is_ok());
@@ -119,6 +120,7 @@ fn test_add_lane_change_action_handler() {
         "test_story".to_string(),
         -3.5,
         4.0,
+        None,
     );
 
     assert!(result.is_ok());

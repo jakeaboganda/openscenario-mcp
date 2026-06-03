@@ -55,6 +55,7 @@ fn main() {
             format!("{}_speed_story", name),
             30.0 + (i as f64 * 10.0),
             3.0,
+            None,
         )
         .unwrap();
 
@@ -67,6 +68,7 @@ fn main() {
                 format!("{}_lane_story", name),
                 -3.5 * (i as f64),
                 4.0,
+                None,
             )
             .unwrap();
         }

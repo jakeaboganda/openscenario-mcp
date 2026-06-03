@@ -361,6 +361,7 @@ fn test_negative_duration() {
         "story1".to_string(),
         50.0,
         -5.0, // Negative duration
+        None,
     );
 
     // Should either reject or handle gracefully
@@ -388,6 +389,7 @@ fn test_zero_duration() {
         "story1".to_string(),
         50.0,
         0.0, // Zero duration
+        None,
     );
 
     let _ = result; // Should handle gracefully
@@ -414,6 +416,7 @@ fn test_negative_speed() {
         "story1".to_string(),
         -50.0, // Negative speed (could be valid for reverse)
         5.0,
+        None,
     );
 
     // Negative speed might be valid (reverse), should not panic
@@ -552,6 +555,7 @@ fn test_action_on_nonexistent_entity() {
         "story1".to_string(),
         50.0,
         5.0,
+        None,
     );
 
     // Currently succeeds - validation happens later
@@ -573,6 +577,7 @@ fn test_validation_is_xsd_only() {
         "story1".to_string(),
         50.0,
         5.0,
+        None,
     )
     .unwrap();
 
@@ -744,6 +749,7 @@ fn test_extreme_lane_offset() {
         "story1".to_string(),
         999999.0, // Extreme offset
         5.0,
+        None,
     );
 
     let _ = result;
