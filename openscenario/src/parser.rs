@@ -8,7 +8,11 @@ use crate::entities::{
 };
 use crate::position::Position;
 use crate::scenario::{ParameterDeclaration, ParameterType, Scenario};
-use crate::storyboard::{Act, Story, Storyboard};
+use crate::storyboard::{
+    Act, Action, ByValueCondition, Condition, ConditionEdge, ConditionGroup, ConditionKind,
+    DynamicsDimension, DynamicsShape, Event, LaneChangeAction, Maneuver, ManeuverGroup, Rule,
+    SpeedAction, Story, Storyboard, TransitionDynamics, TransitionShape, Trigger,
+};
 use crate::{OpenScenarioVersion, Result, ScenarioError};
 use quick_xml::events::{BytesStart, Event as XmlEvent};
 use quick_xml::Reader;
@@ -95,9 +99,6 @@ fn parse_openscenario(reader: &mut Reader<&[u8]>) -> Result<Scenario> {
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(XmlEvent::Start(e)) => match e.name().as_ref() {
-                b"FileHeader" => {
-                    version = parse_file_header(reader)?;
-                }
                 b"ParameterDeclarations" => {
                     parameters = parse_parameter_declarations(reader)?;
                 }
@@ -113,6 +114,10 @@ fn parse_openscenario(reader: &mut Reader<&[u8]>) -> Result<Scenario> {
                 }
                 _ => skip_element(reader, e.name().as_ref())?,
             },
+            // FileHeader is a self-closing (empty) element in OpenSCENARIO XML
+            Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"FileHeader" => {
+                version = parse_file_header_empty(&e)?;
+            }
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"OpenSCENARIO" => break,
             Ok(XmlEvent::Eof) => break,
             Err(e) => return Err(ScenarioError::Xml(e)),
@@ -132,48 +137,35 @@ fn parse_openscenario(reader: &mut Reader<&[u8]>) -> Result<Scenario> {
     })
 }
 
-fn parse_file_header(reader: &mut Reader<&[u8]>) -> Result<OpenScenarioVersion> {
+fn parse_file_header_empty(e: &BytesStart) -> Result<OpenScenarioVersion> {
     let mut major: Option<u8> = None;
     let mut minor: Option<u8> = None;
-    let mut buf = Vec::new();
 
-    loop {
-        match reader.read_event_into(&mut buf) {
-            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"FileHeader" => {
-                for attr in e.attributes() {
-                    let attr = attr.map_err(|e| ScenarioError::Parse(e.to_string()))?;
-                    match attr.key.as_ref() {
-                        b"revMajor" => {
-                            let value = String::from_utf8_lossy(&attr.value);
-                            major = Some(value.parse::<u8>().map_err(|_| {
-                                ScenarioError::Parse(format!(
-                                    "Invalid revMajor attribute: '{}'. Expected integer.",
-                                    value
-                                ))
-                            })?);
-                        }
-                        b"revMinor" => {
-                            let value = String::from_utf8_lossy(&attr.value);
-                            minor = Some(value.parse::<u8>().map_err(|_| {
-                                ScenarioError::Parse(format!(
-                                    "Invalid revMinor attribute: '{}'. Expected integer.",
-                                    value
-                                ))
-                            })?);
-                        }
-                        _ => {}
-                    }
-                }
+    for attr in e.attributes() {
+        let attr = attr.map_err(|e| ScenarioError::Parse(e.to_string()))?;
+        match attr.key.as_ref() {
+            b"revMajor" => {
+                let value = String::from_utf8_lossy(&attr.value);
+                major = Some(value.parse::<u8>().map_err(|_| {
+                    ScenarioError::Parse(format!(
+                        "Invalid revMajor attribute: '{}'. Expected integer.",
+                        value
+                    ))
+                })?);
             }
-            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"FileHeader" => break,
-            Ok(XmlEvent::Eof) => break,
-            Err(e) => return Err(ScenarioError::Xml(e)),
+            b"revMinor" => {
+                let value = String::from_utf8_lossy(&attr.value);
+                minor = Some(value.parse::<u8>().map_err(|_| {
+                    ScenarioError::Parse(format!(
+                        "Invalid revMinor attribute: '{}'. Expected integer.",
+                        value
+                    ))
+                })?);
+            }
             _ => {}
         }
-        buf.clear();
     }
 
-    // Validate version
     let major = major.ok_or_else(|| {
         ScenarioError::Parse("Missing revMajor attribute in FileHeader".to_string())
     })?;
@@ -181,21 +173,18 @@ fn parse_file_header(reader: &mut Reader<&[u8]>) -> Result<OpenScenarioVersion> 
         ScenarioError::Parse("Missing revMinor attribute in FileHeader".to_string())
     })?;
 
-    // Only support OpenSCENARIO 1.x
     if major != 1 {
         return Err(ScenarioError::Parse(format!(
-            "Unsupported OpenSCENARIO version {}.{}. Only version 1.x is supported (1.0, 1.1, 1.2).",
+            "Unsupported OpenSCENARIO version {}.{}. Only version 1.x is supported.",
             major, minor
         )));
     }
 
-    let version = match minor {
+    Ok(match minor {
         0 => OpenScenarioVersion::V1_0,
         1 => OpenScenarioVersion::V1_1,
-        _ => OpenScenarioVersion::V1_2, // 1.2+ all map to V1_2
-    };
-
-    Ok(version)
+        _ => OpenScenarioVersion::V1_2,
+    })
 }
 
 fn parse_parameter_declarations(reader: &mut Reader<&[u8]>) -> Result<Vec<ParameterDeclaration>> {
@@ -253,6 +242,15 @@ fn parse_road_network(reader: &mut Reader<&[u8]>) -> Result<Option<String>> {
 
     loop {
         match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"LogicFile" => {
+                for attr in e.attributes() {
+                    let attr = attr.map_err(|e| ScenarioError::Parse(e.to_string()))?;
+                    if attr.key.as_ref() == b"filepath" {
+                        road_network = Some(String::from_utf8_lossy(&attr.value).to_string());
+                        break;
+                    }
+                }
+            }
             Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"LogicFile" => {
                 for attr in e.attributes() {
                     let attr = attr.map_err(|e| ScenarioError::Parse(e.to_string()))?;
@@ -288,7 +286,15 @@ fn parse_entities(reader: &mut Reader<&[u8]>) -> Result<HashMap<String, Entity>>
                             MAX_ENTITIES
                         )));
                     }
-                    let (name, entity) = parse_scenario_object(reader)?;
+                    // Extract name from the already-consumed start element
+                    let mut name = String::new();
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == b"name" {
+                            name = String::from_utf8_lossy(&attr.value).to_string();
+                            break;
+                        }
+                    }
+                    let entity = parse_scenario_object_body(reader, &name)?;
                     entities.insert(name, entity);
                 }
             }
@@ -303,45 +309,33 @@ fn parse_entities(reader: &mut Reader<&[u8]>) -> Result<HashMap<String, Entity>>
     Ok(entities)
 }
 
-fn parse_scenario_object(reader: &mut Reader<&[u8]>) -> Result<(String, Entity)> {
-    let mut name = String::new();
+/// Parse entity body starting after the `<ScenarioObject name="...">` start tag.
+fn parse_scenario_object_body(reader: &mut Reader<&[u8]>, name: &str) -> Result<Entity> {
     let mut entity = None;
     let mut buf = Vec::new();
 
-    // Get name from ScenarioObject attributes
-    loop {
-        match reader.read_event_into(&mut buf) {
-            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"ScenarioObject" => {
-                for attr in e.attributes() {
-                    let attr = attr.map_err(|e| ScenarioError::Parse(e.to_string()))?;
-                    if attr.key.as_ref() == b"name" {
-                        name = String::from_utf8_lossy(&attr.value).to_string();
-                        break;
-                    }
-                }
-                break;
-            }
-            Ok(XmlEvent::Eof) => {
-                return Err(ScenarioError::Parse(
-                    "Unexpected EOF in ScenarioObject".to_string(),
-                ))
-            }
-            Err(e) => return Err(ScenarioError::Xml(e)),
-            _ => {}
-        }
-        buf.clear();
-    }
-
-    // Parse entity type
-    buf.clear();
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(XmlEvent::Start(e)) => match e.name().as_ref() {
-                b"Vehicle" => entity = Some(parse_vehicle(reader, &name, &e)?),
-                b"Pedestrian" => entity = Some(parse_pedestrian(reader, &name)?),
-                b"MiscObject" => entity = Some(parse_misc_object(reader, &name)?),
+                b"Vehicle" => entity = Some(parse_vehicle(reader, name, &e)?),
+                b"Pedestrian" => entity = Some(parse_pedestrian(reader, name)?),
+                b"MiscObject" => entity = Some(parse_misc_object(reader, name)?),
                 _ => skip_element(reader, e.name().as_ref())?,
             },
+            Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"CatalogReference" => {
+                // Entity defined by catalog reference — use a placeholder entity
+                // The catalog entry name is used as a hint for the type
+                let _catalog = parse_catalog_reference_empty(&e)?;
+                // Default to a car if we can't determine type from catalog
+                entity = Some(Entity::Vehicle(Vehicle {
+                    name: name.to_string(),
+                    params: VehicleParams {
+                        catalog: Some(_catalog),
+                        vehicle_category: VehicleCategory::Car,
+                        properties: None,
+                    },
+                }));
+            }
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"ScenarioObject" => break,
             Ok(XmlEvent::Eof) => break,
             Err(e) => return Err(ScenarioError::Xml(e)),
@@ -350,9 +344,12 @@ fn parse_scenario_object(reader: &mut Reader<&[u8]>) -> Result<(String, Entity)>
         buf.clear();
     }
 
-    entity
-        .map(|e| (name, e))
-        .ok_or_else(|| ScenarioError::Parse("No entity found in ScenarioObject".to_string()))
+    entity.ok_or_else(|| {
+        ScenarioError::Parse(format!(
+            "No entity definition found in ScenarioObject '{}'",
+            name
+        ))
+    })
 }
 
 fn parse_vehicle(
@@ -362,7 +359,7 @@ fn parse_vehicle(
 ) -> Result<Entity> {
     let mut vehicle_category = VehicleCategory::Car;
 
-    // Parse vehicleCategory attribute
+    // Parse vehicleCategory attribute from the start element
     for attr_result in start_elem.attributes().flatten() {
         if attr_result.key.as_ref() == b"vehicleCategory" {
             let value = String::from_utf8_lossy(&attr_result.value).to_lowercase();
@@ -377,7 +374,7 @@ fn parse_vehicle(
                 "bicycle" => VehicleCategory::Bicycle,
                 "train" => VehicleCategory::Train,
                 "tram" => VehicleCategory::Tram,
-                _ => VehicleCategory::Car, // Default fallback
+                _ => VehicleCategory::Car,
             };
             break;
         }
@@ -388,16 +385,6 @@ fn parse_vehicle(
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(XmlEvent::Start(e)) => match e.name().as_ref() {
-                b"CatalogReference" => {
-                    catalog = Some(parse_catalog_reference(reader)?);
-                }
-                b"Properties" => {
-                    // Parse vehicle category from Properties
-                    vehicle_category = parse_vehicle_properties(reader)?;
-                }
-                _ => skip_element(reader, e.name().as_ref())?,
-            },
             Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"CatalogReference" => {
                 catalog = Some(parse_catalog_reference_empty(&e)?);
             }
@@ -421,19 +408,12 @@ fn parse_vehicle(
 
 fn parse_pedestrian(reader: &mut Reader<&[u8]>, name: &str) -> Result<Entity> {
     let mut catalog = None;
-    let mut mass = None;
     let mut buf = Vec::new();
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"CatalogReference" => {
-                catalog = Some(parse_catalog_reference(reader)?);
-            }
             Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"CatalogReference" => {
                 catalog = Some(parse_catalog_reference_empty(&e)?);
-            }
-            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"Properties" => {
-                mass = Some(parse_pedestrian_properties(reader)?);
             }
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Pedestrian" => break,
             Ok(XmlEvent::Eof) => break,
@@ -448,7 +428,7 @@ fn parse_pedestrian(reader: &mut Reader<&[u8]>, name: &str) -> Result<Entity> {
         params: PedestrianParams {
             catalog,
             model: None,
-            mass,
+            mass: None,
         },
     }))
 }
@@ -460,9 +440,6 @@ fn parse_misc_object(reader: &mut Reader<&[u8]>, name: &str) -> Result<Entity> {
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"Properties" => {
-                (category, mass) = parse_misc_object_properties(reader)?;
-            }
             Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"MiscObject" => {
                 for attr in e.attributes() {
                     let attr = attr.map_err(|e| ScenarioError::Parse(e.to_string()))?;
@@ -470,7 +447,7 @@ fn parse_misc_object(reader: &mut Reader<&[u8]>, name: &str) -> Result<Entity> {
                         let value = String::from_utf8_lossy(&attr.value);
                         mass = Some(value.parse::<f64>().map_err(|_| {
                             ScenarioError::Parse(format!(
-                                "Invalid mass attribute on MiscObject '{}': '{}'. Expected number.",
+                                "Invalid mass attribute on MiscObject '{}': '{}'.",
                                 name, value
                             ))
                         })?);
@@ -498,18 +475,7 @@ fn parse_misc_object(reader: &mut Reader<&[u8]>, name: &str) -> Result<Entity> {
     }))
 }
 
-// Helper parsers
-
-fn parse_catalog_reference(reader: &mut Reader<&[u8]>) -> Result<CatalogReference> {
-    // Simplified - just skip for now
-    skip_element(reader, b"CatalogReference")?;
-    Ok(CatalogReference {
-        path: "".to_string(),
-        entry_name: "".to_string(),
-    })
-}
-
-fn parse_catalog_reference_empty(e: &quick_xml::events::BytesStart) -> Result<CatalogReference> {
+fn parse_catalog_reference_empty(e: &BytesStart) -> Result<CatalogReference> {
     let mut path = String::new();
     let mut entry_name = String::new();
 
@@ -524,25 +490,6 @@ fn parse_catalog_reference_empty(e: &quick_xml::events::BytesStart) -> Result<Ca
 
     Ok(CatalogReference { path, entry_name })
 }
-
-fn parse_vehicle_properties(reader: &mut Reader<&[u8]>) -> Result<VehicleCategory> {
-    skip_element(reader, b"Properties")?;
-    Ok(VehicleCategory::Car) // Default
-}
-
-fn parse_pedestrian_properties(reader: &mut Reader<&[u8]>) -> Result<f64> {
-    skip_element(reader, b"Properties")?;
-    Ok(70.0) // Default mass
-}
-
-fn parse_misc_object_properties(
-    reader: &mut Reader<&[u8]>,
-) -> Result<(Option<String>, Option<f64>)> {
-    skip_element(reader, b"Properties")?;
-    Ok((None, None))
-}
-
-// Remove parse_misc_object_category since we don't need it
 
 // Type alias for complex return type
 type StoryboardResult = Result<(Storyboard, HashMap<String, Position>, HashMap<String, f64>)>;
@@ -563,7 +510,15 @@ fn parse_storyboard(
                     (initial_positions, initial_speeds) = parse_init(reader, entities)?;
                 }
                 b"Story" => {
-                    let story = parse_story(reader)?;
+                    // Extract story name from the already-consumed start element
+                    let mut story_name = String::new();
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == b"name" {
+                            story_name = String::from_utf8_lossy(&attr.value).to_string();
+                            break;
+                        }
+                    }
+                    let story = parse_story(reader, story_name)?;
                     stories.insert(story.name.clone(), story);
                 }
                 _ => skip_element(reader, e.name().as_ref())?,
@@ -590,44 +545,268 @@ fn parse_init(
     reader: &mut Reader<&[u8]>,
     _entities: &HashMap<String, Entity>,
 ) -> Result<(HashMap<String, Position>, HashMap<String, f64>)> {
-    // Simplified - would need full implementation
-    skip_element(reader, b"Init")?;
-    Ok((HashMap::new(), HashMap::new()))
-}
-
-fn parse_story(reader: &mut Reader<&[u8]>) -> Result<Story> {
-    let mut name = String::new();
-    let mut acts = HashMap::new();
+    let mut initial_positions = HashMap::new();
+    let mut initial_speeds = HashMap::new();
     let mut buf = Vec::new();
 
-    // Get story name
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"Story" => {
-                for attr in e.attributes() {
-                    let attr = attr.map_err(|e| ScenarioError::Parse(e.to_string()))?;
-                    if attr.key.as_ref() == b"name" {
-                        name = String::from_utf8_lossy(&attr.value).to_string();
+            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"Private" => {
+                let mut entity_ref = String::new();
+                for attr in e.attributes().flatten() {
+                    if attr.key.as_ref() == b"entityRef" {
+                        entity_ref = String::from_utf8_lossy(&attr.value).to_string();
                         break;
                     }
                 }
-                break;
+                let (pos, speed) = parse_private_section(reader)?;
+                if let Some(p) = pos {
+                    initial_positions.insert(entity_ref.clone(), p);
+                }
+                if let Some(s) = speed {
+                    initial_speeds.insert(entity_ref, s);
+                }
             }
-            Ok(XmlEvent::Eof) => {
-                return Err(ScenarioError::Parse("Unexpected EOF in Story".to_string()))
-            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Init" => break,
+            Ok(XmlEvent::Eof) => break,
             Err(e) => return Err(ScenarioError::Xml(e)),
             _ => {}
         }
         buf.clear();
     }
 
-    // Parse acts
-    buf.clear();
+    Ok((initial_positions, initial_speeds))
+}
+
+/// Parse a `<Private entityRef="..."> ... </Private>` block, returning position and speed.
+fn parse_private_section(
+    reader: &mut Reader<&[u8]>,
+) -> Result<(Option<Position>, Option<f64>)> {
+    let mut position = None;
+    let mut speed = None;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"PrivateAction" => {
+                let (pos, spd) = parse_init_private_action(reader)?;
+                if pos.is_some() {
+                    position = pos;
+                }
+                if spd.is_some() {
+                    speed = spd;
+                }
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Private" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok((position, speed))
+}
+
+/// Parse a single `<PrivateAction>` inside an `<Init>` block.
+fn parse_init_private_action(
+    reader: &mut Reader<&[u8]>,
+) -> Result<(Option<Position>, Option<f64>)> {
+    let mut position = None;
+    let mut speed = None;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) => match e.name().as_ref() {
+                b"TeleportAction" => {
+                    position = Some(parse_teleport_action(reader)?);
+                }
+                b"LongitudinalAction" => {
+                    speed = parse_longitudinal_action_for_speed(reader)?;
+                }
+                _ => skip_element(reader, e.name().as_ref())?,
+            },
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"PrivateAction" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok((position, speed))
+}
+
+fn parse_teleport_action(reader: &mut Reader<&[u8]>) -> Result<Position> {
+    let mut position = None;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"Position" => {
+                position = Some(parse_position_element(reader)?);
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"TeleportAction" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    position.ok_or_else(|| {
+        ScenarioError::Parse("TeleportAction has no Position element".to_string())
+    })
+}
+
+fn parse_position_element(reader: &mut Reader<&[u8]>) -> Result<Position> {
+    let mut pos = None;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Empty(e)) => {
+                pos = match e.name().as_ref() {
+                    b"WorldPosition" => Some(parse_world_position(&e)?),
+                    b"LanePosition" => Some(parse_lane_position(&e)?),
+                    b"RoadPosition" => Some(parse_road_position(&e)?),
+                    _ => None,
+                };
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Position" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    pos.ok_or_else(|| {
+        ScenarioError::Parse(
+            "Position element has no recognized position type (WorldPosition, LanePosition, ...)"
+                .to_string(),
+        )
+    })
+}
+
+fn parse_world_position(e: &BytesStart) -> Result<Position> {
+    let mut x = 0.0f64;
+    let mut y = 0.0f64;
+    let mut z = 0.0f64;
+    let mut h = 0.0f64;
+    let mut p = 0.0f64;
+    let mut r = 0.0f64;
+
+    for attr in e.attributes().flatten() {
+        let raw = String::from_utf8_lossy(&attr.value);
+        let val: f64 = raw.parse().unwrap_or(0.0);
+        match attr.key.as_ref() {
+            b"x" => x = val,
+            b"y" => y = val,
+            b"z" => z = val,
+            b"h" => h = val,
+            b"p" => p = val,
+            b"r" => r = val,
+            _ => {}
+        }
+    }
+
+    Ok(Position::World { x, y, z, h, p, r })
+}
+
+fn parse_lane_position(e: &BytesStart) -> Result<Position> {
+    let mut road_id = String::new();
+    let mut lane_id = 0i32;
+    let mut s = 0.0f64;
+    let mut offset = 0.0f64;
+
+    for attr in e.attributes().flatten() {
+        let raw = String::from_utf8_lossy(&attr.value);
+        match attr.key.as_ref() {
+            b"roadId" => road_id = raw.to_string(),
+            b"laneId" => lane_id = raw.parse().unwrap_or(0),
+            b"s" => s = raw.parse().unwrap_or(0.0),
+            b"offset" => offset = raw.parse().unwrap_or(0.0),
+            _ => {}
+        }
+    }
+
+    Ok(Position::Lane {
+        road_id,
+        lane_id,
+        s,
+        offset,
+        orientation: None,
+    })
+}
+
+fn parse_road_position(e: &BytesStart) -> Result<Position> {
+    let mut road_id = String::new();
+    let mut s = 0.0f64;
+    let mut t = 0.0f64;
+
+    for attr in e.attributes().flatten() {
+        let raw = String::from_utf8_lossy(&attr.value);
+        match attr.key.as_ref() {
+            b"roadId" => road_id = raw.to_string(),
+            b"s" => s = raw.parse().unwrap_or(0.0),
+            b"t" => t = raw.parse().unwrap_or(0.0),
+            _ => {}
+        }
+    }
+
+    Ok(Position::Road {
+        road_id,
+        s,
+        t,
+        orientation: None,
+    })
+}
+
+/// Parse `<LongitudinalAction>...<AbsoluteTargetSpeed value="..."/>...</LongitudinalAction>`
+/// and extract the absolute target speed value.
+fn parse_longitudinal_action_for_speed(reader: &mut Reader<&[u8]>) -> Result<Option<f64>> {
+    let mut speed = None;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"AbsoluteTargetSpeed" => {
+                for attr in e.attributes().flatten() {
+                    if attr.key.as_ref() == b"value" {
+                        speed = String::from_utf8_lossy(&attr.value).parse().ok();
+                    }
+                }
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"LongitudinalAction" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(speed)
+}
+
+/// Parse `<Story name="...">` body starting after the start tag has been consumed.
+fn parse_story(reader: &mut Reader<&[u8]>, name: String) -> Result<Story> {
+    let mut acts = HashMap::new();
+    let mut buf = Vec::new();
+
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"Act" => {
-                let act = parse_act(reader)?;
+                // Extract act name from the already-consumed start element
+                let mut act_name = String::new();
+                for attr in e.attributes().flatten() {
+                    if attr.key.as_ref() == b"name" {
+                        act_name = String::from_utf8_lossy(&attr.value).to_string();
+                        break;
+                    }
+                }
+                let act = parse_act(reader, act_name)?;
                 acts.insert(act.name.clone(), act);
             }
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Story" => break,
@@ -641,18 +820,538 @@ fn parse_story(reader: &mut Reader<&[u8]>) -> Result<Story> {
     Ok(Story { name, acts })
 }
 
-fn parse_act(reader: &mut Reader<&[u8]>) -> Result<Act> {
-    // Simplified - would need full implementation
-    let name = String::new();
+/// Parse `<Act name="...">` body starting after the start tag has been consumed.
+fn parse_act(reader: &mut Reader<&[u8]>, name: String) -> Result<Act> {
+    let mut maneuver_groups = HashMap::new();
+    let mut start_trigger = None;
+    let mut buf = Vec::new();
 
-    // This is a minimal stub - full implementation needed
-    skip_to_end(reader, b"Act")?;
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) => match e.name().as_ref() {
+                b"ManeuverGroup" => {
+                    let mut mg_name = String::new();
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == b"name" {
+                            mg_name = String::from_utf8_lossy(&attr.value).to_string();
+                            break;
+                        }
+                    }
+                    let mg = parse_maneuver_group(reader, mg_name)?;
+                    maneuver_groups.insert(mg.name.clone(), mg);
+                }
+                b"StartTrigger" => {
+                    start_trigger = parse_start_trigger(reader, b"StartTrigger")?;
+                }
+                _ => skip_element(reader, e.name().as_ref())?,
+            },
+            Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"StartTrigger" => {
+                // Empty <StartTrigger/> — no trigger conditions
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Act" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
 
     Ok(Act {
         name,
-        maneuver_groups: HashMap::new(),
-        start_trigger: None,
+        maneuver_groups,
+        start_trigger,
     })
+}
+
+/// Parse `<ManeuverGroup name="...">` body starting after the start tag.
+fn parse_maneuver_group(reader: &mut Reader<&[u8]>, name: String) -> Result<ManeuverGroup> {
+    let mut actors: Vec<String> = Vec::new();
+    let mut maneuvers: Vec<Maneuver> = Vec::new();
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) => match e.name().as_ref() {
+                b"Actors" => {
+                    actors = parse_actors(reader)?;
+                }
+                b"Maneuver" => {
+                    let mut maneuver_name = String::new();
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == b"name" {
+                            maneuver_name = String::from_utf8_lossy(&attr.value).to_string();
+                            break;
+                        }
+                    }
+                    maneuvers.push(parse_maneuver(reader, maneuver_name)?);
+                }
+                _ => skip_element(reader, e.name().as_ref())?,
+            },
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"ManeuverGroup" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(ManeuverGroup {
+        name,
+        actors,
+        maneuvers,
+    })
+}
+
+fn parse_actors(reader: &mut Reader<&[u8]>) -> Result<Vec<String>> {
+    let mut actors = Vec::new();
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"EntityRef" => {
+                for attr in e.attributes().flatten() {
+                    if attr.key.as_ref() == b"entityRef" {
+                        actors.push(String::from_utf8_lossy(&attr.value).to_string());
+                    }
+                }
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Actors" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(actors)
+}
+
+fn parse_maneuver(reader: &mut Reader<&[u8]>, name: String) -> Result<Maneuver> {
+    let mut events: Vec<Event> = Vec::new();
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"Event" => {
+                let mut event_name = String::new();
+                for attr in e.attributes().flatten() {
+                    if attr.key.as_ref() == b"name" {
+                        event_name = String::from_utf8_lossy(&attr.value).to_string();
+                        break;
+                    }
+                }
+                events.push(parse_event(reader, event_name)?);
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Maneuver" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(Maneuver { name, events })
+}
+
+fn parse_event(reader: &mut Reader<&[u8]>, name: String) -> Result<Event> {
+    let mut actions: Vec<Action> = Vec::new();
+    let mut start_trigger = None;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) => match e.name().as_ref() {
+                b"Action" => {
+                    if let Some(action) = parse_action(reader)? {
+                        actions.push(action);
+                    }
+                }
+                b"StartTrigger" => {
+                    start_trigger = parse_start_trigger(reader, b"StartTrigger")?;
+                }
+                _ => skip_element(reader, e.name().as_ref())?,
+            },
+            Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"StartTrigger" => {
+                // Empty <StartTrigger/> — no conditions
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Event" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(Event {
+        name,
+        actions,
+        start_trigger,
+    })
+}
+
+/// Parse `<Action name="..."> <PrivateAction> ... </PrivateAction> </Action>`.
+fn parse_action(reader: &mut Reader<&[u8]>) -> Result<Option<Action>> {
+    let mut action = None;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"PrivateAction" => {
+                action = parse_private_action_body(reader)?;
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Action" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(action)
+}
+
+/// Parse the body of `<PrivateAction>` (inside Story > Act > ManeuverGroup > Event).
+fn parse_private_action_body(reader: &mut Reader<&[u8]>) -> Result<Option<Action>> {
+    let mut action = None;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) => match e.name().as_ref() {
+                b"LongitudinalAction" => {
+                    action = parse_longitudinal_action_as_action(reader)?;
+                }
+                b"LateralAction" => {
+                    action = parse_lateral_action(reader)?;
+                }
+                _ => skip_element(reader, e.name().as_ref())?,
+            },
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"PrivateAction" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(action)
+}
+
+fn parse_longitudinal_action_as_action(reader: &mut Reader<&[u8]>) -> Result<Option<Action>> {
+    let mut action = None;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"SpeedAction" => {
+                action = Some(parse_speed_action(reader)?);
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"LongitudinalAction" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(action)
+}
+
+fn parse_speed_action(reader: &mut Reader<&[u8]>) -> Result<Action> {
+    let mut target_speed = 0.0f64;
+    let mut dynamics = TransitionDynamics {
+        shape: DynamicsShape::Linear,
+        dimension: DynamicsDimension::Time,
+        value: 0.0,
+    };
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Empty(e)) => match e.name().as_ref() {
+                b"SpeedActionDynamics" => {
+                    for attr in e.attributes().flatten() {
+                        let raw = String::from_utf8_lossy(&attr.value);
+                        match attr.key.as_ref() {
+                            b"dynamicsShape" => {
+                                dynamics.shape = match raw.as_ref() {
+                                    "linear" => DynamicsShape::Linear,
+                                    "sinusoidal" => DynamicsShape::Sinusoidal,
+                                    "cubic" => DynamicsShape::Cubic,
+                                    _ => DynamicsShape::Linear,
+                                }
+                            }
+                            b"dynamicsDimension" => {
+                                dynamics.dimension = match raw.as_ref() {
+                                    "time" => DynamicsDimension::Time,
+                                    "distance" => DynamicsDimension::Distance,
+                                    "rate" => DynamicsDimension::Rate,
+                                    _ => DynamicsDimension::Time,
+                                }
+                            }
+                            b"value" => dynamics.value = raw.parse().unwrap_or(0.0),
+                            _ => {}
+                        }
+                    }
+                }
+                b"AbsoluteTargetSpeed" => {
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == b"value" {
+                            target_speed =
+                                String::from_utf8_lossy(&attr.value).parse().unwrap_or(0.0);
+                        }
+                    }
+                }
+                _ => {}
+            },
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"SpeedAction" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(Action::Speed(SpeedAction {
+        target_speed,
+        dynamics,
+    }))
+}
+
+fn parse_lateral_action(reader: &mut Reader<&[u8]>) -> Result<Option<Action>> {
+    let mut action = None;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"LaneChangeAction" => {
+                action = Some(parse_lane_change_action(reader)?);
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"LateralAction" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(action)
+}
+
+fn parse_lane_change_action(reader: &mut Reader<&[u8]>) -> Result<Action> {
+    let mut target_lane_offset = 0.0f64;
+    let mut transition_duration = 0.0f64;
+    let mut shape = TransitionShape::Linear;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Empty(e)) => match e.name().as_ref() {
+                b"LaneChangeActionDynamics" => {
+                    for attr in e.attributes().flatten() {
+                        let raw = String::from_utf8_lossy(&attr.value);
+                        match attr.key.as_ref() {
+                            b"dynamicsShape" => {
+                                shape = match raw.as_ref() {
+                                    "sinusoidal" => TransitionShape::Sinusoidal,
+                                    "linear" => TransitionShape::Linear,
+                                    "cubic" => TransitionShape::Cubic,
+                                    _ => TransitionShape::Linear,
+                                }
+                            }
+                            b"value" => transition_duration = raw.parse().unwrap_or(0.0),
+                            _ => {}
+                        }
+                    }
+                }
+                b"RelativeTargetLane" => {
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == b"value" {
+                            target_lane_offset =
+                                String::from_utf8_lossy(&attr.value).parse().unwrap_or(0.0);
+                        }
+                    }
+                }
+                _ => {}
+            },
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"LaneChangeAction" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(Action::LaneChange(LaneChangeAction {
+        target_lane_offset,
+        transition_duration,
+        shape,
+    }))
+}
+
+/// Parse a `<StartTrigger>` element body (called after the start tag is consumed).
+/// Returns `None` if the trigger has no condition groups (default/empty trigger).
+fn parse_start_trigger(
+    reader: &mut Reader<&[u8]>,
+    end_tag: &[u8],
+) -> Result<Option<Trigger>> {
+    let mut condition_groups: Vec<ConditionGroup> = Vec::new();
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"ConditionGroup" => {
+                condition_groups.push(parse_condition_group(reader)?);
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == end_tag => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    if condition_groups.is_empty() {
+        return Ok(None);
+    }
+
+    Ok(Some(Trigger::with_groups(condition_groups)))
+}
+
+fn parse_condition_group(reader: &mut Reader<&[u8]>) -> Result<ConditionGroup> {
+    let mut conditions: Vec<Condition> = Vec::new();
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"Condition" => {
+                let mut name = String::new();
+                let mut delay = 0.0f64;
+                let mut condition_edge = ConditionEdge::None;
+
+                for attr in e.attributes().flatten() {
+                    let raw = String::from_utf8_lossy(&attr.value);
+                    match attr.key.as_ref() {
+                        b"name" => name = raw.to_string(),
+                        b"delay" => delay = raw.parse().unwrap_or(0.0),
+                        b"conditionEdge" => {
+                            condition_edge = match raw.as_ref() {
+                                "rising" => ConditionEdge::Rising,
+                                "falling" => ConditionEdge::Falling,
+                                "risingOrFalling" => ConditionEdge::RisingOrFalling,
+                                _ => ConditionEdge::None,
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                let kind = parse_condition_kind(reader)?;
+                conditions.push(Condition {
+                    name,
+                    delay,
+                    condition_edge,
+                    kind,
+                });
+            }
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"ConditionGroup" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    Ok(ConditionGroup::new(conditions))
+}
+
+fn parse_condition_kind(reader: &mut Reader<&[u8]>) -> Result<ConditionKind> {
+    let mut kind = None;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Start(e)) => match e.name().as_ref() {
+                b"ByValueCondition" => {
+                    kind = Some(ConditionKind::ByValue(parse_by_value_condition(reader)?));
+                }
+                _ => skip_element(reader, e.name().as_ref())?,
+            },
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Condition" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    kind.ok_or_else(|| ScenarioError::Parse("Condition has no recognized kind".to_string()))
+}
+
+fn parse_by_value_condition(reader: &mut Reader<&[u8]>) -> Result<ByValueCondition> {
+    let mut condition = None;
+    let mut buf = Vec::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(XmlEvent::Empty(e)) => match e.name().as_ref() {
+                b"SimulationTimeCondition" => {
+                    let mut value = 0.0f64;
+                    let mut rule = Rule::GreaterThan;
+                    for attr in e.attributes().flatten() {
+                        let raw = String::from_utf8_lossy(&attr.value);
+                        match attr.key.as_ref() {
+                            b"value" => value = raw.parse().unwrap_or(0.0),
+                            b"rule" => rule = parse_rule(&raw),
+                            _ => {}
+                        }
+                    }
+                    condition = Some(ByValueCondition::SimulationTime { value, rule });
+                }
+                b"StoryboardElementStateCondition" => {
+                    let mut element_type = String::new();
+                    let mut element_ref = String::new();
+                    let mut state = String::new();
+                    for attr in e.attributes().flatten() {
+                        let raw = String::from_utf8_lossy(&attr.value).to_string();
+                        match attr.key.as_ref() {
+                            b"storyboardElementType" => element_type = raw,
+                            b"storyboardElementRef" => element_ref = raw,
+                            b"state" => state = raw,
+                            _ => {}
+                        }
+                    }
+                    condition = Some(ByValueCondition::StoryboardElementState {
+                        element_type,
+                        element_ref,
+                        state,
+                    });
+                }
+                _ => {}
+            },
+            Ok(XmlEvent::End(e)) if e.name().as_ref() == b"ByValueCondition" => break,
+            Ok(XmlEvent::Eof) => break,
+            Err(e) => return Err(ScenarioError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    condition.ok_or_else(|| {
+        ScenarioError::Parse("ByValueCondition has no recognized condition type".to_string())
+    })
+}
+
+fn parse_rule(s: &str) -> Rule {
+    match s {
+        "greaterThan" => Rule::GreaterThan,
+        "lessThan" => Rule::LessThan,
+        "equalTo" => Rule::EqualTo,
+        // "greaterOrEqual" and "lessOrEqual" map to nearest equivalents
+        "greaterOrEqual" => Rule::GreaterThan,
+        "lessOrEqual" => Rule::LessThan,
+        _ => Rule::GreaterThan,
+    }
 }
 
 // Helper functions
