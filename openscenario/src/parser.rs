@@ -811,7 +811,9 @@ fn parse_story(reader: &mut Reader<&[u8]>, name: String) -> Result<Story> {
                 acts.insert(act.name.clone(), act);
             }
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Story" => break,
-            Ok(XmlEvent::Eof) => break,
+            Ok(XmlEvent::Eof) => {
+                return Err(ScenarioError::Parse("Unexpected EOF in Story".to_string()))
+            }
             Err(e) => return Err(ScenarioError::Xml(e)),
             _ => {}
         }
@@ -850,7 +852,9 @@ fn parse_act(reader: &mut Reader<&[u8]>, name: String) -> Result<Act> {
                 // Empty <StartTrigger/> — no trigger conditions
             }
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Act" => break,
-            Ok(XmlEvent::Eof) => break,
+            Ok(XmlEvent::Eof) => {
+                return Err(ScenarioError::Parse("Unexpected EOF in Act".to_string()))
+            }
             Err(e) => return Err(ScenarioError::Xml(e)),
             _ => {}
         }
@@ -889,7 +893,11 @@ fn parse_maneuver_group(reader: &mut Reader<&[u8]>, name: String) -> Result<Mane
                 _ => skip_element(reader, e.name().as_ref())?,
             },
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"ManeuverGroup" => break,
-            Ok(XmlEvent::Eof) => break,
+            Ok(XmlEvent::Eof) => {
+                return Err(ScenarioError::Parse(
+                    "Unexpected EOF in ManeuverGroup".to_string(),
+                ))
+            }
             Err(e) => return Err(ScenarioError::Xml(e)),
             _ => {}
         }
@@ -944,7 +952,9 @@ fn parse_maneuver(reader: &mut Reader<&[u8]>, name: String) -> Result<Maneuver> 
                 events.push(parse_event(reader, event_name)?);
             }
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Maneuver" => break,
-            Ok(XmlEvent::Eof) => break,
+            Ok(XmlEvent::Eof) => {
+                return Err(ScenarioError::Parse("Unexpected EOF in Maneuver".to_string()))
+            }
             Err(e) => return Err(ScenarioError::Xml(e)),
             _ => {}
         }
@@ -976,7 +986,9 @@ fn parse_event(reader: &mut Reader<&[u8]>, name: String) -> Result<Event> {
                 // Empty <StartTrigger/> — no conditions
             }
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Event" => break,
-            Ok(XmlEvent::Eof) => break,
+            Ok(XmlEvent::Eof) => {
+                return Err(ScenarioError::Parse("Unexpected EOF in Event".to_string()))
+            }
             Err(e) => return Err(ScenarioError::Xml(e)),
             _ => {}
         }

@@ -596,6 +596,45 @@ fn roundtrip_multiple_stories_both_present() {
     );
 }
 
+// Truncated XML error tests
+
+#[test]
+fn truncated_xml_inside_story_returns_error() {
+    let s = build_basic_scenario_with_speed_action(10.0);
+    let xml = s.to_xml().unwrap();
+    // Cut off before </Story>
+    let truncated = xml.split("</Story>").next().unwrap();
+    let result = Scenario::from_xml(truncated);
+    assert!(
+        result.is_err(),
+        "truncated XML (missing </Story>) should return an error, got Ok"
+    );
+}
+
+#[test]
+fn truncated_xml_inside_act_returns_error() {
+    let s = build_basic_scenario_with_speed_action(10.0);
+    let xml = s.to_xml().unwrap();
+    let truncated = xml.split("</Act>").next().unwrap();
+    let result = Scenario::from_xml(truncated);
+    assert!(
+        result.is_err(),
+        "truncated XML (missing </Act>) should return an error, got Ok"
+    );
+}
+
+#[test]
+fn truncated_xml_inside_maneuver_group_returns_error() {
+    let s = build_basic_scenario_with_speed_action(10.0);
+    let xml = s.to_xml().unwrap();
+    let truncated = xml.split("</ManeuverGroup>").next().unwrap();
+    let result = Scenario::from_xml(truncated);
+    assert!(
+        result.is_err(),
+        "truncated XML (missing </ManeuverGroup>) should return an error, got Ok"
+    );
+}
+
 // ParameterCondition roundtrip tests
 
 #[test]
