@@ -10,8 +10,9 @@ use crate::position::Position;
 use crate::scenario::{ParameterDeclaration, ParameterType, Scenario};
 use crate::storyboard::{
     Act, Action, ByValueCondition, Condition, ConditionEdge, ConditionGroup, ConditionKind,
-    DynamicsDimension, DynamicsShape, Event, LaneChangeAction, Maneuver, ManeuverGroup, Rule,
-    SpeedAction, Story, Storyboard, TransitionDynamics, TransitionShape, Trigger,
+    DynamicsDimension, DynamicsShape, Event, LaneChangeAction, Maneuver, ManeuverGroup,
+    ParameterCondition, Rule, SpeedAction, Story, Storyboard, TransitionDynamics, TransitionShape,
+    Trigger,
 };
 use crate::{OpenScenarioVersion, Result, ScenarioError};
 use quick_xml::events::{BytesStart, Event as XmlEvent};
@@ -1326,6 +1327,25 @@ fn parse_by_value_condition(reader: &mut Reader<&[u8]>) -> Result<ByValueConditi
                         element_ref,
                         state,
                     });
+                }
+                b"ParameterCondition" => {
+                    let mut parameter_ref = String::new();
+                    let mut value = String::new();
+                    let mut rule = Rule::EqualTo;
+                    for attr in e.attributes().flatten() {
+                        let raw = String::from_utf8_lossy(&attr.value).to_string();
+                        match attr.key.as_ref() {
+                            b"parameterRef" => parameter_ref = raw,
+                            b"value" => value = raw,
+                            b"rule" => rule = parse_rule(&raw),
+                            _ => {}
+                        }
+                    }
+                    condition = Some(ByValueCondition::Parameter(ParameterCondition {
+                        parameter_ref,
+                        value,
+                        rule,
+                    }));
                 }
                 _ => {}
             },

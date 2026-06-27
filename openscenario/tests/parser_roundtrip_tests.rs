@@ -1,9 +1,10 @@
 use openscenario::entities::{VehicleCategory, VehicleParams};
 use openscenario::storyboard::{
     Action, ByValueCondition, Condition, ConditionEdge, ConditionGroup, ConditionKind,
-    DynamicsDimension, DynamicsShape, Rule, TransitionDynamics, TransitionShape, Trigger,
+    DynamicsDimension, DynamicsShape, ParameterCondition, Rule, TransitionDynamics,
+    TransitionShape, Trigger,
 };
-use openscenario::{OpenScenarioVersion, Position, Scenario};
+use openscenario::{OpenScenarioVersion, ParameterType, Position, Scenario};
 
 fn car(name: &str) -> (&str, VehicleParams) {
     (
@@ -593,4 +594,96 @@ fn roundtrip_multiple_stories_both_present() {
         parsed.storyboard().stories.contains_key("story_b"),
         "story_b should be present"
     );
+}
+
+// ParameterCondition roundtrip tests
+
+#[test]
+fn roundtrip_parameter_condition_trigger() {
+    let mut s = build_basic_scenario_with_speed_action(10.0);
+    s.add_parameter("MyParam", ParameterType::String, "active")
+        .unwrap();
+
+    let trigger = Trigger::with_groups(vec![ConditionGroup {
+        conditions: vec![Condition {
+            name: "param_cond".to_string(),
+            delay: 0.0,
+            condition_edge: ConditionEdge::None,
+            kind: ConditionKind::ByValue(ByValueCondition::Parameter(ParameterCondition {
+                parameter_ref: "MyParam".to_string(),
+                value: "active".to_string(),
+                rule: Rule::EqualTo,
+            })),
+        }],
+    }]);
+    s.set_act_start_trigger("story1", "act1", trigger).unwrap();
+
+    let xml = s.to_xml().unwrap();
+    let parsed = Scenario::from_xml(&xml).unwrap();
+
+    let act = parsed
+        .storyboard()
+        .stories
+        .get("story1")
+        .expect("story1 missing")
+        .acts
+        .get("act1")
+        .expect("act1 missing");
+    let trigger = act.start_trigger.as_ref().expect("start trigger missing");
+    assert_eq!(trigger.condition_groups.len(), 1);
+    let cond = &trigger.condition_groups[0].conditions[0];
+    match &cond.kind {
+        ConditionKind::ByValue(ByValueCondition::Parameter(pc)) => {
+            assert_eq!(pc.parameter_ref, "MyParam");
+            assert_eq!(pc.value, "active");
+            assert_eq!(pc.rule, Rule::EqualTo);
+        }
+        other => panic!("expected ParameterCondition, got {:?}", other),
+    }
+}
+
+#[test]
+fn roundtrip_parameter_condition_preserves_rule_and_value() {
+    let mut s = build_basic_scenario_with_speed_action(10.0);
+    s.add_parameter("speed_limit", ParameterType::Double, "30.0")
+        .unwrap();
+
+    let trigger = Trigger::with_groups(vec![ConditionGroup {
+        conditions: vec![Condition {
+            name: "p".to_string(),
+            delay: 0.0,
+            condition_edge: ConditionEdge::None,
+            kind: ConditionKind::ByValue(ByValueCondition::Parameter(ParameterCondition {
+                parameter_ref: "speed_limit".to_string(),
+                value: "30.0".to_string(),
+                rule: Rule::GreaterThan,
+            })),
+        }],
+    }]);
+    s.set_act_start_trigger("story1", "act1", trigger).unwrap();
+
+    let xml = s.to_xml().unwrap();
+    let parsed = Scenario::from_xml(&xml).unwrap();
+
+    let act = parsed
+        .storyboard()
+        .stories
+        .get("story1")
+        .unwrap()
+        .acts
+        .get("act1")
+        .unwrap();
+    let cond = &act
+        .start_trigger
+        .as_ref()
+        .unwrap()
+        .condition_groups[0]
+        .conditions[0];
+    match &cond.kind {
+        ConditionKind::ByValue(ByValueCondition::Parameter(pc)) => {
+            assert_eq!(pc.rule, Rule::GreaterThan);
+            assert_eq!(pc.value, "30.0");
+        }
+        other => panic!("expected ParameterCondition, got {:?}", other),
+    }
 }
