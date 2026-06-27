@@ -596,6 +596,93 @@ fn roundtrip_multiple_stories_both_present() {
     );
 }
 
+// CatalogReference entity type roundtrip tests
+
+#[test]
+fn roundtrip_vehicle_with_catalog_stays_vehicle() {
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_vehicle(
+        "ego",
+        VehicleParams {
+            catalog: Some(openscenario::entities::CatalogReference {
+                path: "VehicleCatalog.xosc".to_string(),
+                entry_name: "sedan".to_string(),
+            }),
+            vehicle_category: VehicleCategory::Car,
+            properties: None,
+        },
+    )
+    .unwrap();
+
+    let xml = s.to_xml().unwrap();
+    let parsed = Scenario::from_xml(&xml).unwrap();
+
+    let entity = parsed.get_entity("ego").expect("ego should survive roundtrip");
+    assert!(
+        matches!(entity, openscenario::entities::Entity::Vehicle(_)),
+        "vehicle with catalog should remain a Vehicle, got {:?}",
+        entity
+    );
+}
+
+#[test]
+fn roundtrip_pedestrian_with_catalog_stays_pedestrian() {
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_pedestrian(
+        "walker",
+        PedestrianParams {
+            catalog: Some(openscenario::entities::CatalogReference {
+                path: "PedestrianCatalog.xosc".to_string(),
+                entry_name: "adult_male".to_string(),
+            }),
+            model: None,
+            mass: None,
+        },
+    )
+    .unwrap();
+
+    let xml = s.to_xml().unwrap();
+    let parsed = Scenario::from_xml(&xml).unwrap();
+
+    let entity = parsed
+        .get_entity("walker")
+        .expect("walker should survive roundtrip");
+    assert!(
+        matches!(entity, openscenario::entities::Entity::Pedestrian(_)),
+        "pedestrian with catalog should remain a Pedestrian, got {:?}",
+        entity
+    );
+}
+
+#[test]
+fn roundtrip_misc_object_with_catalog_stays_misc_object() {
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_misc_object(
+        "cone",
+        MiscObjectParams {
+            catalog: Some(openscenario::entities::CatalogReference {
+                path: "MiscObjectCatalog.xosc".to_string(),
+                entry_name: "traffic_cone".to_string(),
+            }),
+            category: None,
+            mass: None,
+        },
+    )
+    .unwrap();
+
+    let xml = s.to_xml().unwrap();
+    let parsed = Scenario::from_xml(&xml).unwrap();
+
+    let entity = parsed
+        .get_entity("cone")
+        .expect("cone should survive roundtrip");
+    assert!(
+        matches!(entity, openscenario::entities::Entity::MiscObject(_)),
+        "misc object with catalog should remain a MiscObject, got {:?}",
+        entity
+    );
+}
+
 // Rule::GreaterOrEqual / LessOrEqual roundtrip tests
 
 #[test]

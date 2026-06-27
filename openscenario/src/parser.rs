@@ -324,18 +324,38 @@ fn parse_scenario_object_body(reader: &mut Reader<&[u8]>, name: &str) -> Result<
                 _ => skip_element(reader, e.name().as_ref())?,
             },
             Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"CatalogReference" => {
-                // Entity defined by catalog reference — use a placeholder entity
-                // The catalog entry name is used as a hint for the type
-                let _catalog = parse_catalog_reference_empty(&e)?;
-                // Default to a car if we can't determine type from catalog
-                entity = Some(Entity::Vehicle(Vehicle {
-                    name: name.to_string(),
-                    params: VehicleParams {
-                        catalog: Some(_catalog),
-                        vehicle_category: VehicleCategory::Car,
-                        properties: None,
-                    },
-                }));
+                let catalog = parse_catalog_reference_empty(&e)?;
+                // Use catalogName as a type hint — lowercase check covers common conventions
+                // like "PedestrianCatalog.xosc", "MiscObjectCatalog.xosc", "VehicleCatalog.xosc"
+                let lower = catalog.path.to_lowercase();
+                if lower.contains("pedestrian") {
+                    entity = Some(Entity::Pedestrian(Pedestrian {
+                        name: name.to_string(),
+                        params: PedestrianParams {
+                            catalog: Some(catalog),
+                            model: None,
+                            mass: None,
+                        },
+                    }));
+                } else if lower.contains("miscobject") || lower.contains("misc_object") {
+                    entity = Some(Entity::MiscObject(MiscObject {
+                        name: name.to_string(),
+                        params: MiscObjectParams {
+                            catalog: Some(catalog),
+                            category: None,
+                            mass: None,
+                        },
+                    }));
+                } else {
+                    entity = Some(Entity::Vehicle(Vehicle {
+                        name: name.to_string(),
+                        params: VehicleParams {
+                            catalog: Some(catalog),
+                            vehicle_category: VehicleCategory::Car,
+                            properties: None,
+                        },
+                    }));
+                }
             }
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"ScenarioObject" => break,
             Ok(XmlEvent::Eof) => break,
