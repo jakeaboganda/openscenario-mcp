@@ -1573,11 +1573,7 @@ pub struct ParameterCondition {
     pub rule: Rule,
 }
 
-/// OpenSCENARIO 1.0 compliant comparison rule.
-///
-/// Defines the three comparison operators supported by the OpenSCENARIO 1.0 specification
-/// for value-based conditions. Used in SimulationTimeCondition, ParameterCondition, and
-/// entity-based conditions like SpeedCondition.
+/// Comparison rule for value-based conditions (SimulationTimeCondition, ParameterCondition, etc.).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Rule {
     /// Greater than operator (>)
@@ -1586,6 +1582,10 @@ pub enum Rule {
     LessThan,
     /// Equal to operator (==)
     EqualTo,
+    /// Greater than or equal to operator (>=)
+    GreaterOrEqual,
+    /// Less than or equal to operator (<=)
+    LessOrEqual,
 }
 
 /// Triggering entities rule (any vs all).

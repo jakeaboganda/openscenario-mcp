@@ -1460,9 +1460,8 @@ fn parse_rule(s: &str) -> Rule {
         "greaterThan" => Rule::GreaterThan,
         "lessThan" => Rule::LessThan,
         "equalTo" => Rule::EqualTo,
-        // "greaterOrEqual" and "lessOrEqual" map to nearest equivalents
-        "greaterOrEqual" => Rule::GreaterThan,
-        "lessOrEqual" => Rule::LessThan,
+        "greaterOrEqual" => Rule::GreaterOrEqual,
+        "lessOrEqual" => Rule::LessOrEqual,
         _ => Rule::GreaterThan,
     }
 }

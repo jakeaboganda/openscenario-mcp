@@ -596,6 +596,92 @@ fn roundtrip_multiple_stories_both_present() {
     );
 }
 
+// Rule::GreaterOrEqual / LessOrEqual roundtrip tests
+
+#[test]
+fn roundtrip_greater_or_equal_rule_preserved() {
+    let mut s = build_basic_scenario_with_speed_action(10.0);
+    let trigger = Trigger::with_groups(vec![ConditionGroup {
+        conditions: vec![Condition {
+            name: "t".to_string(),
+            delay: 0.0,
+            condition_edge: ConditionEdge::None,
+            kind: ConditionKind::ByValue(ByValueCondition::SimulationTime {
+                value: 5.0,
+                rule: Rule::GreaterOrEqual,
+            }),
+        }],
+    }]);
+    s.set_act_start_trigger("story1", "act1", trigger).unwrap();
+
+    let xml = s.to_xml().unwrap();
+    let parsed = Scenario::from_xml(&xml).unwrap();
+
+    let act = parsed
+        .storyboard()
+        .stories
+        .get("story1")
+        .unwrap()
+        .acts
+        .get("act1")
+        .unwrap();
+    let cond = &act
+        .start_trigger
+        .as_ref()
+        .unwrap()
+        .condition_groups[0]
+        .conditions[0];
+    match &cond.kind {
+        ConditionKind::ByValue(ByValueCondition::SimulationTime { rule, value }) => {
+            assert_eq!(*rule, Rule::GreaterOrEqual, "greaterOrEqual should round-trip");
+            assert!((value - 5.0).abs() < 1e-6);
+        }
+        other => panic!("expected SimulationTime, got {:?}", other),
+    }
+}
+
+#[test]
+fn roundtrip_less_or_equal_rule_preserved() {
+    let mut s = build_basic_scenario_with_speed_action(10.0);
+    let trigger = Trigger::with_groups(vec![ConditionGroup {
+        conditions: vec![Condition {
+            name: "t".to_string(),
+            delay: 0.0,
+            condition_edge: ConditionEdge::None,
+            kind: ConditionKind::ByValue(ByValueCondition::SimulationTime {
+                value: 3.0,
+                rule: Rule::LessOrEqual,
+            }),
+        }],
+    }]);
+    s.set_act_start_trigger("story1", "act1", trigger).unwrap();
+
+    let xml = s.to_xml().unwrap();
+    let parsed = Scenario::from_xml(&xml).unwrap();
+
+    let act = parsed
+        .storyboard()
+        .stories
+        .get("story1")
+        .unwrap()
+        .acts
+        .get("act1")
+        .unwrap();
+    let cond = &act
+        .start_trigger
+        .as_ref()
+        .unwrap()
+        .condition_groups[0]
+        .conditions[0];
+    match &cond.kind {
+        ConditionKind::ByValue(ByValueCondition::SimulationTime { rule, value }) => {
+            assert_eq!(*rule, Rule::LessOrEqual, "lessOrEqual should round-trip");
+            assert!((value - 3.0).abs() < 1e-6);
+        }
+        other => panic!("expected SimulationTime, got {:?}", other),
+    }
+}
+
 // MiscObject / Pedestrian roundtrip tests
 
 #[test]

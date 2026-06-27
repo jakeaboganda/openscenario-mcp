@@ -1425,6 +1425,8 @@ pub fn rule_to_string(rule: &crate::storyboard::Rule) -> &'static str {
         crate::storyboard::Rule::GreaterThan => "greaterThan",
         crate::storyboard::Rule::LessThan => "lessThan",
         crate::storyboard::Rule::EqualTo => "equalTo",
+        crate::storyboard::Rule::GreaterOrEqual => "greaterOrEqual",
+        crate::storyboard::Rule::LessOrEqual => "lessOrEqual",
     }
 }
 
