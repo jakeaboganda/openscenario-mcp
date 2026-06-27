@@ -701,8 +701,15 @@ fn parse_world_position(e: &BytesStart) -> Result<Position> {
 
     for attr in e.attributes().flatten() {
         let raw = String::from_utf8_lossy(&attr.value);
-        let val: f64 = raw.parse().unwrap_or(0.0);
-        match attr.key.as_ref() {
+        let key = attr.key.as_ref();
+        let val: f64 = raw.parse().map_err(|_| {
+            ScenarioError::Parse(format!(
+                "invalid float for WorldPosition attribute '{}': '{}'",
+                String::from_utf8_lossy(key),
+                raw
+            ))
+        })?;
+        match key {
             b"x" => x = val,
             b"y" => y = val,
             b"z" => z = val,
@@ -724,11 +731,30 @@ fn parse_lane_position(e: &BytesStart) -> Result<Position> {
 
     for attr in e.attributes().flatten() {
         let raw = String::from_utf8_lossy(&attr.value);
-        match attr.key.as_ref() {
+        let key = attr.key.as_ref();
+        match key {
             b"roadId" => road_id = raw.to_string(),
-            b"laneId" => lane_id = raw.parse().unwrap_or(0),
-            b"s" => s = raw.parse().unwrap_or(0.0),
-            b"offset" => offset = raw.parse().unwrap_or(0.0),
+            b"laneId" => {
+                lane_id = raw.parse().map_err(|_| {
+                    ScenarioError::Parse(format!(
+                        "invalid integer for LanePosition laneId: '{}'",
+                        raw
+                    ))
+                })?
+            }
+            b"s" => {
+                s = raw.parse().map_err(|_| {
+                    ScenarioError::Parse(format!("invalid float for LanePosition s: '{}'", raw))
+                })?
+            }
+            b"offset" => {
+                offset = raw.parse().map_err(|_| {
+                    ScenarioError::Parse(format!(
+                        "invalid float for LanePosition offset: '{}'",
+                        raw
+                    ))
+                })?
+            }
             _ => {}
         }
     }
@@ -749,10 +775,19 @@ fn parse_road_position(e: &BytesStart) -> Result<Position> {
 
     for attr in e.attributes().flatten() {
         let raw = String::from_utf8_lossy(&attr.value);
-        match attr.key.as_ref() {
+        let key = attr.key.as_ref();
+        match key {
             b"roadId" => road_id = raw.to_string(),
-            b"s" => s = raw.parse().unwrap_or(0.0),
-            b"t" => t = raw.parse().unwrap_or(0.0),
+            b"s" => {
+                s = raw.parse().map_err(|_| {
+                    ScenarioError::Parse(format!("invalid float for RoadPosition s: '{}'", raw))
+                })?
+            }
+            b"t" => {
+                t = raw.parse().map_err(|_| {
+                    ScenarioError::Parse(format!("invalid float for RoadPosition t: '{}'", raw))
+                })?
+            }
             _ => {}
         }
     }

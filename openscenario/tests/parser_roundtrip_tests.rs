@@ -596,6 +596,43 @@ fn roundtrip_multiple_stories_both_present() {
     );
 }
 
+// Malformed position attribute error tests
+
+#[test]
+fn malformed_world_position_x_returns_error() {
+    let xml = r#"<?xml version="1.0" encoding="utf-8"?>
+<OpenSCENARIO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="OpenSCENARIO.xsd">
+  <FileHeader description="" author="" date="2024-01-01T00:00:00" revMajor="1" revMinor="2"/>
+  <ParameterDeclarations/>
+  <CatalogLocations/>
+  <RoadNetwork><LogicFile filepath="map.xodr"/></RoadNetwork>
+  <Entities>
+    <ScenarioObject name="ego">
+      <Vehicle name="ego" vehicleCategory="car">
+        <BoundingBox><Center x="0" y="0" z="0"/><Dimensions width="2" length="4" height="1.5"/></BoundingBox>
+        <Performance maxSpeed="50" maxAcceleration="10" maxDeceleration="10"/>
+        <Axles><FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.5" positionX="2.5" positionZ="0.3"/><RearAxle maxSteering="0" wheelDiameter="0.6" trackWidth="1.5" positionX="0" positionZ="0.3"/></Axles>
+        <Properties/>
+      </Vehicle>
+    </ScenarioObject>
+  </Entities>
+  <Storyboard>
+    <Init><Actions><Private entityRef="ego">
+      <PrivateAction><TeleportAction><Position>
+        <WorldPosition x="not_a_number" y="10.0" z="0.0" h="0.0"/>
+      </Position></TeleportAction></PrivateAction>
+    </Private></Actions></Init>
+    <Story name="s"><Act name="a"><ManeuverGroup name="mg" maximumExecutionCount="1"><Actors selectTriggeringEntities="false"/><Maneuver name="m"><Event name="e" priority="overwrite"><Action name="a"><GlobalAction><EntityAction entityRef="ego"><AddEntityAction><Position><WorldPosition x="0" y="0" z="0" h="0"/></Position></AddEntityAction></EntityAction></GlobalAction></Action><StartTrigger/></Event></Maneuver></ManeuverGroup><StartTrigger><ConditionGroup><Condition name="c" delay="0" conditionEdge="none"><ByValueCondition><SimulationTimeCondition value="0" rule="greaterThan"/></ByValueCondition></Condition></ConditionGroup></StartTrigger></Act></Story>
+    <StopTrigger/>
+  </Storyboard>
+</OpenSCENARIO>"#;
+    let result = Scenario::from_xml(xml);
+    assert!(
+        result.is_err(),
+        "malformed x attribute should return an error, got Ok"
+    );
+}
+
 // Truncated XML error tests
 
 #[test]
