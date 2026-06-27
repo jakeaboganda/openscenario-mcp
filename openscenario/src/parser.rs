@@ -15,9 +15,16 @@ use crate::storyboard::{
     Trigger,
 };
 use crate::{OpenScenarioVersion, Result, ScenarioError};
+use quick_xml::events::attributes::Attribute;
 use quick_xml::events::{BytesStart, Event as XmlEvent};
 use quick_xml::Reader;
 use std::collections::HashMap;
+
+fn unescape_attr(attr: &Attribute) -> Result<String> {
+    attr.unescape_value()
+        .map(|cow| cow.into_owned())
+        .map_err(ScenarioError::Xml)
+}
 
 impl Scenario {
     /// Parse OpenSCENARIO XML into a Scenario struct.
@@ -291,7 +298,7 @@ fn parse_entities(reader: &mut Reader<&[u8]>) -> Result<HashMap<String, Entity>>
                     let mut name = String::new();
                     for attr in e.attributes().flatten() {
                         if attr.key.as_ref() == b"name" {
-                            name = String::from_utf8_lossy(&attr.value).to_string();
+                            name = unescape_attr(&attr)?;
                             break;
                         }
                     }
@@ -549,8 +556,8 @@ fn parse_catalog_reference_empty(e: &BytesStart) -> Result<CatalogReference> {
     for attr in e.attributes() {
         let attr = attr.map_err(|e| ScenarioError::Parse(e.to_string()))?;
         match attr.key.as_ref() {
-            b"catalogName" => path = String::from_utf8_lossy(&attr.value).to_string(),
-            b"entryName" => entry_name = String::from_utf8_lossy(&attr.value).to_string(),
+            b"catalogName" => path = unescape_attr(&attr)?,
+            b"entryName" => entry_name = unescape_attr(&attr)?,
             _ => {}
         }
     }
@@ -581,7 +588,7 @@ fn parse_storyboard(
                     let mut story_name = String::new();
                     for attr in e.attributes().flatten() {
                         if attr.key.as_ref() == b"name" {
-                            story_name = String::from_utf8_lossy(&attr.value).to_string();
+                            story_name = unescape_attr(&attr)?;
                             break;
                         }
                     }
@@ -622,7 +629,7 @@ fn parse_init(
                 let mut entity_ref = String::new();
                 for attr in e.attributes().flatten() {
                     if attr.key.as_ref() == b"entityRef" {
-                        entity_ref = String::from_utf8_lossy(&attr.value).to_string();
+                        entity_ref = unescape_attr(&attr)?;
                         break;
                     }
                 }
@@ -904,7 +911,7 @@ fn parse_story(reader: &mut Reader<&[u8]>, name: String) -> Result<Story> {
                 let mut act_name = String::new();
                 for attr in e.attributes().flatten() {
                     if attr.key.as_ref() == b"name" {
-                        act_name = String::from_utf8_lossy(&attr.value).to_string();
+                        act_name = unescape_attr(&attr)?;
                         break;
                     }
                 }
@@ -937,7 +944,7 @@ fn parse_act(reader: &mut Reader<&[u8]>, name: String) -> Result<Act> {
                     let mut mg_name = String::new();
                     for attr in e.attributes().flatten() {
                         if attr.key.as_ref() == b"name" {
-                            mg_name = String::from_utf8_lossy(&attr.value).to_string();
+                            mg_name = unescape_attr(&attr)?;
                             break;
                         }
                     }
@@ -985,7 +992,7 @@ fn parse_maneuver_group(reader: &mut Reader<&[u8]>, name: String) -> Result<Mane
                     let mut maneuver_name = String::new();
                     for attr in e.attributes().flatten() {
                         if attr.key.as_ref() == b"name" {
-                            maneuver_name = String::from_utf8_lossy(&attr.value).to_string();
+                            maneuver_name = unescape_attr(&attr)?;
                             break;
                         }
                     }
@@ -1021,7 +1028,7 @@ fn parse_actors(reader: &mut Reader<&[u8]>) -> Result<Vec<String>> {
             Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"EntityRef" => {
                 for attr in e.attributes().flatten() {
                     if attr.key.as_ref() == b"entityRef" {
-                        actors.push(String::from_utf8_lossy(&attr.value).to_string());
+                        actors.push(unescape_attr(&attr)?);
                     }
                 }
             }
@@ -1046,7 +1053,7 @@ fn parse_maneuver(reader: &mut Reader<&[u8]>, name: String) -> Result<Maneuver> 
                 let mut event_name = String::new();
                 for attr in e.attributes().flatten() {
                     if attr.key.as_ref() == b"name" {
-                        event_name = String::from_utf8_lossy(&attr.value).to_string();
+                        event_name = unescape_attr(&attr)?;
                         break;
                     }
                 }
