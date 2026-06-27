@@ -319,8 +319,8 @@ fn parse_scenario_object_body(reader: &mut Reader<&[u8]>, name: &str) -> Result<
         match reader.read_event_into(&mut buf) {
             Ok(XmlEvent::Start(e)) => match e.name().as_ref() {
                 b"Vehicle" => entity = Some(parse_vehicle(reader, name, &e)?),
-                b"Pedestrian" => entity = Some(parse_pedestrian(reader, name)?),
-                b"MiscObject" => entity = Some(parse_misc_object(reader, name)?),
+                b"Pedestrian" => entity = Some(parse_pedestrian(reader, name, &e)?),
+                b"MiscObject" => entity = Some(parse_misc_object(reader, name, &e)?),
                 _ => skip_element(reader, e.name().as_ref())?,
             },
             Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"CatalogReference" => {
@@ -407,15 +407,50 @@ fn parse_vehicle(
     }))
 }
 
-fn parse_pedestrian(reader: &mut Reader<&[u8]>, name: &str) -> Result<Entity> {
+fn parse_pedestrian(
+    reader: &mut Reader<&[u8]>,
+    name: &str,
+    start_elem: &BytesStart,
+) -> Result<Entity> {
+    let mut model = None;
+    for attr in start_elem.attributes().flatten() {
+        if attr.key.as_ref() == b"model3d" {
+            model = Some(String::from_utf8_lossy(&attr.value).to_string());
+        }
+    }
+
     let mut catalog = None;
+    let mut mass = None;
     let mut buf = Vec::new();
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"CatalogReference" => {
-                catalog = Some(parse_catalog_reference_empty(&e)?);
-            }
+            Ok(XmlEvent::Empty(e)) => match e.name().as_ref() {
+                b"CatalogReference" => {
+                    catalog = Some(parse_catalog_reference_empty(&e)?);
+                }
+                b"Property" => {
+                    let mut prop_name = String::new();
+                    let mut prop_value = String::new();
+                    for attr in e.attributes().flatten() {
+                        match attr.key.as_ref() {
+                            b"name" => {
+                                prop_name = String::from_utf8_lossy(&attr.value).to_string()
+                            }
+                            b"value" => {
+                                prop_value = String::from_utf8_lossy(&attr.value).to_string()
+                            }
+                            _ => {}
+                        }
+                    }
+                    if prop_name == "mass" {
+                        if let Ok(v) = prop_value.parse::<f64>() {
+                            mass = Some(v);
+                        }
+                    }
+                }
+                _ => {}
+            },
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Pedestrian" => break,
             Ok(XmlEvent::Eof) => break,
             Err(e) => return Err(ScenarioError::Xml(e)),
@@ -428,33 +463,44 @@ fn parse_pedestrian(reader: &mut Reader<&[u8]>, name: &str) -> Result<Entity> {
         name: name.to_string(),
         params: PedestrianParams {
             catalog,
-            model: None,
-            mass: None,
+            model,
+            mass,
         },
     }))
 }
 
-fn parse_misc_object(reader: &mut Reader<&[u8]>, name: &str) -> Result<Entity> {
+fn parse_misc_object(
+    reader: &mut Reader<&[u8]>,
+    name: &str,
+    start_elem: &BytesStart,
+) -> Result<Entity> {
     let mut category = None;
+    for attr in start_elem.attributes().flatten() {
+        if attr.key.as_ref() == b"miscObjectCategory" {
+            category = Some(String::from_utf8_lossy(&attr.value).to_string());
+        }
+    }
+
     let mut mass = None;
     let mut buf = Vec::new();
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(XmlEvent::Start(e)) if e.name().as_ref() == b"MiscObject" => {
-                for attr in e.attributes() {
-                    let attr = attr.map_err(|e| ScenarioError::Parse(e.to_string()))?;
-                    if attr.key.as_ref() == b"mass" {
-                        let value = String::from_utf8_lossy(&attr.value);
-                        mass = Some(value.parse::<f64>().map_err(|_| {
-                            ScenarioError::Parse(format!(
-                                "Invalid mass attribute on MiscObject '{}': '{}'.",
-                                name, value
-                            ))
-                        })?);
+            Ok(XmlEvent::Empty(e)) if e.name().as_ref() == b"Property" => {
+                let mut prop_name = String::new();
+                let mut prop_value = String::new();
+                for attr in e.attributes().flatten() {
+                    match attr.key.as_ref() {
+                        b"name" => prop_name = String::from_utf8_lossy(&attr.value).to_string(),
+                        b"value" => {
+                            prop_value = String::from_utf8_lossy(&attr.value).to_string()
+                        }
+                        _ => {}
                     }
-                    if attr.key.as_ref() == b"miscObjectCategory" {
-                        category = Some(String::from_utf8_lossy(&attr.value).to_string());
+                }
+                if prop_name == "mass" {
+                    if let Ok(v) = prop_value.parse::<f64>() {
+                        mass = Some(v);
                     }
                 }
             }

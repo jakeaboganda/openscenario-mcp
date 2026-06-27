@@ -1,4 +1,4 @@
-use openscenario::entities::{VehicleCategory, VehicleParams};
+use openscenario::entities::{MiscObjectParams, PedestrianParams, VehicleCategory, VehicleParams};
 use openscenario::storyboard::{
     Action, ByValueCondition, Condition, ConditionEdge, ConditionGroup, ConditionKind,
     DynamicsDimension, DynamicsShape, ParameterCondition, Rule, TransitionDynamics,
@@ -594,6 +594,126 @@ fn roundtrip_multiple_stories_both_present() {
         parsed.storyboard().stories.contains_key("story_b"),
         "story_b should be present"
     );
+}
+
+// MiscObject / Pedestrian roundtrip tests
+
+#[test]
+fn roundtrip_misc_object_category_survives() {
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_misc_object(
+        "cone1",
+        MiscObjectParams {
+            catalog: None,
+            category: Some("obstacle".to_string()),
+            mass: None,
+        },
+    )
+    .unwrap();
+
+    let xml = s.to_xml().unwrap();
+    let parsed = Scenario::from_xml(&xml).unwrap();
+
+    let entity = parsed
+        .get_entity("cone1")
+        .expect("cone1 should survive roundtrip");
+    match entity {
+        openscenario::entities::Entity::MiscObject(mo) => {
+            assert_eq!(
+                mo.params.category.as_deref(),
+                Some("obstacle"),
+                "miscObjectCategory should round-trip"
+            );
+        }
+        other => panic!("expected MiscObject, got {:?}", other),
+    }
+}
+
+#[test]
+fn roundtrip_misc_object_mass_survives() {
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_misc_object(
+        "barrier",
+        MiscObjectParams {
+            catalog: None,
+            category: Some("barrier".to_string()),
+            mass: Some(150.0),
+        },
+    )
+    .unwrap();
+
+    let xml = s.to_xml().unwrap();
+    let parsed = Scenario::from_xml(&xml).unwrap();
+
+    let entity = parsed
+        .get_entity("barrier")
+        .expect("barrier should survive roundtrip");
+    match entity {
+        openscenario::entities::Entity::MiscObject(mo) => {
+            let mass = mo.params.mass.expect("mass should round-trip");
+            assert!((mass - 150.0).abs() < 1e-6, "mass should be 150.0, got {}", mass);
+        }
+        other => panic!("expected MiscObject, got {:?}", other),
+    }
+}
+
+#[test]
+fn roundtrip_pedestrian_model_survives() {
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_pedestrian(
+        "walker1",
+        PedestrianParams {
+            catalog: None,
+            model: Some("Adult_Male.fbx".to_string()),
+            mass: None,
+        },
+    )
+    .unwrap();
+
+    let xml = s.to_xml().unwrap();
+    let parsed = Scenario::from_xml(&xml).unwrap();
+
+    let entity = parsed
+        .get_entity("walker1")
+        .expect("walker1 should survive roundtrip");
+    match entity {
+        openscenario::entities::Entity::Pedestrian(p) => {
+            assert_eq!(
+                p.params.model.as_deref(),
+                Some("Adult_Male.fbx"),
+                "model should round-trip"
+            );
+        }
+        other => panic!("expected Pedestrian, got {:?}", other),
+    }
+}
+
+#[test]
+fn roundtrip_pedestrian_mass_survives() {
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_pedestrian(
+        "walker2",
+        PedestrianParams {
+            catalog: None,
+            model: None,
+            mass: Some(70.0),
+        },
+    )
+    .unwrap();
+
+    let xml = s.to_xml().unwrap();
+    let parsed = Scenario::from_xml(&xml).unwrap();
+
+    let entity = parsed
+        .get_entity("walker2")
+        .expect("walker2 should survive roundtrip");
+    match entity {
+        openscenario::entities::Entity::Pedestrian(p) => {
+            let mass = p.params.mass.expect("mass should round-trip");
+            assert!((mass - 70.0).abs() < 1e-6, "mass should be 70.0, got {}", mass);
+        }
+        other => panic!("expected Pedestrian, got {:?}", other),
+    }
 }
 
 // Malformed position attribute error tests
