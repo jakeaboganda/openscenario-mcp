@@ -101,6 +101,20 @@ pub enum ScenarioError {
     #[error("Invalid catalog: {0}")]
     InvalidCatalog(String),
 
+    /// Raised when two entities' bounding boxes overlap at their initial spawn positions.
+    ///
+    /// Only checked for `World` positions. `Lane` and `Road` positions are not yet checked.
+    #[error(
+        "Entities '{entity_a}' and '{entity_b}' overlap at spawn: \
+         center distance {distance:.2}m < minimum clearance {min_clearance:.2}m"
+    )]
+    SpawnCollision {
+        entity_a: String,
+        entity_b: String,
+        distance: f64,
+        min_clearance: f64,
+    },
+
     /// Raised when attempting to add a parameter with a name that already exists.
     ///
     /// Parameter names must be unique within a scenario.
