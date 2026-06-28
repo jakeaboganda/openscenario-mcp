@@ -422,6 +422,29 @@ impl Scenario {
         Ok(())
     }
 
+    /// Applies bounding box dimensions from a catalog entry to a named entity.
+    ///
+    /// Call this after adding an entity whose definition came from a catalog, so
+    /// spawn-collision checks use the catalog's physical dimensions rather than
+    /// category defaults. No-op if the catalog entry has no dimensions.
+    pub fn apply_catalog_dimensions(
+        &mut self,
+        entity: impl Into<String>,
+        entry: &crate::catalog::CatalogEntry,
+    ) -> Result<()> {
+        let entity = entity.into();
+        if !self.entities.contains_key(&entity) {
+            return Err(ScenarioError::EntityNotFound {
+                entity,
+                context: "apply_catalog_dimensions".to_string(),
+            });
+        }
+        if let Some(bb) = entry.bounding_box() {
+            self.entity_dimensions.insert(entity, bb.clone());
+        }
+        Ok(())
+    }
+
     /// Returns the bounding box for an entity: explicit override if set, else category default.
     ///
     /// Returns `None` if `entity_name` does not exist in this scenario.
