@@ -34,16 +34,11 @@ Get back: Production-ready `.xosc` file with real road data from OpenStreetMap.
 - Use your own custom `.xodr` files ([guide](CUSTOM_XODR.md))
 - Automatic quality validation
 
-**Production ready**:
-- OpenSCENARIO 1.2 format
-- Works with esmini, CARLA, VTD, any OSC simulator
-- Validates scenarios before export
-
 ---
 
 ## 🎯 Features
 
-✅ **18 MCP tools** for scenario generation  
+✅ **31 MCP tools** for scenario generation  
 ✅ **Real-world roads** from OpenStreetMap (Japan, US, Europe - anywhere!)  
 ✅ **Custom XODR support** - bring your own road networks  
 ✅ **Natural language** - talk to Claude/Copilot in plain English  
@@ -93,16 +88,19 @@ Think of it like giving Claude or Copilot a "toolbox":
 
 ## 🛠️ Available Tools
 
-The MCP server provides 18 tools for scenario generation:
+The MCP server provides 31 tools for scenario generation:
 
 | Category | Tools |
 |----------|-------|
-| **Roads** | `get_real_world_road`, `load_road_network`, `list_roads`, `get_road_info` |
-| **Scenarios** | `create_scenario`, `create_quick_scenario`, `validate_scenario`, `export_xml` |
+| **Roads** | `get_real_world_road`, `load_road_network`, `list_roads`, `get_road_info`, `suggest_spawn_points`, `validate_position` |
+| **Scenarios** | `create_scenario`, `create_quick_scenario`, `create_lane_change_scenario`, `create_cutin_scenario`, `create_platoon_scenario` |
 | **Entities** | `add_vehicle`, `add_pedestrian`, `add_misc_object` |
-| **Positioning** | `set_position`, `set_lane_position`, `validate_position`, `suggest_spawn_points` |
+| **Positioning** | `set_position`, `set_lane_position` |
 | **Actions** | `add_speed_action`, `add_lane_change_action` |
-| **Triggers** | `set_stop_time`, `set_stop_on_element` |
+| **Triggers** | `set_stop_time`, `set_stop_on_element`, `set_trigger_time`, `set_collision_trigger`, `list_triggers` |
+| **Validation** | `validate_scenario`, `validate_scenario_structure`, `check_scenario` |
+| **Inspection** | `list_scenarios`, `inspect_scenario`, `describe_scenario`, `import_scenario` |
+| **Export** | `export_xml` |
 
 See [USAGE.md](USAGE.md) for complete tool documentation.
 
