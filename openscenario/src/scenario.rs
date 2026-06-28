@@ -423,14 +423,15 @@ impl Scenario {
     }
 
     /// Returns the bounding box for an entity: explicit override if set, else category default.
-    pub fn effective_bounding_box(&self, entity_name: &str) -> BoundingBox {
+    ///
+    /// Returns `None` if `entity_name` does not exist in this scenario.
+    pub fn effective_bounding_box(&self, entity_name: &str) -> Option<BoundingBox> {
         if let Some(bb) = self.entity_dimensions.get(entity_name) {
-            return bb.clone();
+            return Some(bb.clone());
         }
-        if let Some(entity) = self.entities.get(entity_name) {
-            return entity.default_bounding_box();
-        }
-        BoundingBox { length: 1.0, width: 1.0, height: 1.0 }
+        self.entities
+            .get(entity_name)
+            .map(|e| e.default_bounding_box())
     }
 
     /// Gets the initial position of an entity.

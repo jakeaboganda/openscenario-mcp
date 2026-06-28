@@ -22,7 +22,7 @@ pub struct CatalogReference {
     pub entry_name: String,
 }
 
-/// Axis-aligned bounding box for collision overlap checks.
+/// Physical dimensions of an entity used for spawn-time collision detection.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BoundingBox {
     pub length: f64,
