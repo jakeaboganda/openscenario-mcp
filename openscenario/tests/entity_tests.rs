@@ -194,3 +194,50 @@ fn entity_default_bounding_box_misc_object() {
     let bb = entity.default_bounding_box();
     assert!(bb.radius() > 0.0);
 }
+
+fn car_params() -> VehicleParams {
+    VehicleParams { catalog: None, vehicle_category: VehicleCategory::Car, properties: None }
+}
+
+#[test]
+fn set_entity_dimensions_stores_bbox() {
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_vehicle("ego", car_params()).unwrap();
+    let bb = BoundingBox { length: 5.0, width: 2.0, height: 1.6 };
+    s.set_entity_dimensions("ego", bb.clone()).unwrap();
+    assert_eq!(s.effective_bounding_box("ego"), bb);
+}
+
+#[test]
+fn effective_bounding_box_falls_back_to_default() {
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_vehicle("ego", car_params()).unwrap();
+    let bb = s.effective_bounding_box("ego");
+    assert!(bb.length > 3.0, "Car default length should be > 3m, got {}", bb.length);
+}
+
+#[test]
+fn set_entity_dimensions_errors_on_unknown_entity() {
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    let result = s.set_entity_dimensions("ghost", BoundingBox { length: 1.0, width: 1.0, height: 1.0 });
+    assert!(result.is_err());
+}
+
+#[test]
+fn set_entity_dimensions_overrides_default() {
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_vehicle("ego", car_params()).unwrap();
+    let default = s.effective_bounding_box("ego");
+    let custom = BoundingBox { length: default.length + 10.0, width: default.width, height: default.height };
+    s.set_entity_dimensions("ego", custom.clone()).unwrap();
+    assert_eq!(s.effective_bounding_box("ego").length, custom.length);
+}
+
+#[test]
+fn set_entity_dimensions_update_overwrites_previous() {
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_vehicle("ego", car_params()).unwrap();
+    s.set_entity_dimensions("ego", BoundingBox { length: 3.0, width: 1.5, height: 1.3 }).unwrap();
+    s.set_entity_dimensions("ego", BoundingBox { length: 6.0, width: 2.0, height: 1.8 }).unwrap();
+    assert_eq!(s.effective_bounding_box("ego").length, 6.0);
+}

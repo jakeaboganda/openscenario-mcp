@@ -14,7 +14,8 @@
 //! `add_event_with_ttc_condition` vs `add_event_with_ttc_condition_advanced`).
 
 use crate::entities::{
-    Entity, MiscObject, MiscObjectParams, Pedestrian, PedestrianParams, Vehicle, VehicleParams,
+    BoundingBox, Entity, MiscObject, MiscObjectParams, Pedestrian, PedestrianParams, Vehicle,
+    VehicleParams,
 };
 use crate::storyboard::{
     Act, Action, ByEntityCondition, CollisionCondition, Condition, ConditionEdge, ConditionGroup,
@@ -57,6 +58,7 @@ pub struct Scenario {
     pub(crate) entities: HashMap<String, Entity>,
     pub(crate) initial_positions: HashMap<String, Position>,
     pub(crate) initial_speeds: HashMap<String, f64>,
+    pub(crate) entity_dimensions: HashMap<String, BoundingBox>,
     pub(crate) road_network: Option<String>,
     pub(crate) parameters: Vec<ParameterDeclaration>,
     pub(crate) storyboard: Storyboard,
@@ -80,6 +82,7 @@ impl Scenario {
             entities: HashMap::new(),
             initial_positions: HashMap::new(),
             initial_speeds: HashMap::new(),
+            entity_dimensions: HashMap::new(),
             road_network: None,
             parameters: Vec::new(),
             storyboard: Storyboard::new(),
@@ -397,6 +400,37 @@ impl Scenario {
     /// ```
     pub fn entities(&self) -> impl Iterator<Item = &Entity> {
         self.entities.values()
+    }
+
+    /// Sets explicit physical dimensions for an entity, used by spawn collision detection.
+    ///
+    /// When set, these dimensions override the category-based defaults for overlap checks.
+    /// The entity must already exist in the scenario.
+    pub fn set_entity_dimensions(
+        &mut self,
+        entity: impl Into<String>,
+        bbox: BoundingBox,
+    ) -> Result<()> {
+        let entity = entity.into();
+        if !self.entities.contains_key(&entity) {
+            return Err(ScenarioError::EntityNotFound {
+                entity,
+                context: "set_entity_dimensions".to_string(),
+            });
+        }
+        self.entity_dimensions.insert(entity, bbox);
+        Ok(())
+    }
+
+    /// Returns the bounding box for an entity: explicit override if set, else category default.
+    pub fn effective_bounding_box(&self, entity_name: &str) -> BoundingBox {
+        if let Some(bb) = self.entity_dimensions.get(entity_name) {
+            return bb.clone();
+        }
+        if let Some(entity) = self.entities.get(entity_name) {
+            return entity.default_bounding_box();
+        }
+        BoundingBox { length: 1.0, width: 1.0, height: 1.0 }
     }
 
     /// Gets the initial position of an entity.

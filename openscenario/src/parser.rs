@@ -139,6 +139,7 @@ fn parse_openscenario(reader: &mut Reader<&[u8]>) -> Result<Scenario> {
         entities,
         initial_positions,
         initial_speeds,
+        entity_dimensions: std::collections::HashMap::new(),
         road_network,
         parameters,
         storyboard,
