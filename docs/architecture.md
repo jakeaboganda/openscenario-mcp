@@ -118,7 +118,7 @@ pub struct Event { pub name: String, pub actions: Vec<Action>, pub conditions: V
 - `Condition`: ReachPosition, TimeToCollision, RelativeDistance, etc.
 
 **Enums for configuration**:
-- `Rule`: LessThan, GreaterThan, EqualTo
+- `Rule`: LessThan, GreaterThan, EqualTo, LessOrEqual, GreaterOrEqual
 - `TransitionShape`: Linear, Cubic, Sinusoidal, Step
 - `DynamicsShape` / `DynamicsDimension`: For dynamic behavior specification
 
