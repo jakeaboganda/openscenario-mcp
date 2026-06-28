@@ -504,3 +504,25 @@ fn relative_position_is_not_collision_checked() {
         orientation: openscenario::position::Orientation::default(),
     }).unwrap();
 }
+
+#[test]
+fn perpendicular_cars_cleared_by_obb_where_circles_would_false_positive() {
+    // Car A: 4.5×1.9m at (0,0) heading 0. Car B: 4.5×1.9m at (4.0,0) heading π/2.
+    // On A's forward axis (x): A projects to [-2.25, 2.25], B (rotated 90°) projects
+    // its half-width (0.95m) onto x → B spans [3.05, 4.95]. Gap 2.25 < 3.05 → SAT says clear.
+    // Circumscribed circle radius ≈ 2.44m each; center distance 4.0m < 4.88m → would false-positive.
+    let mut s = two_car_scenario();
+    s.set_initial_position("ego", Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
+    s.set_initial_position(
+        "npc",
+        Position::World {
+            x: 4.0,
+            y: 0.0,
+            z: 0.0,
+            h: std::f64::consts::FRAC_PI_2,
+            p: 0.0,
+            r: 0.0,
+        },
+    )
+    .unwrap();
+}
