@@ -461,9 +461,7 @@ fn parse_pedestrian(
                     let mut prop_value = String::new();
                     for attr in e.attributes().flatten() {
                         match attr.key.as_ref() {
-                            b"name" => {
-                                prop_name = String::from_utf8_lossy(&attr.value).to_string()
-                            }
+                            b"name" => prop_name = String::from_utf8_lossy(&attr.value).to_string(),
                             b"value" => {
                                 prop_value = String::from_utf8_lossy(&attr.value).to_string()
                             }
@@ -519,9 +517,7 @@ fn parse_misc_object(
                 for attr in e.attributes().flatten() {
                     match attr.key.as_ref() {
                         b"name" => prop_name = String::from_utf8_lossy(&attr.value).to_string(),
-                        b"value" => {
-                            prop_value = String::from_utf8_lossy(&attr.value).to_string()
-                        }
+                        b"value" => prop_value = String::from_utf8_lossy(&attr.value).to_string(),
                         _ => {}
                     }
                 }
@@ -653,9 +649,7 @@ fn parse_init(
 }
 
 /// Parse a `<Private entityRef="..."> ... </Private>` block, returning position and speed.
-fn parse_private_section(
-    reader: &mut Reader<&[u8]>,
-) -> Result<(Option<Position>, Option<f64>)> {
+fn parse_private_section(reader: &mut Reader<&[u8]>) -> Result<(Option<Position>, Option<f64>)> {
     let mut position = None;
     let mut speed = None;
     let mut buf = Vec::new();
@@ -729,9 +723,8 @@ fn parse_teleport_action(reader: &mut Reader<&[u8]>) -> Result<Position> {
         buf.clear();
     }
 
-    position.ok_or_else(|| {
-        ScenarioError::Parse("TeleportAction has no Position element".to_string())
-    })
+    position
+        .ok_or_else(|| ScenarioError::Parse("TeleportAction has no Position element".to_string()))
 }
 
 fn parse_position_element(reader: &mut Reader<&[u8]>) -> Result<Position> {
@@ -1061,7 +1054,9 @@ fn parse_maneuver(reader: &mut Reader<&[u8]>, name: String) -> Result<Maneuver> 
             }
             Ok(XmlEvent::End(e)) if e.name().as_ref() == b"Maneuver" => break,
             Ok(XmlEvent::Eof) => {
-                return Err(ScenarioError::Parse("Unexpected EOF in Maneuver".to_string()))
+                return Err(ScenarioError::Parse(
+                    "Unexpected EOF in Maneuver".to_string(),
+                ))
             }
             Err(e) => return Err(ScenarioError::Xml(e)),
             _ => {}
@@ -1312,10 +1307,7 @@ fn parse_lane_change_action(reader: &mut Reader<&[u8]>) -> Result<Action> {
 
 /// Parse a `<StartTrigger>` element body (called after the start tag is consumed).
 /// Returns `None` if the trigger has no condition groups (default/empty trigger).
-fn parse_start_trigger(
-    reader: &mut Reader<&[u8]>,
-    end_tag: &[u8],
-) -> Result<Option<Trigger>> {
+fn parse_start_trigger(reader: &mut Reader<&[u8]>, end_tag: &[u8]) -> Result<Option<Trigger>> {
     let mut condition_groups: Vec<ConditionGroup> = Vec::new();
     let mut buf = Vec::new();
 

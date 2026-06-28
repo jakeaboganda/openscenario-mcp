@@ -661,7 +661,9 @@ fn roundtrip_vehicle_with_catalog_stays_vehicle() {
     let xml = s.to_xml().unwrap();
     let parsed = Scenario::from_xml(&xml).unwrap();
 
-    let entity = parsed.get_entity("ego").expect("ego should survive roundtrip");
+    let entity = parsed
+        .get_entity("ego")
+        .expect("ego should survive roundtrip");
     assert!(
         matches!(entity, openscenario::entities::Entity::Vehicle(_)),
         "vehicle with catalog should remain a Vehicle, got {:?}",
@@ -756,15 +758,14 @@ fn roundtrip_greater_or_equal_rule_preserved() {
         .acts
         .get("act1")
         .unwrap();
-    let cond = &act
-        .start_trigger
-        .as_ref()
-        .unwrap()
-        .condition_groups[0]
-        .conditions[0];
+    let cond = &act.start_trigger.as_ref().unwrap().condition_groups[0].conditions[0];
     match &cond.kind {
         ConditionKind::ByValue(ByValueCondition::SimulationTime { rule, value }) => {
-            assert_eq!(*rule, Rule::GreaterOrEqual, "greaterOrEqual should round-trip");
+            assert_eq!(
+                *rule,
+                Rule::GreaterOrEqual,
+                "greaterOrEqual should round-trip"
+            );
             assert!((value - 5.0).abs() < 1e-6);
         }
         other => panic!("expected SimulationTime, got {:?}", other),
@@ -798,12 +799,7 @@ fn roundtrip_less_or_equal_rule_preserved() {
         .acts
         .get("act1")
         .unwrap();
-    let cond = &act
-        .start_trigger
-        .as_ref()
-        .unwrap()
-        .condition_groups[0]
-        .conditions[0];
+    let cond = &act.start_trigger.as_ref().unwrap().condition_groups[0].conditions[0];
     match &cond.kind {
         ConditionKind::ByValue(ByValueCondition::SimulationTime { rule, value }) => {
             assert_eq!(*rule, Rule::LessOrEqual, "lessOrEqual should round-trip");
@@ -868,7 +864,11 @@ fn roundtrip_misc_object_mass_survives() {
     match entity {
         openscenario::entities::Entity::MiscObject(mo) => {
             let mass = mo.params.mass.expect("mass should round-trip");
-            assert!((mass - 150.0).abs() < 1e-6, "mass should be 150.0, got {}", mass);
+            assert!(
+                (mass - 150.0).abs() < 1e-6,
+                "mass should be 150.0, got {}",
+                mass
+            );
         }
         other => panic!("expected MiscObject, got {:?}", other),
     }
@@ -927,7 +927,11 @@ fn roundtrip_pedestrian_mass_survives() {
     match entity {
         openscenario::entities::Entity::Pedestrian(p) => {
             let mass = p.params.mass.expect("mass should round-trip");
-            assert!((mass - 70.0).abs() < 1e-6, "mass should be 70.0, got {}", mass);
+            assert!(
+                (mass - 70.0).abs() < 1e-6,
+                "mass should be 70.0, got {}",
+                mass
+            );
         }
         other => panic!("expected Pedestrian, got {:?}", other),
     }
@@ -1086,12 +1090,7 @@ fn roundtrip_parameter_condition_preserves_rule_and_value() {
         .acts
         .get("act1")
         .unwrap();
-    let cond = &act
-        .start_trigger
-        .as_ref()
-        .unwrap()
-        .condition_groups[0]
-        .conditions[0];
+    let cond = &act.start_trigger.as_ref().unwrap().condition_groups[0].conditions[0];
     match &cond.kind {
         ConditionKind::ByValue(ByValueCondition::Parameter(pc)) => {
             assert_eq!(pc.rule, Rule::GreaterThan);
