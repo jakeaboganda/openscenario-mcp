@@ -114,7 +114,7 @@ fn test_relative_distance_condition_lateral() {
         .set_initial_position("ego", Position::world(0.0, 0.0, 0.0, 0.0))
         .unwrap();
     scenario
-        .set_initial_position("target", Position::world(0.0, 3.5, 0.0, 0.0))
+        .set_initial_position("target", Position::world(0.0, 10.0, 0.0, 0.0))
         .unwrap();
 
     scenario.add_story("main_story").unwrap();

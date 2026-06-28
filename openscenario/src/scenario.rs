@@ -557,6 +557,28 @@ impl Scenario {
             }
         }
 
+        // Reject World positions that overlap with existing World positions
+        if let Position::World { x, y, .. } = &position {
+            for (other_name, other_pos) in &self.initial_positions {
+                if other_name == &entity {
+                    continue;
+                }
+                if let Position::World { x: ox, y: oy, .. } = other_pos {
+                    let distance = ((x - ox).powi(2) + (y - oy).powi(2)).sqrt();
+                    let min_clearance = self.effective_bounding_box(&entity).unwrap().radius()
+                        + self.effective_bounding_box(other_name).unwrap().radius();
+                    if distance < min_clearance {
+                        return Err(ScenarioError::SpawnCollision {
+                            entity_a: entity.clone(),
+                            entity_b: other_name.clone(),
+                            distance,
+                            min_clearance,
+                        });
+                    }
+                }
+            }
+        }
+
         self.initial_positions.insert(entity, position);
         Ok(())
     }

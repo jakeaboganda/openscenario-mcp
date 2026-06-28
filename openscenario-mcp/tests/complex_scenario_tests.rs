@@ -455,7 +455,7 @@ fn test_round_trip_integrity() {
 
     // Add test data
     let test_vehicles = vec!["vehicle_alpha", "vehicle_beta"];
-    for vehicle in &test_vehicles {
+    for (i, vehicle) in test_vehicles.iter().enumerate() {
         handle_add_vehicle(
             state.clone(),
             scenario_id.clone(),
@@ -469,7 +469,7 @@ fn test_round_trip_integrity() {
             state.clone(),
             scenario_id.clone(),
             vehicle.to_string(),
-            200.0,
+            200.0 + (i as f64) * 20.0,
             100.0,
             0.0,
             0.8,

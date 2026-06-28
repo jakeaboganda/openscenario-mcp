@@ -1,4 +1,4 @@
-use openscenario::entities::{VehicleCategory, VehicleParams};
+use openscenario::entities::{BoundingBox, VehicleCategory, VehicleParams};
 use openscenario::{OpenScenarioVersion, Position, Scenario};
 
 // ============================================================================
@@ -365,4 +365,131 @@ fn test_xml_with_lane_position_and_speed() {
     assert!(xml.contains("laneId=\"-2\""));
     assert!(xml.contains("<SpeedAction>"));
     assert!(xml.contains("<AbsoluteTargetSpeed value=\"25\""));
+}
+
+// ============================================================================
+// Spawn Collision Tests (World-position overlap check)
+// ============================================================================
+
+use openscenario::error::ScenarioError;
+
+fn two_car_scenario() -> openscenario::Scenario {
+    use openscenario::{OpenScenarioVersion, Scenario};
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_vehicle("ego", VehicleParams {
+        catalog: None,
+        vehicle_category: VehicleCategory::Car,
+        properties: None,
+    }).unwrap();
+    s.add_vehicle("npc", VehicleParams {
+        catalog: None,
+        vehicle_category: VehicleCategory::Car,
+        properties: None,
+    }).unwrap();
+    s
+}
+
+#[test]
+fn two_cars_at_same_world_position_errors() {
+    let mut s = two_car_scenario();
+    s.set_initial_position("ego", openscenario::Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
+    let result = s.set_initial_position("npc", openscenario::Position::world(0.0, 0.0, 0.0, 0.0));
+    assert!(matches!(result, Err(ScenarioError::SpawnCollision { .. })),
+        "expected SpawnCollision, got {:?}", result);
+}
+
+#[test]
+fn two_cars_far_apart_does_not_error() {
+    let mut s = two_car_scenario();
+    s.set_initial_position("ego", openscenario::Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
+    s.set_initial_position("npc", openscenario::Position::world(50.0, 0.0, 0.0, 0.0)).unwrap();
+}
+
+#[test]
+fn first_entity_position_always_succeeds() {
+    use openscenario::{OpenScenarioVersion, Scenario};
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_vehicle("ego", VehicleParams {
+        catalog: None,
+        vehicle_category: VehicleCategory::Car,
+        properties: None,
+    }).unwrap();
+    s.set_initial_position("ego", openscenario::Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
+}
+
+#[test]
+fn spawn_collision_error_names_both_entities() {
+    let mut s = two_car_scenario();
+    s.set_initial_position("ego", openscenario::Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
+    let result = s.set_initial_position("npc", openscenario::Position::world(0.5, 0.0, 0.0, 0.0));
+    match result {
+        Err(ScenarioError::SpawnCollision { entity_a, entity_b, .. }) => {
+            let names = [entity_a.as_str(), entity_b.as_str()];
+            assert!(names.contains(&"ego") && names.contains(&"npc"),
+                "expected both entity names, got {:?}", names);
+        }
+        other => panic!("expected SpawnCollision, got {:?}", other),
+    }
+}
+
+#[test]
+fn custom_small_bbox_allows_closer_spawn() {
+    let mut s = two_car_scenario();
+    let tiny = BoundingBox { length: 0.1, width: 0.1, height: 0.1 };
+    s.set_entity_dimensions("ego", tiny.clone()).unwrap();
+    s.set_entity_dimensions("npc", tiny.clone()).unwrap();
+    s.set_initial_position("ego", openscenario::Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
+    // tiny radius ≈ 0.07m each → clearance ≈ 0.14m → 1m apart is fine
+    s.set_initial_position("npc", openscenario::Position::world(1.0, 0.0, 0.0, 0.0)).unwrap();
+}
+
+#[test]
+fn large_truck_requires_more_clearance_than_cars() {
+    use openscenario::{OpenScenarioVersion, Scenario};
+    let mut s = Scenario::new(OpenScenarioVersion::V1_2);
+    s.add_vehicle("truck", VehicleParams {
+        catalog: None,
+        vehicle_category: VehicleCategory::Truck,
+        properties: None,
+    }).unwrap();
+    s.add_vehicle("car", VehicleParams {
+        catalog: None,
+        vehicle_category: VehicleCategory::Car,
+        properties: None,
+    }).unwrap();
+    s.set_initial_position("truck", openscenario::Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
+    // Truck radius ≈ 4.5m, Car radius ≈ 2.4m → clearance ≈ 6.9m → 6m apart should collide
+    let result = s.set_initial_position("car", openscenario::Position::world(6.0, 0.0, 0.0, 0.0));
+    assert!(matches!(result, Err(ScenarioError::SpawnCollision { .. })),
+        "truck+car 6m apart should collide, got {:?}", result);
+}
+
+#[test]
+fn lane_position_is_not_collision_checked() {
+    let mut s = two_car_scenario();
+    s.set_initial_position("ego", openscenario::Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
+    // Lane position on npc — should NOT trigger SpawnCollision (road network check may fire instead)
+    let result = s.set_initial_position("npc", openscenario::Position::Lane {
+        road_id: "road1".to_string(),
+        lane_id: -1,
+        s: 10.0,
+        offset: 0.0,
+        orientation: None,
+    });
+    assert!(!matches!(result, Err(ScenarioError::SpawnCollision { .. })),
+        "Lane position should not trigger SpawnCollision");
+}
+
+#[test]
+fn relative_position_is_not_collision_checked() {
+    let mut s = two_car_scenario();
+    s.set_initial_position("ego", openscenario::Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
+    // RelativeWorld at dx=0, dy=0 would overlap geometrically, but relative positions are not checked
+    s.set_initial_position("npc", openscenario::Position::RelativeWorld {
+        entity: "ego".to_string(),
+        dx: 0.0,
+        dy: 0.0,
+        dz: 0.0,
+        orientation: openscenario::position::Orientation::default(),
+    }).unwrap();
 }
