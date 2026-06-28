@@ -22,6 +22,21 @@ pub struct CatalogReference {
     pub entry_name: String,
 }
 
+/// Axis-aligned bounding box for collision overlap checks.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BoundingBox {
+    pub length: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+impl BoundingBox {
+    /// Circumscribed XY circle radius — conservative overlap check without OBB math.
+    pub fn radius(&self) -> f64 {
+        ((self.length / 2.0).powi(2) + (self.width / 2.0).powi(2)).sqrt()
+    }
+}
+
 /// OpenSCENARIO vehicle category classification.
 ///
 /// Defines the type of vehicle entity according to the OpenSCENARIO standard.
@@ -96,6 +111,28 @@ impl VehicleCategory {
             VehicleCategory::Bicycle => "bicycle",
             VehicleCategory::Train => "train",
             VehicleCategory::Tram => "tram",
+        }
+    }
+
+    #[allow(unreachable_patterns)]
+    pub fn default_bounding_box(&self) -> BoundingBox {
+        let (length, width, height) = match self {
+            VehicleCategory::Car => (4.5, 1.9, 1.5),
+            VehicleCategory::Van => (5.5, 2.1, 2.2),
+            VehicleCategory::Truck => (8.5, 2.5, 3.5),
+            VehicleCategory::Trailer => (12.0, 2.5, 3.5),
+            VehicleCategory::Semitrailer => (16.5, 2.5, 4.0),
+            VehicleCategory::Bus => (12.0, 2.5, 3.2),
+            VehicleCategory::Motorbike => (2.2, 0.8, 1.2),
+            VehicleCategory::Bicycle => (1.8, 0.6, 1.1),
+            VehicleCategory::Train => (25.0, 3.0, 4.0),
+            VehicleCategory::Tram => (30.0, 2.6, 3.5),
+            _ => (3.0, 1.8, 1.5),
+        };
+        BoundingBox {
+            length,
+            width,
+            height,
         }
     }
 }
@@ -339,6 +376,22 @@ impl Entity {
             Entity::Vehicle(v) => &v.name,
             Entity::Pedestrian(p) => &p.name,
             Entity::MiscObject(m) => &m.name,
+        }
+    }
+
+    pub fn default_bounding_box(&self) -> BoundingBox {
+        match self {
+            Entity::Vehicle(v) => v.params.vehicle_category.default_bounding_box(),
+            Entity::Pedestrian(_) => BoundingBox {
+                length: 0.5,
+                width: 0.5,
+                height: 1.8,
+            },
+            Entity::MiscObject(_) => BoundingBox {
+                length: 0.5,
+                width: 0.5,
+                height: 1.0,
+            },
         }
     }
 }

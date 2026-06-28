@@ -1,4 +1,7 @@
-use openscenario::entities::{MiscObjectParams, PedestrianParams, VehicleCategory, VehicleParams};
+use openscenario::entities::{
+    BoundingBox, Entity, MiscObject, MiscObjectParams, Pedestrian, PedestrianParams, Vehicle,
+    VehicleCategory, VehicleParams,
+};
 use openscenario::Position;
 use openscenario::{OpenScenarioVersion, Scenario};
 
@@ -103,4 +106,91 @@ fn test_get_entity() {
 
     let missing = scenario.get_entity("nonexistent");
     assert!(missing.is_none());
+}
+
+#[test]
+fn bounding_box_radius_equals_half_diagonal() {
+    let bb = BoundingBox {
+        length: 4.0,
+        width: 2.0,
+        height: 1.5,
+    };
+    let expected = ((2.0f64).powi(2) + (1.0f64).powi(2)).sqrt();
+    assert!((bb.radius() - expected).abs() < 1e-9);
+}
+
+#[test]
+fn bounding_box_zero_dimensions_radius_is_zero() {
+    let bb = BoundingBox {
+        length: 0.0,
+        width: 0.0,
+        height: 0.0,
+    };
+    assert_eq!(bb.radius(), 0.0);
+}
+
+#[test]
+fn vehicle_category_car_default_bbox_sensible() {
+    let bb = VehicleCategory::Car.default_bounding_box();
+    assert!(bb.length > 3.0 && bb.length < 6.0);
+    assert!(bb.width > 1.5 && bb.width < 2.5);
+}
+
+#[test]
+fn vehicle_category_truck_larger_than_car() {
+    let car = VehicleCategory::Car.default_bounding_box();
+    let truck = VehicleCategory::Truck.default_bounding_box();
+    assert!(truck.length > car.length);
+    assert!(truck.width > car.width);
+}
+
+#[test]
+fn vehicle_category_motorbike_smaller_than_car() {
+    let car = VehicleCategory::Car.default_bounding_box();
+    let bike = VehicleCategory::Motorbike.default_bounding_box();
+    assert!(bike.length < car.length);
+    assert!(bike.width < car.width);
+}
+
+#[test]
+fn entity_default_bounding_box_vehicle() {
+    let entity = Entity::Vehicle(Vehicle {
+        name: "ego".to_string(),
+        params: VehicleParams {
+            catalog: None,
+            vehicle_category: VehicleCategory::Car,
+            properties: None,
+        },
+    });
+    let bb = entity.default_bounding_box();
+    assert!(bb.radius() > 0.0);
+}
+
+#[test]
+fn entity_default_bounding_box_pedestrian() {
+    let entity = Entity::Pedestrian(Pedestrian {
+        name: "ped".to_string(),
+        params: PedestrianParams {
+            catalog: None,
+            model: None,
+            mass: None,
+        },
+    });
+    let bb = entity.default_bounding_box();
+    assert!(bb.width < 1.0);
+    assert!(bb.height > 1.0);
+}
+
+#[test]
+fn entity_default_bounding_box_misc_object() {
+    let entity = Entity::MiscObject(MiscObject {
+        name: "cone".to_string(),
+        params: MiscObjectParams {
+            catalog: None,
+            category: None,
+            mass: None,
+        },
+    });
+    let bb = entity.default_bounding_box();
+    assert!(bb.radius() > 0.0);
 }

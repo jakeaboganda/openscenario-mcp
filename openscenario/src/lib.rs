@@ -13,7 +13,9 @@ pub mod version;
 pub mod xml;
 
 pub use catalog::{Catalog, CatalogEntry, CatalogType};
-pub use entities::{Entity, MiscObjectParams, PedestrianParams, VehicleCategory, VehicleParams};
+pub use entities::{
+    BoundingBox, Entity, MiscObjectParams, PedestrianParams, VehicleCategory, VehicleParams,
+};
 pub use error::{Result, ScenarioError};
 pub use position::Position;
 pub use scenario::{ParameterDeclaration, ParameterType, Scenario};
