@@ -30,12 +30,6 @@ pub struct BoundingBox {
     pub height: f64,
 }
 
-impl BoundingBox {
-    /// Circumscribed XY circle radius — conservative overlap check without OBB math.
-    pub fn radius(&self) -> f64 {
-        ((self.length / 2.0).powi(2) + (self.width / 2.0).powi(2)).sqrt()
-    }
-}
 
 /// OpenSCENARIO vehicle category classification.
 ///

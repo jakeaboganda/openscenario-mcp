@@ -423,7 +423,7 @@ fn spawn_collision_error_names_both_entities() {
     s.set_initial_position("ego", openscenario::Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
     let result = s.set_initial_position("npc", openscenario::Position::world(0.5, 0.0, 0.0, 0.0));
     match result {
-        Err(ScenarioError::SpawnCollision { entity_a, entity_b, .. }) => {
+        Err(ScenarioError::SpawnCollision { entity_a, entity_b }) => {
             let names = [entity_a.as_str(), entity_b.as_str()];
             assert!(names.contains(&"ego") && names.contains(&"npc"),
                 "expected both entity names, got {:?}", names);
@@ -439,7 +439,7 @@ fn custom_small_bbox_allows_closer_spawn() {
     s.set_entity_dimensions("ego", tiny.clone()).unwrap();
     s.set_entity_dimensions("npc", tiny.clone()).unwrap();
     s.set_initial_position("ego", openscenario::Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
-    // tiny radius ≈ 0.07m each → clearance ≈ 0.14m → 1m apart is fine
+    // tiny OBB (0.1×0.1m) half-extents 0.05m → gap of 0.9m on x-axis → no overlap
     s.set_initial_position("npc", openscenario::Position::world(1.0, 0.0, 0.0, 0.0)).unwrap();
 }
 
@@ -458,10 +458,21 @@ fn large_truck_requires_more_clearance_than_cars() {
         properties: None,
     }).unwrap();
     s.set_initial_position("truck", openscenario::Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
-    // Truck radius ≈ 4.5m, Car radius ≈ 2.4m → clearance ≈ 6.9m → 6m apart should collide
+    // truck (8.5m, heading 0) projects to [-4.25, 4.25] on x-axis, car (4.5m) at x=6 projects to [3.75, 8.25] → overlap
     let result = s.set_initial_position("car", openscenario::Position::world(6.0, 0.0, 0.0, 0.0));
     assert!(matches!(result, Err(ScenarioError::SpawnCollision { .. })),
         "truck+car 6m apart should collide, got {:?}", result);
+}
+
+#[test]
+fn cars_end_to_end_with_bumper_gap_not_flagged_as_collision() {
+    // Car default: 4.5m long, half-length 2.25m
+    // Two cars at x=0 and x=4.6 → 0.1m gap between bumpers
+    // With circles (radius≈2.44m each, clearance≈4.88m) this would be a false positive.
+    // OBB correctly reports no overlap: A projects to [-2.25, 2.25], B to [2.35, 6.85] on x-axis.
+    let mut s = two_car_scenario();
+    s.set_initial_position("ego", openscenario::Position::world(0.0, 0.0, 0.0, 0.0)).unwrap();
+    s.set_initial_position("npc", openscenario::Position::world(4.6, 0.0, 0.0, 0.0)).unwrap();
 }
 
 #[test]

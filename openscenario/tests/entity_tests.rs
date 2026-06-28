@@ -109,24 +109,13 @@ fn test_get_entity() {
 }
 
 #[test]
-fn bounding_box_radius_equals_half_diagonal() {
-    let bb = BoundingBox {
-        length: 4.0,
-        width: 2.0,
-        height: 1.5,
-    };
-    let expected = ((2.0f64).powi(2) + (1.0f64).powi(2)).sqrt();
-    assert!((bb.radius() - expected).abs() < 1e-9);
-}
-
-#[test]
-fn bounding_box_zero_dimensions_radius_is_zero() {
+fn bounding_box_zero_dimensions_length_is_zero() {
     let bb = BoundingBox {
         length: 0.0,
         width: 0.0,
         height: 0.0,
     };
-    assert_eq!(bb.radius(), 0.0);
+    assert_eq!(bb.length, 0.0);
 }
 
 #[test]
@@ -163,7 +152,7 @@ fn entity_default_bounding_box_vehicle() {
         },
     });
     let bb = entity.default_bounding_box();
-    assert!(bb.radius() > 0.0);
+    assert!(bb.length > 0.0);
 }
 
 #[test]
@@ -192,7 +181,7 @@ fn entity_default_bounding_box_misc_object() {
         },
     });
     let bb = entity.default_bounding_box();
-    assert!(bb.radius() > 0.0);
+    assert!(bb.length > 0.0);
 }
 
 fn car_params() -> VehicleParams {
