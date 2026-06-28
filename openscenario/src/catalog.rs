@@ -134,7 +134,7 @@ impl Catalog {
 
         if let Some(name) = entry_name {
             let (length, width, height) = dimensions;
-            let bounding_box = if length > 0.0 || width > 0.0 || height > 0.0 {
+            let bounding_box = if length > 0.0 && width > 0.0 && height > 0.0 {
                 Some(BoundingBox { length, width, height })
             } else {
                 None
